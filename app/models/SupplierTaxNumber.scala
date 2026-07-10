@@ -26,10 +26,12 @@ object SupplierTaxNumber extends Enumerable.Implicits {
 
   case object Vatregistrationnumber extends WithName("vatRegistrationNumber") with SupplierTaxNumber
   case object Taxidentifiernumber   extends WithName("taxIdentifierNumber") with SupplierTaxNumber
+  case object Neither               extends WithName("neither") with SupplierTaxNumber
 
   val values: Seq[SupplierTaxNumber] = Seq(
     Vatregistrationnumber,
-    Taxidentifiernumber
+    Taxidentifiernumber,
+    Neither
   )
 
   def options(implicit messages: Messages): Seq[RadioItem] = values.zipWithIndex.map { case (value, index) =>
