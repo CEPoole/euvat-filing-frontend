@@ -224,6 +224,9 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
         routes.JourneyRecoveryController.onPageLoad() // TODO - link to VAT registration number page once built
       case Some(SupplierTaxNumber.Taxidentifiernumber) =>
         routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)
+        routes.JourneyRecoveryController.onPageLoad() // TODO - link to tax identifier number page once built (Onder)
+      case Some(SupplierTaxNumber.Neither) =>
+        routes.PurchaseTypeController.onPageLoad(mode)
       case _ => routes.JourneyRecoveryController.onPageLoad()
     }
 

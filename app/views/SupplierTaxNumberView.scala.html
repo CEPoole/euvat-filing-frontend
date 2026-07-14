@@ -26,7 +26,7 @@ govukRadios: GovukRadios,
 govukButton: GovukButton
 )
 
-@(form: Form[_], mode: Mode, call: Call)(implicit request: Request[_], messages: Messages)
+@(form: Form[_], mode: Mode, call: Call, isSimplifiedInvoice: Boolean)(implicit request: Request[_], messages: Messages)
 @errored = @{form.error("value").isDefined}
 
 @layout(pageTitle = views.ViewUtils.title(form, messages("supplierTaxNumber.title")), backLinkUrl = Some(call.url)) {
@@ -73,6 +73,17 @@ govukButton: GovukButton
                 <div id="value_1-hint" class="govuk-hint govuk-radios__hint" >
                     @messages("supplierTaxNumber.taxIdentifierNumber.hint")
                 </div>
+                @if(isSimplifiedInvoice){
+                    <div class="govuk-radios__divider">@messages("site.or")</div>
+
+                    <div class="gov-uk-radios-item">
+                        <input class="govuk-radios__input" id="value_2" name="value" type="radio" value="neither"
+                               @if(form("value").value.contains("neither")){checked}>
+                        <label class="govuk-label govuk-radios__label" for="value_2">
+                            @messages("supplierTaxNumber.neither")
+                        </label>
+                    </div>
+                }
             </div>
 
         </div>

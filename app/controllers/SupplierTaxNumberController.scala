@@ -20,9 +20,9 @@ import controllers.actions.*
 import forms.SupplierTaxNumberFormProvider
 
 import javax.inject.Inject
-import models.{Mode, NormalMode, UserAnswers}
+import models.{InvoiceType, Mode, NormalMode, UserAnswers}
 import navigation.Navigator
-import pages.{RefundingCountryPage, SupplierTaxNumberPage}
+import pages.{InvoiceTypePage, RefundingCountryPage, SupplierTaxNumberPage}
 import play.api.Logger
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents, Result}
@@ -73,8 +73,8 @@ class SupplierTaxNumberController @Inject() (
         case None        => form
         case Some(value) => form.fill(value)
       }
-
-      Ok(view(preparedForm, mode, backLink))
+      val isSimplifiedInvoice: Boolean = request.userAnswers.get(InvoiceTypePage).contains(InvoiceType.SimplifiedInvoice)
+      Ok(view(preparedForm, mode, backLink, isSimplifiedInvoice))
     }
   }
 
@@ -83,10 +83,12 @@ class SupplierTaxNumberController @Inject() (
     requireGermany(request.userAnswers) match {
       case Some(result) => Future.successful(result)
       case None =>
+        val isSimplifiedInvoice: Boolean = request.userAnswers.get(InvoiceTypePage).contains(InvoiceType.SimplifiedInvoice)
+
         form
           .bindFromRequest()
           .fold(
-            formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink))),
+            formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink, isSimplifiedInvoice))),
             value =>
               for {
                 updatedAnswers <- Future.fromTry(request.userAnswers.set(SupplierTaxNumberPage, value))
