@@ -195,8 +195,8 @@ class NavigatorSpec extends SpecBase {
 
       "must go from SupplierTaxNumberPage to PurchaseTypeController if neither is selected" in {
         val ua = userAnswers.set(SupplierTaxNumberPage, SupplierTaxNumber.Neither).success.value
-        navigator.nextPage(SupplierTaxNumberPage, CheckMode, ua) mustBe
-          routes.PurchaseTypeController.onPageLoad(CheckMode)
+        navigator.nextPage(SupplierTaxNumberPage, NormalMode, ua) mustBe
+          routes.PurchaseTypeController.onPageLoad(NormalMode)
       }
 
       "must go from SupplierTaxNumberPage to JourneyRecoveryController if no answer is present" in {
