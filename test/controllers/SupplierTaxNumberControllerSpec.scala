@@ -67,7 +67,7 @@ class SupplierTaxNumberControllerSpec extends SpecBase with MockitoSugar {
 
       val simplifiedUserAnswers = germanUserAnswers.set(InvoiceTypePage, InvoiceType.SimplifiedInvoice).success.value
 
-      val application = applicationBuilder(userAnswers = Some(germanUserAnswers)).build()
+      val application = applicationBuilder(userAnswers = Some(simplifiedUserAnswers)).build()
 
       running(application) {
         val request = FakeRequest(GET, supplierTaxNumberRoute)
