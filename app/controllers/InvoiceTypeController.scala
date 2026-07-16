@@ -20,9 +20,13 @@ import controllers.actions.*
 import forms.InvoiceTypeFormProvider
 
 import javax.inject.Inject
-import models.{Mode, NormalMode}
+import models.Mode
 import navigation.Navigator
-import pages.InvoiceTypePage
+import pages.{InvoiceTypePage, PurchaseTypePage, PurchaseSubTypePage, PurchaseSubCategoryPage, PurchaseSubCategoryLabelPage, PurchaseSubTypeLabelPage, DescribeItemsOnInvoicePage}
+import models.requests.DataRequest
+import models.PurchaseType
+import models.PurchaseSubCategoryType
+import controllers.helpers.PurchaseBackLinkHelper
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import repositories.SessionRepository
@@ -43,21 +47,47 @@ class InvoiceTypeController @Inject() (
   val controllerComponents: MessagesControllerComponents,
   view: InvoiceTypeView
 )(implicit ec: ExecutionContext)
-    extends FrontendBaseController
-    with I18nSupport {
+  extends FrontendBaseController
+  with I18nSupport
+  with play.api.Logging {
 
   val form = formProvider()
 
-  private def backLink: Call = routes.PurchaseTypeController.onPageLoad(NormalMode)
+  /**
+   * Compute the back target Call without mutating session. Used to render the back link.
+   */
+  private def computeBackTarget(mode: Mode)(implicit request: DataRequest[?]): play.api.mvc.Call = {
+    try {
+      logger.info(s"InvoiceTypeController.backLink - purchaseType=${request.userAnswers.get(PurchaseTypePage)}, parent=${request.userAnswers.get(PurchaseSubTypePage)}, child=${request.userAnswers.get(PurchaseSubCategoryPage)}")
+    } catch { case _: Throwable => }
 
-  def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
+    // Only route back to Describe Items when PurchaseType is Other and the
+    // chosen sub-category indicates "None of these" (sentinel 99).
+    val isOtherWithNoneSelected: Boolean = request.userAnswers.get(PurchaseTypePage).contains(PurchaseType.Other) && {
+      val childIsNone = request.userAnswers.get(PurchaseSubCategoryPage).exists(v => v.split("\\.").lastOption.contains("99"))
+      val parentIsNone = request.userAnswers.get(PurchaseSubTypePage).exists(v => v.split("\\.").lastOption.contains("99"))
+      childIsNone || parentIsNone
+    }
 
+    if (isOtherWithNoneSelected) controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(mode)
+    else PurchaseBackLinkHelper.computeBackTarget(mode)
+  }
+
+  /**
+   * Back-link endpoint: when the user clicks the back link this endpoint is hit, clears the
+   * appropriate session keys and then redirects to the computed target. This ensures clearing
+   * happens at the click moment instead of when InvoiceType is rendered.
+   */
+
+
+  def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
     val preparedForm = request.userAnswers.get(InvoiceTypePage) match {
       case None        => form
       case Some(value) => form.fill(value)
     }
 
-    Ok(view(preparedForm, mode, backLink))
+    val back = computeBackTarget(mode)
+    Future.successful(Ok(view(preparedForm, mode, back)))
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
@@ -65,7 +95,9 @@ class InvoiceTypeController @Inject() (
     form
       .bindFromRequest()
       .fold(
-        formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink))),
+              formWithErrors =>
+                // render errors
+                Future.successful(BadRequest(view(formWithErrors, mode, computeBackTarget(mode)))),
         value =>
           for {
             updatedAnswers <- Future.fromTry(request.userAnswers.set(InvoiceTypePage, value))

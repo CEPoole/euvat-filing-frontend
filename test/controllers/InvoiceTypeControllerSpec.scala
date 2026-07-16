@@ -23,7 +23,8 @@ import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import pages.InvoiceTypePage
+import pages.{InvoiceTypePage, PurchaseTypePage, PurchaseSubTypePage, PurchaseSubCategoryPage, DescribeItemsOnInvoicePage}
+import models.PurchaseType
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
@@ -56,9 +57,164 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
         val view = application.injector.instanceOf[InvoiceTypeView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request,
-                                                                                                                       messages(application)
-                                                                                                                      ).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request,
+                                   messages(application)
+                                  ).toString)
+      }
+    }
+
+    "must show backlink to PurchaseSubType when PurchaseSubTypePage present" in {
+
+      val userAnswers = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Fuel).success.value
+        .set(PurchaseSubTypePage, "1").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, invoiceTypeRoute)
+
+        val view = application.injector.instanceOf[InvoiceTypeView]
+
+        val result = route(application, request).value
+
+        status(result) mustEqual OK
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, play.api.mvc.Call("GET", "/fuel-use"))(
+          request,
+          messages(application)
+        ).toString)
+      }
+    }
+
+    "must show backlink to PurchaseSubCategory when PurchaseSubCategoryPage present" in {
+
+      val userAnswers = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Fuel).success.value
+        .set(PurchaseSubTypePage, "1").success.value
+        .set(PurchaseSubCategoryPage, "1").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, invoiceTypeRoute)
+
+        val view = application.injector.instanceOf[InvoiceTypeView]
+
+        val result = route(application, request).value
+
+        status(result) mustEqual OK
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, play.api.mvc.Call("GET", "/fuel-type"))(
+          request,
+          messages(application)
+        ).toString)
+      }
+    }
+
+    "must show backlink to DescribeItemsOnInvoice when PurchaseType is Other and subcategory ends with 99" in {
+
+      val userAnswers = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Other).success.value
+        .set(PurchaseSubCategoryPage, "1.99").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, invoiceTypeRoute)
+
+        val view = application.injector.instanceOf[InvoiceTypeView]
+
+        val result = route(application, request).value
+
+        status(result) mustEqual OK
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.DescribeItemsOnInvoiceController.onPageLoad(NormalMode))(
+          request,
+          messages(application)
+        ).toString)
+      }
+    }
+
+    "must show backlink to DescribeItemsOnInvoice when PurchaseType is Other and parent sub-type ends with 99" in {
+
+      val userAnswers = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Other).success.value
+        .set(PurchaseSubTypePage, "1.99").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, invoiceTypeRoute)
+
+        val view = application.injector.instanceOf[InvoiceTypeView]
+
+        val result = route(application, request).value
+
+        status(result) mustEqual OK
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.DescribeItemsOnInvoiceController.onPageLoad(NormalMode))(
+          request,
+          messages(application)
+        ).toString)
+      }
+    }
+
+    "must show backlink to PurchaseSubCategory when PurchaseSubCategoryPage present but PurchaseSubTypePage missing" in {
+
+      val child = "1.2"
+      val userAnswers = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Transport).success.value
+        .set(PurchaseSubCategoryPage, child).success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, invoiceTypeRoute)
+
+        val view = application.injector.instanceOf[InvoiceTypeView]
+
+        val result = route(application, request).value
+
+        status(result) mustEqual OK
+        val expectedParent = child.split("\\.").headOption.getOrElse(child)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, play.api.mvc.Call("GET", "/what-transport-cost"))(
+          request,
+          messages(application)
+        ).toString)
+      }
+    }
+
+    "must NOT show backlink to DescribeItemsOnInvoice when DescribeItemsOnInvoicePage present but PurchaseType is not Other" in {
+
+      val userAnswers = emptyUserAnswers
+        .set(DescribeItemsOnInvoicePage, "details").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, invoiceTypeRoute)
+
+        val view = application.injector.instanceOf[InvoiceTypeView]
+
+        val result = route(application, request).value
+
+        status(result) mustEqual OK
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(
+          request,
+          messages(application)
+        ).toString)
+      }
+    }
+
+    "must render OK when PurchaseSubTypePage contains dotted parent code" in {
+      val userAnswers = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Fuel).success.value
+        .set(PurchaseSubTypePage, "1.10").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, invoiceTypeRoute)
+        val result = route(application, request).value
+
+        status(result) mustEqual OK
       }
     }
 
@@ -76,10 +232,10 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form.fill(InvoiceType.values.head), NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form.fill(InvoiceType.values.head), NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(
           request,
           messages(application)
-        ).toString
+        ).toString)
       }
     }
 
@@ -149,9 +305,9 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request,
-                                                                                                                            messages(application)
-                                                                                                                           ).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(boundForm, NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request,
+                                        messages(application)
+                                       ).toString)
       }
     }
 

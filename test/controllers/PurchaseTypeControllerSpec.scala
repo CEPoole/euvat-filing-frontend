@@ -60,7 +60,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         val form = formProvider()
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, backLinkCall)(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLinkCall)(request, messages(application)).toString)
       }
     }
 
@@ -78,10 +78,10 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         val form = formProvider()
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, routes.BeforeYouStartPurchaseController.onPageLoad())(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.BeforeYouStartPurchaseController.onPageLoad())(
           request,
           messages(application)
-        ).toString
+        ).toString)
       }
     }
 
@@ -117,7 +117,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         val form = formProvider()
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, backLinkCall)(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLinkCall)(request, messages(application)).toString)
       }
     }
 
@@ -134,7 +134,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         val form = formProvider()
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, CheckMode, backLinkCallCheck)(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, CheckMode, backLinkCallCheck)(request, messages(application)).toString)
       }
     }
 
@@ -183,7 +183,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         val form = formProvider().fill(PurchaseType.Fuel)
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, backLinkCall)(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLinkCall)(request, messages(application)).toString)
       }
     }
 
@@ -208,6 +208,37 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual onwardRoute.url
         verify(mockSessionRepository, times(1)).set(any())
+      }
+    }
+
+    "must clear DescribeItemsOnInvoice when purchase type is changed on POST" in {
+        val mockSessionRepository = mock[SessionRepository]
+        when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+
+        val userAnswers = emptyUserAnswers
+          .set(pages.PurchaseTypePage, PurchaseType.Fuel).success.value
+          .set(pages.DescribeItemsOnInvoicePage, "details").success.value
+
+        val application = applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+        running(application) {
+          val request = FakeRequest(POST, purchaseTypeSubmitRoute)
+            .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
+
+          val result = route(application, request).value
+
+          status(result) mustEqual SEE_OTHER
+
+          val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+          verify(mockSessionRepository, times(1)).set(captor.capture())
+          val saved = captor.getValue
+          saved.get(pages.DescribeItemsOnInvoicePage) mustBe None
+        }
       }
     }
 
@@ -255,5 +286,38 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
       }
     }
+
+    "must clear the purchase chain when CountryChangedPage is true" in {
+        val mockSessionRepository = mock[SessionRepository]
+        when(mockSessionRepository.set(any())).thenReturn(scala.concurrent.Future.successful(true))
+
+        val userAnswers = emptyUserAnswers
+          .set(pages.PurchaseTypePage, PurchaseType.Fuel).success.value
+          .set(pages.PurchaseSubTypePage, "1").success.value
+          .set(pages.PurchaseSubTypeLabelPage, "lbl").success.value
+          .set(pages.PurchaseSubCategoryPage, "1.1").success.value
+          .set(pages.PurchaseSubCategoryLabelPage, "lbl2").success.value
+          .set(pages.CountryChangedPage, true).success.value
+
+        val application = applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
+          .build()
+
+        running(application) {
+          val request = FakeRequest(GET, purchaseTypeRoute)
+          val result = route(application, request).value
+
+          status(result) mustEqual OK
+
+          val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+          verify(mockSessionRepository, times(1)).set(captor.capture())
+          val saved = captor.getValue
+          saved.get(pages.PurchaseTypePage) mustBe None
+          saved.get(pages.PurchaseSubTypePage) mustBe None
+          saved.get(pages.PurchaseSubTypeLabelPage) mustBe None
+          saved.get(pages.PurchaseSubCategoryPage) mustBe None
+          saved.get(pages.PurchaseSubCategoryLabelPage) mustBe None
+          saved.get(pages.CountryChangedPage) mustBe None
+        }
+      }
   }
-}

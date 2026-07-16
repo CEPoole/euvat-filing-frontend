@@ -149,7 +149,7 @@ class RefundingCountryController @Inject() (
                 val formWithError = form.fill(value).withError("value", "refundingCountry.error.duplicate")
                 Future.successful(BadRequest(view(formWithError, countries, routes.TaskListDashboardController.onPageLoad(), mode)))
               } else {
-                // no duplicates - proceed with previous save flow
+                // no duplicates - proceed with save flow (note: on country change only clear language/currency)
                 for {
                   updatedAnswers0 <- Future.fromTry(baseAnswers.set(RefundingCountryPage, value))
                   updatedAnswers1 <- Future.fromTry(updatedAnswers0.set(RefundingCountryNamePage, name))
@@ -179,7 +179,6 @@ class RefundingCountryController @Inject() (
               }
             }
           }
-
           result
         }
       )

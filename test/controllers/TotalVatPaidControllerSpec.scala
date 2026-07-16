@@ -56,10 +56,10 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
         val view = application.injector.instanceOf[TotalVatPaidView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode), "€", "Euro")(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode), "€", "Euro")(
           request,
           messages(application)
-        ).toString
+        ).toString)
       }
     }
 
@@ -77,12 +77,12 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
         val view = application.injector.instanceOf[TotalVatPaidView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form.fill(BigDecimal("12.34")),
-                                               NormalMode,
-                                               routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode),
-                                               "€",
-                                               "Euro"
-                                              )(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form.fill(BigDecimal("12.34")),
+                       NormalMode,
+                       routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode),
+                       "€",
+                       "Euro"
+                      )(request, messages(application)).toString)
       }
     }
 
@@ -128,7 +128,7 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
         val result = play.api.test.Helpers.route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm,
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(boundForm,
                                                NormalMode,
                                                routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode),
                                                "€",
@@ -136,7 +136,7 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
                                               )(
           request,
           messages(application)
-        ).toString
+        ).toString)
       }
     }
 

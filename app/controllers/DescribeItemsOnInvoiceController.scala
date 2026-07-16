@@ -21,7 +21,13 @@ import forms.DescribeItemsOnInvoiceFormProvider
 import javax.inject.Inject
 import models.Mode
 import navigation.Navigator
-import pages.DescribeItemsOnInvoicePage
+import pages.{DescribeItemsOnInvoicePage, PurchaseTypePage, PurchaseSubTypePage, PurchaseSubCategoryPage}
+import play.api.mvc.Call
+import scala.util.Try
+import models.requests.DataRequest
+import models.PurchaseSubCategoryType
+import models.PurchaseType
+import controllers.helpers.PurchaseBackLinkHelper
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import repositories.SessionRepository
@@ -46,20 +52,24 @@ class DescribeItemsOnInvoiceController @Inject() (
 
   val form = formProvider()
 
+  private def computeBackTarget(mode: Mode)(implicit request: DataRequest[?]): Call =
+    PurchaseBackLinkHelper.computeBackTarget(mode)
+
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     val preparedForm = request.userAnswers.get(DescribeItemsOnInvoicePage) match {
       case None        => form
       case Some(value) => form.fill(value)
     }
 
-    Ok(view(preparedForm, mode))
+    Ok(view(preparedForm, mode, computeBackTarget(mode)))
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
     form
       .bindFromRequest()
       .fold(
-        formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode))),
+        formWithErrors =>
+          Future.successful(BadRequest(view(formWithErrors, mode, computeBackTarget(mode)))) ,
         value =>
           for {
             updatedAnswers <- Future.fromTry(request.userAnswers.set(DescribeItemsOnInvoicePage, value))
