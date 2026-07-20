@@ -184,7 +184,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
     userAnswers.get(InvoiceTypePage) match {
       case Some(InvoiceType.StandardInvoice) => routes.InvoiceNumberController.onPageLoad(mode)
       case Some(InvoiceType.SimplifiedInvoice) =>
-        routes.JourneyRecoveryController.onPageLoad() // TODO - link to navigate to simp.invoicevatregcheck page
+        routes.InvoiceNumberController.onPageLoad(mode)
       case _ => routes.JourneyRecoveryController.onPageLoad()
     }
 

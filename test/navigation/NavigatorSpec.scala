@@ -122,10 +122,10 @@ class NavigatorSpec extends SpecBase {
           routes.InvoiceNumberController.onPageLoad(NormalMode)
       }
 
-      "must go from InvoiceTypePage to JourneyRecoveryController if simplified invoice is selected" in {
+      "must go from InvoiceTypePage to InvoiceNumberController if simplified invoice is selected" in {
         val ua = userAnswers.set(InvoiceTypePage, InvoiceType.SimplifiedInvoice).success.value
         navigator.nextPage(InvoiceTypePage, NormalMode, ua) mustBe
-          routes.JourneyRecoveryController.onPageLoad()
+          routes.InvoiceNumberController.onPageLoad(NormalMode)
       }
 
       "must go from BusinessActivityTwoPage to CheckYourClaimDetailsPage if no selected" in {
@@ -357,10 +357,10 @@ class NavigatorSpec extends SpecBase {
           routes.InvoiceNumberController.onPageLoad(CheckMode)
       }
 
-      "must go from InvoiceTypePage to JourneyRecoveryController if simplified invoice is selected" in {
+      "must go from InvoiceTypePage to InvoiceNumberController if simplified invoice is selected" in {
         val ua = userAnswers.set(InvoiceTypePage, InvoiceType.SimplifiedInvoice).success.value
         navigator.nextPage(InvoiceTypePage, CheckMode, ua) mustBe
-          routes.JourneyRecoveryController.onPageLoad()
+          routes.InvoiceNumberController.onPageLoad(CheckMode)
       }
 
       "must go from PurchaseTypePage to DescribeItemsOnInvoiceController" in {
