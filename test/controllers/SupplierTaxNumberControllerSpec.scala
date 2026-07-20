@@ -128,6 +128,59 @@ class SupplierTaxNumberControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "must redirect to the next page when valid data is submitted and invoice type is simplified" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val simplifiedUserAnswers = germanUserAnswers.set(InvoiceTypePage, InvoiceType.SimplifiedInvoice).success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(simplifiedUserAnswers))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, supplierTaxNumberRoute)
+            .withFormUrlEncodedBody(("value", SupplierTaxNumber.values.head.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual onwardRoute.url
+      }
+    }
+
+    "must return a Bad Request and errors when invalid data is submitted and invoice type is simplified" in {
+
+      val simplifiedUserAnswers = germanUserAnswers.set(InvoiceTypePage, InvoiceType.SimplifiedInvoice).success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(simplifiedUserAnswers))
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, supplierTaxNumberRoute)
+            .withFormUrlEncodedBody(("value", "invalid value"))
+
+        val boundForm = form.bind(Map("value" -> "invalid value"))
+
+        val view = application.injector.instanceOf[SupplierTaxNumberView]
+
+        val result = route(application, request).value
+
+        status(result) mustEqual BAD_REQUEST
+        contentAsString(result) mustEqual
+          view(boundForm, NormalMode, backLink, isSimplifiedInvoice = true)(request, messages(application)).toString
+      }
+    }
+
     "must return a Bad Request and errors when invalid data is submitted" in {
 
       val application = applicationBuilder(userAnswers = Some(germanUserAnswers)).build()
