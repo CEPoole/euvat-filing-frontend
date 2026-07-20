@@ -40,14 +40,11 @@
             @govukErrorSummary(ErrorSummaryViewModel(form, errorLinkOverrides = errorLinkOverrides))
         }
 
-    <h2 class="govuk-caption-l hmrc-caption-l">
-      <span class="govuk-visually-hidden">This section is: </span>@messages("claim.caption.add")
-    </h2>
-    <h1 class="govuk-heading-l">@messages("refundPeriod.heading")</h1>
-
-    <p class="govuk-body">
-      @messages("refundPeriod.rules.heading")
-    </p>
+    <h1 class="govuk-heading-l">
+        <span class="govuk-caption-l">@messages("claim.caption.add")</span>
+        @messages("refundPeriod.heading")
+    </h1>
+    <p class="govuk-body">@messages("refundPeriod.rules.heading")</p>
 
     <ul class="govuk-list govuk-list--bullet">
       <li>@messages("refundPeriod.rule.1")</li>

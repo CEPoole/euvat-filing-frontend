@@ -41,8 +41,10 @@
         @mainErrorSummary(form, Map("value" -> (form("value").id + "-input")))
 
         <div class="govuk-form-group @if(isError){govuk-form-group--error}">
-            <h2 class="govuk-caption-l hmrc-caption-l"><span class="govuk-visually-hidden">This section is: </span>@messages("claim.caption.add")</h2>
-            <h1 id="refunding-country-heading" class="govuk-heading-l">@messages("refundingCountry.heading")</h1>
+            <h1 class="govuk-heading-l">
+                <span class="govuk-caption-l">@messages("claim.caption.add")</span>
+                @messages("refundingCountry.heading")
+            </h1>
 
             @govukSelect(
             Select(

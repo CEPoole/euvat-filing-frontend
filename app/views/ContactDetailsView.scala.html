@@ -32,11 +32,11 @@
 
     @formHelper(action = routes.ContactDetailsController.onSubmit(mode), Symbol("novalidate") -> "novalidate") {
         @mainErrorSummary(form)
+        <h1 class="govuk-heading-l">
+            <span class="govuk-caption-l">@messages("claim.caption.add")</span>
+            @messages("contactDetails.heading")
+        </h1>
 
-        <span class="govuk-caption-l hmrc-caption-l">
-            <span class="govuk-visually-hidden">This section is: </span>@messages("claim.caption.add")
-        </span>
-        <h1 class="govuk-heading-l">@messages("contactDetails.heading")</h1>
         @govukInput(
             InputViewModel(
                 field = form("contactEmail"),
