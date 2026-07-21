@@ -179,7 +179,7 @@ class RefundPeriodController @Inject() (
             updatedAnswer1 <- Future.fromTry(request.userAnswers.set(TraderKnownFactsQuery, traderResponse))
             updatedAnswer2 <- Future.fromTry(updatedAnswer1.set(RefundPeriodPage, refundPeriod))
             _              <- sessionRepository.set(updatedAnswer2)
-          } yield Redirect(controllers.routes.PeriodOverlapWarningController.onPageLoad(mode))
+          } yield Redirect(controllers.routes.PeriodOverlapWarningController.onPageLoad())
         } else {
           logger.info(s"F5 overlap check: no overlapping applications found, startDate=$startDate, endDate=$endDate")
           saveAndRedirect(traderResponse, startDate, endDate, mode)
