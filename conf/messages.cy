@@ -155,6 +155,12 @@ refundPeriod.error.startAndEndInSameYear = Refund period start date and end date
 refundPeriod.error.overlap = Refund period cannot overlap with another claim for the same EU member state.
 refundPeriod.error.periodNotLessThan3Months = Refund period must be at least 3 months long unless the period ends in December
 
+periodOverlapWarning.title = Are you sure the refund period is correct?
+periodOverlapWarning.heading = Are you sure the refund period is correct?
+periodOverlapWarning.p = You’ve told us the refund period is the same period used for another claim. The refund period must not overlap with another claim for the same EU member state.
+periodOverlapWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
+periodOverlapWarning.backLink = Go back
+
 contactDetails.title = How should we contact you about this claim?
 contactDetails.heading = How should we contact you about this claim?
 contactDetails.contactEmail.label = Email address
