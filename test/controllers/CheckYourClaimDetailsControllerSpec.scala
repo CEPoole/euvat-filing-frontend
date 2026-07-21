@@ -372,6 +372,24 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
       }
     }
 
+    "must NOT call createApplication or sessionRepository when post-submission and not amended" in {
+      val mockSessionRepository = mock[SessionRepository]
+      val ua = emptyUserAnswers.set(pages.ClaimDetailsCompletedPage, true).success.value
+
+      val application = applicationBuilder(userAnswers = Some(ua))
+        .overrides(
+          bind[SessionRepository].toInstance(mockSessionRepository),
+          bind[EuVatRefundsService].toInstance(mockService)
+        ).build()
+
+      running(application) {
+        val result = route(application, FakeRequest(POST, routes.CheckYourClaimDetailsController.onSubmit().url)).value
+        status(result) mustEqual SEE_OTHER
+        verify(mockService, never()).createApplication(any())(any())
+        verify(mockSessionRepository, never()).set(any())
+      }
+    }
+
     "must clear ClaimDetailsAmendedPage on submit when post submission" in {
       val mockSessionRepository = mock[SessionRepository]
 

@@ -62,18 +62,20 @@ class CheckYourClaimDetailsController @Inject() (
 
   def onSubmit(): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
     val isPostSubmission = request.userAnswers.get(pages.ClaimDetailsCompletedPage).contains(true)
+    val isAmended = request.userAnswers.get(pages.ClaimDetailsAmendedPage).contains(true)
 
-    (
-      for {
-        flaggedAnswers <- Future.fromTry {
-                            if (!isPostSubmission) {
-                              request.userAnswers.set(ClaimDetailsCompletedPage, true)
-                            } else {
-                              request.userAnswers.remove(pages.ClaimDetailsAmendedPage)
-                            }
-                          }
-        appRequest <- buildAppRequest(flaggedAnswers)
-        result <- service.retrieveTraderKnownFacts().flatMap { traderFacts =>
+    if (!isPostSubmission || isAmended) {
+      (
+        for {
+          flaggedAnswers <- Future.fromTry {
+            if (!isPostSubmission) {
+              request.userAnswers.set(ClaimDetailsCompletedPage, true)
+            } else {
+              request.userAnswers.remove(pages.ClaimDetailsAmendedPage)
+            }
+          }
+          appRequest <- buildAppRequest(flaggedAnswers)
+          result <- service.retrieveTraderKnownFacts().flatMap { traderFacts =>
                     implicit val hc = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
                     val latestReq = LatestApplicationRequest(
                       applicantVatRegNumber = traderFacts.vatRegNumber.toString,
@@ -94,25 +96,27 @@ class CheckYourClaimDetailsController @Inject() (
                         statusIsD || submissionIsNull
                       }
 
-                      if (isDuplicate) Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
-                      else {
-                        for {
-                          claimResponse  <- service.createApplication(appRequest)
-                          updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
-                          _              <- sessionRepository.set(updatedAnswers)
-                        } yield {
-                          if (claimResponse.applicationId > 0) Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
-                          else Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
-                        }
-                      }
-                    }
-                  }
+                              if (isDuplicate) Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
+                              else {
+                                for {claimResponse  <- service.createApplication(appRequest)
+          updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
+          _              <- sessionRepository.set(updatedAnswers)
+        } yield {
+          if (claimResponse.applicationId > 0)
+            Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
+           else
+            Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
+          }}
+                          }
       } yield result
-    )
-      .recover { case ex: Exception =>
+        }
+        ).recover { case ex: Exception =>
         logger.error("Error while saving the refund application", ex)
         Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
       }
+    } else {
+      Future.successful(Redirect(controllers.routes.TaskListDashboardController.onPageLoad()))
+    }
   }
 
   private def buildSummaryList(
