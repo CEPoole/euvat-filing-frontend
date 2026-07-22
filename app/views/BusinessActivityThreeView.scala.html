@@ -30,7 +30,7 @@
 @layout(pageTitle = titleNoForm(messages("businessActivityThree.title")), backLinkUrl = Some(routes.BusinessActivityCodeThreeController.onPageLoad(NormalMode).url)) {
     @formHelper(action = routes.BusinessActivityThreeController.onSubmit()) {
         <h1 class="govuk-heading-l">
-            <span class="govuk-caption-l">@messages("claim.caption.add")</span>
+            <span class="govuk-caption-l">@messages("claim.caption")</span>
             @messages("businessActivityThree.heading")
         </h1>
         @govukInsetText(InsetText(

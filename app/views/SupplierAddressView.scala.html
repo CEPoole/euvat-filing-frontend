@@ -31,11 +31,10 @@
 @layout(pageTitle = views.ViewUtils.title(form, "supplierAddress.title"), backLinkUrl = Some(call.url)) {
     @formHelper(action = routes.SupplierAddressController.onSubmit(mode), Symbol("novalidate") -> "novalidate") {
         @mainErrorSummary(form, Map("addressLine1" -> "addressLine1", "addressLine2" -> "addressLine2", "addressLine3" -> "addressLine3"))
-
-        <h2 class="govuk-caption-l hmrc-caption-l"><span class="govuk-visually-hidden">This section is: </span>@messages("purchase.caption.add")</h2>
-
-        <h1 class="govuk-heading-l">@messages("supplierAddress.heading")</h1>
-
+        <h1 class="govuk-heading-l">
+            <span class="govuk-caption-l">@messages("purchase.caption")</span>
+            @messages("supplierAddress.heading")
+        </h1>
         <p class="govuk-body">@messages("supplierAddress.lead")</p>
 
         @govukInput(

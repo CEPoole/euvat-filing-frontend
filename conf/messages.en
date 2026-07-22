@@ -44,9 +44,9 @@ unauthorised.title = You can’t access this service with this account
 unauthorised.heading = You can’t access this service with this account
 unauthorised.guidance = You do not have access to this service.
 
-claim.caption.add = Claim details
+claim.caption = Claim details
 caption.hidden.text = This section is:
-purchase.caption.add = Purchase details
+purchase.caption = Purchase details
 
 taskListDashboard.title = Make a claim for an EU VAT refund
 taskListDashboard.heading = Make a claim for an EU VAT refund
@@ -60,7 +60,6 @@ taskListDashboard.status1 = Not yet started
 taskListDashboard.status2 = Cannot start yet
 taskListDashboard.status3 = Completed
 taskListDashboard.listItem1.completed = View claim details
-taskListDashboard.dashboardLink = Go to the claims dashboard
 taskListDashboard.dashboardLink = Return to Claim an EU VAT refund
 taskListDashboard.errorSummary1 = There is a problem
 taskListDashboard.errorSummary2 = Select add claim details to start a claim
@@ -254,7 +253,6 @@ beforeYouStart.bullet3 = purchase type
 beforeYouStart.bullet4 = VAT amounts
 
 invoiceType.title = Invoice type
-invoiceType.caption = Purchase details
 invoiceType.heading = Invoice type
 invoiceType.lead = You will need a valid VAT invoice or receipt. You cannot use statements, orders, letters, emails or other general correspondence to claim VAT.
 invoiceType.h2 = What type of invoice do you have?
@@ -274,7 +272,6 @@ suppliersName.change.hidden = Change supplier’s name
 
 supplierTaxNumber.title = Select the supplier tax numbers shown on the invoice
 supplierTaxNumber.heading = Select the supplier tax numbers shown on the invoice
-supplierTaxNumber.caption = Purchase details
 supplierTaxNumber.vatRegistrationNumber = VAT registration number (also known as Umsatzsteuer-Identifikationsnummer)
 supplierTaxNumber.vatRegistrationNumber.hint = This is usually 11 characters and starts with DE, for example DE123456789
 supplierTaxNumber.taxIdentifierNumber = Tax identifier number (also known as Steuernummer)
@@ -316,9 +313,8 @@ totalVatClaim.p1 = This is the amount of VAT you are entitled to claim back. It 
 totalVatClaim.h2 = How much VAT are you claiming?
 totalVatClaim.hint = For example, {0}150 or {0}120.45
 totalVatClaim.error.required = Enter the total amount of VAT you’re claiming
-totalVatClaim.error.invalidNumeric = Total VAT claim must be 15 numbers or less
-totalVatClaim.error.nonNumeric =  Enter total VAT claim in the correct format
 totalVatClaim.error.invalidNumeric = Enter total VAT claim in the correct format
+totalVatClaim.error.nonNumeric =  Enter total VAT claim in the correct format
 totalVatClaim.error.aboveMaximum = Total VAT claim must be between -999,999,999.99 and 999,999,999.99
 
 supplierAddress.title = What is the supplier’s address?
@@ -327,9 +323,6 @@ supplierAddress.lead = Enter the supplier’s address as it appears on the invoi
 supplierAddress.line1.label = Address line 1
 supplierAddress.line2.label = Address line 2 (optional)
 supplierAddress.line3.label = Address line 3 (optional)
-supplierAddress.line1.label.short = Address line 1
-supplierAddress.line2.label.short = Address line 2
-supplierAddress.line3.label.short = Address line 3
 supplierAddress.error.line1.required = Enter address line 1, typically the building and street
 supplierAddress.error.maxLength = must be 35 characters or less
 supplierAddress.error.maxLength.withLabel = {0} {1}

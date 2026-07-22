@@ -14,7 +14,7 @@
  * limitations under the License.
  *@
 
-@import uk.gov.hmrc.govukfrontend.views.html.components._
+@import uk.gov.hmrc.govukfrontend.views.html.components.*
 @import uk.gov.hmrc.govukfrontend.views.viewmodels.content.HtmlContent
 @import views.html.components.MainErrorSummary
 
@@ -33,12 +33,10 @@
 
     @formHelper(action = routes.InvoiceTypeController.onSubmit(mode)) {
         @mainErrorSummary(form, Map("standard invoice" -> "value_0"))
-
-        <span class="govuk-caption-l hmrc-caption-l">
-            <span class="govuk-visually-hidden">This section is: </span>@messages("invoiceType.caption")
-        </span>
-
-        <h1 class="govuk-heading-l">@messages("invoiceType.heading")</h1>
+        <h1 class="govuk-heading-l">
+            <span class="govuk-caption-l">@messages("purchase.caption")</span>
+            @messages("invoiceType.heading")
+        </h1>
 
         <p class="govuk-body-m">@messages("invoiceType.lead")</p>
 
@@ -57,7 +55,6 @@
                 }
 
                <div class="govuk-radios" data-module="govuk-radios">
-
                     <div class="govuk-radios__item">
                         <input class="govuk-radios__input" id="value" name="value" type="radio" value="standard invoice"
                                aria-describedby="value_0-hint"
@@ -81,7 +78,6 @@
                            @messages("invoiceType.simplifiedInvoice.hint")
                        </div>
                    </div>
-
                </div>
             </fieldset>
         </div>

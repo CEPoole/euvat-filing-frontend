@@ -40,8 +40,7 @@
   @formHelper(action = actionCall) {
 
         @mainErrorSummary(form, Map("value" -> "value"))
-
-        <h2 class="govuk-caption-l hmrc-caption-l"><span class="govuk-visually-hidden">This section is: </span>@messages("claim.caption.add")</h2>
+        <span class="govuk-caption-l">@messages("claim.caption")</span>
 
         @{
             govukRadios(

@@ -33,35 +33,32 @@
         @if(form.errors.nonEmpty) {
             @govukErrorSummary(ErrorSummaryViewModel(form))
         }
-            <div class="govuk-form-group @if(isError){govuk-form-group--error}">
-                <span class="govuk-caption-l">
-                    <span class="govuk-visually-hidden">This section is: </span>
-                    @messages("purchase.caption.add")
-                </span>
+        <div class="govuk-form-group @if(isError){govuk-form-group--error}">
+            <span class="govuk-caption-l">@messages("purchase.caption")</span>
 
-                @govukRadios(
-                    RadiosViewModel(
-                        field = form("value"),
-                        legend = Legend(
-                            content = Text(messages("simplifiedInvoiceVatRegCheck.heading")),
-                            classes = "govuk-fieldset__legend--l",
-                            isPageHeading = true
+            @govukRadios(
+                RadiosViewModel(
+                    field = form("value"),
+                    legend = Legend(
+                        content = Text(messages("simplifiedInvoiceVatRegCheck.heading")),
+                        classes = "govuk-fieldset__legend--l",
+                        isPageHeading = true
+                    ),
+                    items = Seq(
+                        RadioItem(
+                            id      = Some("value"),
+                            value   = Some("true"),
+                            content = Text(messages("site.yes"))
                         ),
-                        items = Seq(
-                            RadioItem(
-                                id      = Some("value"),
-                                value   = Some("true"),
-                                content = Text(messages("site.yes"))
-                            ),
-                            RadioItem(
-                                id      = Some("value-2"),
-                                value   = Some("false"),
-                                content = Text(messages("site.no"))
-                                )
+                        RadioItem(
+                            id      = Some("value-2"),
+                            value   = Some("false"),
+                            content = Text(messages("site.no"))
                             )
-                    ).withHint(HintViewModel(messages("simplifiedInvoiceVatRegCheck.hint")))
-                )
-            </div>
+                        )
+                ).withHint(HintViewModel(messages("simplifiedInvoiceVatRegCheck.hint")))
+            )
+        </div>
 
         @govukButton(
             ButtonViewModel(messages("site.continue"))
