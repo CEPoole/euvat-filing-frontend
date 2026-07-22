@@ -34,14 +34,15 @@ govukButton: GovukButton
 @formHelper(action = routes.SupplierTaxNumberController.onSubmit(mode)) {
 @mainErrorSummary(form, Map.empty)
 
-<span class="govuk-caption-l hmrc-caption-l">
-            <span class="govuk-visually-hidden">This section is: </span>@messages("supplierTaxNumber.caption")
-        </span>
-
-<h1 class="govuk-heading-l">@messages("supplierTaxNumber.heading")</h1>
-
 <div class="govuk-form-group @if(errored){govuk-form-group--error}">
     <fieldset class="govuk-fieldset" @if(errored){aria-describedby="value-error"}>
+
+        <legend class="govuk-fieldset__legend govuk-fieldset__legend--l">
+            <span class="govuk-caption-l hmrc-caption-l">
+                <span class="govuk-visually-hidden">This section is: </span>@messages("supplierTaxNumber.caption")
+            </span>
+            <h1 class="govuk-fieldset__heading">@messages("supplierTaxNumber.heading")</h1>
+        </legend>
 
         @form.error("value").map { e =>
         <p id="value-error" class="govuk-error-message">
