@@ -122,6 +122,10 @@ class RefundingLanguageController @Inject() (
           }
         ,
         value =>
+          val isChanged = request.userAnswers.get(RefundingLanguagePage) match {
+            case Some(existing) => existing != value
+            case None           => true
+          }
           val maybeCountryCode = request.userAnswers.get(pages.RefundingCountryPage).orElse {
             request.userAnswers.get(pages.RefundingCountryNamePage).map { stored =>
               stored.split(",", 2).headOption.getOrElse(stored)
@@ -139,8 +143,12 @@ class RefundingLanguageController @Inject() (
                                  case Some(currencyCode) => Future.fromTry(updatedAnswers.set(RefundingCurrencyPage, currencyCode))
                                  case None               => Future.successful(updatedAnswers)
                                }
-            _ <- sessionRepository.set(updatedAnswers2)
-          } yield Redirect(navigator.nextPage(RefundingLanguagePage, mode, updatedAnswers2))
+            updatedAnswers3 <- if (isChanged && request.userAnswers.get(pages.ClaimDetailsCompletedPage).contains(true))
+                                 Future.fromTry(updatedAnswers2.set(pages.ClaimDetailsAmendedPage, true))
+                               else
+                                 Future.successful(updatedAnswers2)
+            _ <- sessionRepository.set(updatedAnswers3)
+          } yield Redirect(navigator.nextPage(RefundingLanguagePage, mode, updatedAnswers3))
       )
   }
 }

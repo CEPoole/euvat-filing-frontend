@@ -178,5 +178,87 @@ class BusinessActivityControllerSpec extends SpecBase with MockitoSugar with Sca
         redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
       }
     }
+
+    "must set ClaimDetailsAmendedPage to true when business activity is changed and ClaimDetailsCompletedPage is true" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val ua = emptyUserAnswers
+        .set(pages.BusinessActivityPage, false)
+        .success
+        .value
+        .set(pages.ClaimDetailsCompletedPage, true)
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(ua))
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.BusinessActivityController.onSubmit(models.CheckMode).url)
+          .withFormUrlEncodedBody(("value", "true"))
+
+        val result = route(application, request).value
+        status(result) mustEqual SEE_OTHER
+
+        import org.mockito.ArgumentCaptor
+        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        captor.getValue.get(pages.ClaimDetailsAmendedPage) mustBe Some(true)
+      }
+    }
+
+    "must NOT set ClaimDetailsAmendedPage when business activity is unchanged" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val ua = emptyUserAnswers
+        .set(pages.BusinessActivityPage, true)
+        .success
+        .value
+        .set(pages.ClaimDetailsCompletedPage, true)
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(ua))
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.BusinessActivityController.onSubmit(models.CheckMode).url)
+          .withFormUrlEncodedBody(("value", "true"))
+
+        val result = route(application, request).value
+        status(result) mustEqual SEE_OTHER
+
+        import org.mockito.ArgumentCaptor
+        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        captor.getValue.get(pages.ClaimDetailsAmendedPage).isDefined mustBe false
+      }
+    }
+
+    "must NOT set ClaimDetailsAmendedPage when ClaimDetailsCompletedPage is not set" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.BusinessActivityController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "true"))
+
+        val result = route(application, request).value
+        status(result) mustEqual SEE_OTHER
+
+        import org.mockito.ArgumentCaptor
+        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        captor.getValue.get(pages.ClaimDetailsAmendedPage).isDefined mustBe false
+      }
+    }
   }
 }

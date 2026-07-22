@@ -49,7 +49,7 @@ class PurchaseTypeController @Inject() (
 
   val form: Form[PurchaseType] = formProvider()
 
-  private def backLink(mode: Mode)(implicit request: DataRequest[?]) =
+  private def backLink(mode: Mode)(implicit request: DataRequest[_]) =
     routes.BeforeYouStartPurchaseController.onPageLoad()
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>

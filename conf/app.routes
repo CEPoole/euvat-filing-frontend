@@ -73,6 +73,8 @@ POST        /business-activity-3                        controllers.BusinessActi
 
 GET         /check-your-claim-details                   controllers.CheckYourClaimDetailsController.onPageLoad()
 POST        /check-your-claim-details                   controllers.CheckYourClaimDetailsController.onSubmit()
+GET         /claim-details                              controllers.CheckYourClaimDetailsController.onPageLoad()
+POST        /claim-details                              controllers.CheckYourClaimDetailsController.onSubmit()
 
 GET         /remove-second-SIC-code                     controllers.RemoveSecondBusinessActivityController.onPageLoad()
 POST        /remove-second-SIC-code                     controllers.RemoveSecondBusinessActivityController.onSubmit()
@@ -124,6 +126,11 @@ POST        /what-supplier-vat-registration-number          controllers.Supplier
 GET         /change-what-supplier-vat-registration-number   controllers.SupplierVatRegistrationNumberController.onPageLoad(mode: models.Mode = CheckMode)
 POST        /change-what-supplier-vat-registration-number   controllers.SupplierVatRegistrationNumberController.onSubmit(mode: models.Mode = CheckMode)
 
+GET         /supplier-tax-identifier-number                 controllers.SupplierTaxIdentifierNumberController.onPageLoad(mode: models.Mode = NormalMode)
+POST        /supplier-tax-identifier-number                 controllers.SupplierTaxIdentifierNumberController.onSubmit(mode: models.Mode = NormalMode)
+GET         /change-supplier-tax-identifier-number          controllers.SupplierTaxIdentifierNumberController.onPageLoad(mode: models.Mode = CheckMode)
+POST        /change-supplier-tax-identifier-number          controllers.SupplierTaxIdentifierNumberController.onSubmit(mode: models.Mode = CheckMode)
+
 GET         /total-purchase-amount-before-vat               controllers.TotalPurchaseAmountBeforeVatController.onPageLoad(mode: models.Mode = NormalMode)
 POST        /total-purchase-amount-before-vat               controllers.TotalPurchaseAmountBeforeVatController.onSubmit(mode: models.Mode = NormalMode)
 GET         /change-total-purchase-amount-before-vat        controllers.TotalPurchaseAmountBeforeVatController.onPageLoad(mode: models.Mode = CheckMode)
@@ -144,3 +151,12 @@ POST        /purchase-type                                  controllers.Purchase
 GET         /change-purchase-type                           controllers.PurchaseTypeController.onPageLoad(mode: Mode = CheckMode)
 POST        /change-purchase-type                           controllers.PurchaseTypeController.onSubmit(mode: Mode = CheckMode)
 
+GET         /eu-member-state-details                        controllers.CheckYourStateDetailsController.onPageLoad(mode: Mode = NormalMode)
+POST        /eu-member-state-details                        controllers.CheckYourStateDetailsController.onSubmit(mode: Mode = NormalMode)
+GET         /change-eu-member-state-details                 controllers.CheckYourStateDetailsController.onPageLoad(mode: Mode = CheckMode)
+POST        /change-eu-member-state-details                 controllers.CheckYourStateDetailsController.onSubmit(mode: Mode = CheckMode)
+
+GET         /describe-items-on-invoice                      controllers.DescribeItemsOnInvoiceController.onPageLoad(mode: Mode = NormalMode)
+POST        /describe-items-on-invoice                      controllers.DescribeItemsOnInvoiceController.onSubmit(mode: Mode = NormalMode)
+GET         /change-describe-items-on-invoice               controllers.DescribeItemsOnInvoiceController.onPageLoad(mode: Mode = CheckMode)
+POST        /change-describe-items-on-invoice               controllers.DescribeItemsOnInvoiceController.onSubmit(mode: Mode = CheckMode)

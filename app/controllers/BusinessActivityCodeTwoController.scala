@@ -20,7 +20,7 @@ import controllers.actions.*
 import forms.BusinessActivityCodeTwoFormProvider
 import models.{CheckMode, Mode, NormalMode, UserAnswers}
 import navigation.Navigator
-import pages.{BusinessActivityCodePage, BusinessActivityCodeThreePage, BusinessActivityCodeTwoPage}
+import pages.{BusinessActivityCodePage, BusinessActivityCodeThreePage, BusinessActivityCodeTwoPage, BusinessActivityThreePage, ClaimDetailsAmendedPage, ClaimDetailsCompletedPage}
 import play.api.Configuration
 import play.api.data.FormError
 import play.api.i18n.{I18nSupport, MessagesApi}
@@ -64,7 +64,7 @@ class BusinessActivityCodeTwoController @Inject() (
 
     for {
       updatedAnswer <-
-        Future.fromTry(userAnswers.set(pages.BusinessActivityThreePage, keyValue)) // Save the click to session page (transient navigation flag)
+        Future.fromTry(userAnswers.set(BusinessActivityThreePage, keyValue)) // Save the click to session page (transient navigation flag)
       _ <- sessionRepository.set(updatedAnswer)
     } yield None
 
@@ -78,7 +78,7 @@ class BusinessActivityCodeTwoController @Inject() (
     val ba2 = baseAnswers.get(BusinessActivityCodeTwoPage)
     val ba3 = baseAnswers.get(BusinessActivityCodeThreePage)
     val (activities, form) = buildListAndForm()
-    val page3 = baseAnswers.get(pages.BusinessActivityThreePage)
+    val page3 = baseAnswers.get(BusinessActivityThreePage)
 
     val boundResult = form
       .bindFromRequest()
@@ -109,28 +109,23 @@ class BusinessActivityCodeTwoController @Inject() (
           }
         },
         value => {
-          if (ba2.contains(value)) {
-            for {
-              updatedAnswer1 <- Future.fromTry(baseAnswers.set(BusinessActivityCodeTwoPage, value))
-              updatedAnswers <- Future.fromTry(updatedAnswer1.remove(pages.BusinessActivityThreePage))
-              _              <- sessionRepository.set(updatedAnswers)
-            } yield mode match {
-              case models.CheckMode =>
-                if (ba3.isDefined) Redirect(routes.BusinessActivityThreeController.onPageLoad())
-                else Redirect(routes.BusinessActivityTwoController.onPageLoad(CheckMode))
-              case models.NormalMode =>
-                if (page3.contains("ba3Page")) Redirect(routes.BusinessActivityThreeController.onPageLoad().url)
-                else Redirect(routes.BusinessActivityTwoController.onPageLoad(NormalMode).url)
-            }
-          } else if (ba1.contains(value) || ba3.contains(value)) {
+          if  (ba1.contains(value) || ba3.contains(value)) {
             val from = if (ba3.contains(value)) "Business activity 3" else "Business activity 1"
             val duplicateForm = form.fill(value).withError("value", "businessActivityCodeTwo.error.duplicate")
             Future.successful(BadRequest(view(duplicateForm, Some(routes.BusinessActivityController.onPageLoad(mode).url), mode)))
           } else {
+            val isChanged = baseAnswers.get(BusinessActivityCodeTwoPage) match {
+              case Some(existing) => existing != value
+              case None           => true
+            }
             for {
               updatedAnswer1 <- Future.fromTry(baseAnswers.set(BusinessActivityCodeTwoPage, value))
-              updatedAnswers <- Future.fromTry(updatedAnswer1.remove(pages.BusinessActivityThreePage))
-              _              <- sessionRepository.set(updatedAnswers)
+              updatedAnswers <- Future.fromTry(updatedAnswer1.remove(BusinessActivityThreePage))
+              updatedAnswers2 <- if (isChanged && updatedAnswers.get(ClaimDetailsCompletedPage).contains(true))
+                                   Future.fromTry(updatedAnswers.set(ClaimDetailsAmendedPage, true))
+                                 else
+                                   Future.successful(updatedAnswers)
+              _ <- sessionRepository.set(updatedAnswers2)
             } yield mode match {
               case models.CheckMode =>
                 if (ba3.isDefined) Redirect(routes.BusinessActivityThreeController.onPageLoad())

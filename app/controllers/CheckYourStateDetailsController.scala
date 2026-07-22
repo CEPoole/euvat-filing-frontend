@@ -16,62 +16,54 @@
 
 package controllers
 
-import controllers.actions.{DataRequiredAction, DataRetrievalAction, IdentifierAction}
-import forms.ContactDetailsFormProvider
-import models.{Mode, NormalMode}
-import navigation.Navigator
-import pages.ContactDetailsPage
-import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
-import repositories.SessionRepository
-import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import views.html.ContactDetailsView
+import controllers.actions.*
+import forms.CheckYourStateDetailsFormProvider
 
 import javax.inject.Inject
+import models.{Mode, NormalMode}
+import navigation.Navigator
+import pages.CheckYourStateDetailsPage
+import play.api.i18n.{I18nSupport, MessagesApi}
+import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
+import repositories.SessionRepository
+import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import views.html.CheckYourStateDetailsView
+
 import scala.concurrent.{ExecutionContext, Future}
 
-class ContactDetailsController @Inject() (
+class CheckYourStateDetailsController @Inject() (
   override val messagesApi: MessagesApi,
   sessionRepository: SessionRepository,
   navigator: Navigator,
   identify: IdentifierAction,
   getData: DataRetrievalAction,
   requireData: DataRequiredAction,
-  formProvider: ContactDetailsFormProvider,
+  formProvider: CheckYourStateDetailsFormProvider,
   val controllerComponents: MessagesControllerComponents,
-  view: ContactDetailsView
+  view: CheckYourStateDetailsView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport {
 
-  private val form = formProvider()
+  val form = formProvider()
+
+  private def backLink: Call = routes.CheckYourClaimDetailsController.onPageLoad()
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    val preparedForm = request.userAnswers.get(ContactDetailsPage) match {
-      case None        => form
-      case Some(value) => form.fill(value)
-    }
-    Ok(view(preparedForm, mode, routes.RefundPeriodController.onPageLoad(mode)))
+    val preparedForm = request.userAnswers.get(CheckYourStateDetailsPage).fold(form)(form.fill)
+    Ok(view(preparedForm, mode, backLink))
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
     form
       .bindFromRequest()
       .fold(
-        formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, routes.RefundPeriodController.onPageLoad(NormalMode)))),
+        formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink))),
         value =>
-          val isChanged = request.userAnswers.get(ContactDetailsPage) match {
-            case Some(existing) => existing != value
-            case None           => true
-          }
           for {
-            updatedAnswers <- Future.fromTry(request.userAnswers.set(ContactDetailsPage, value))
-            updatedAnswers2 <- if (isChanged && request.userAnswers.get(pages.ClaimDetailsCompletedPage).contains(true))
-                                 Future.fromTry(updatedAnswers.set(pages.ClaimDetailsAmendedPage, true))
-                               else
-                                 Future.successful(updatedAnswers)
-            _ <- sessionRepository.set(updatedAnswers2)
-          } yield Redirect(navigator.nextPage(ContactDetailsPage, mode, updatedAnswers2))
+            updatedAnswers <- Future.fromTry(request.userAnswers.set(CheckYourStateDetailsPage, value))
+            _              <- sessionRepository.set(updatedAnswers)
+          } yield Redirect(navigator.nextPage(CheckYourStateDetailsPage, mode, updatedAnswers))
       )
   }
 }

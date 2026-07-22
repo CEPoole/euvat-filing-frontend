@@ -46,7 +46,7 @@ class TaskListViewModel @Inject() () {
         if (claimDetailsDone) TaskListItemStatus(content = Text(messages("taskListDashboard.status3")))
         else notStartedStatus,
       href = Some(
-        if (claimDetailsDone) controllers.routes.CheckYourClaimDetailsController.onPageLoad().url
+        if (claimDetailsDone) "/file-eu-vat/claim-details"
         else controllers.routes.RefundingCountryController.onPageLoad(models.NormalMode).url
       )
     )

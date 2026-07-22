@@ -41,10 +41,14 @@ class InvoiceNumberFormProviderSpec extends StringFieldBehaviours {
       chars <- org.scalacheck.Gen.listOfN(len, org.scalacheck.Gen.oneOf(allowedChars))
     } yield chars.mkString
 
+    // Exclude whitespace-only strings (generator may otherwise produce strings
+    // comprised solely of spaces). Ensure at least one non-space character.
+    val genNonWhitespaceString = genValidString.suchThat(s => s.exists(c => c != ' '))
+
     behave like fieldThatBindsValidData(
       form,
       fieldName,
-      genValidString
+      genNonWhitespaceString
     )
 
     behave like fieldWithMaxLength(

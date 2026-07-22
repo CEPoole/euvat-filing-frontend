@@ -52,17 +52,26 @@ class CheckYourClaimDetailsController @Inject() (
 
   def onPageLoad(): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     val summaryList = buildSummaryList(request.userAnswers)
-
-    Ok(view(summaryList))
+    val isPostSubmission = request.userAnswers.get(pages.ClaimDetailsCompletedPage).contains(true)
+    val isAmended = request.userAnswers.get(pages.ClaimDetailsAmendedPage).contains(true)
+    Ok(view(summaryList, isPostSubmission, isAmended))
   }
 
   def onSubmit(): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
+    val isPostSubmission = request.userAnswers.get(pages.ClaimDetailsCompletedPage).contains(true)
+
     (
       for {
-        userAnswers    <- Future.fromTry(request.userAnswers.set(ClaimDetailsCompletedPage, true))
-        appRequest     <- buildAppRequest(userAnswers)
+        flaggedAnswers <- Future.fromTry {
+                            if (!isPostSubmission) {
+                              request.userAnswers.set(ClaimDetailsCompletedPage, true)
+                            } else {
+                              request.userAnswers.remove(pages.ClaimDetailsAmendedPage)
+                            }
+                          }
+        appRequest     <- buildAppRequest(flaggedAnswers)
         claimResponse  <- service.createApplication(appRequest)
-        updatedAnswers <- Future.fromTry(userAnswers.set(ClaimApplicationResponsePage, claimResponse))
+        updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
         _              <- sessionRepository.set(updatedAnswers)
       } yield {
         if (claimResponse.applicationId > 0) {
@@ -76,7 +85,6 @@ class CheckYourClaimDetailsController @Inject() (
         logger.error("Error while saving the refund application", ex)
         Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
       }
-
   }
 
   private def buildSummaryList(

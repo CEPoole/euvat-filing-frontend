@@ -212,6 +212,94 @@ class ContactDetailsControllerSpec extends SpecBase with MockitoSugar with Befor
           verify(mockSessionRepository, times(1)).set(any())
         }
       }
+
+      "must set ClaimDetailsAmendedPage to true when contact details are changed and ClaimDetailsCompletedPage is true" in {
+        val mockSessionRepository = mock[repositories.SessionRepository]
+        when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+        val ua = emptyUserAnswers
+          .set(pages.ContactDetailsPage, models.ContactDetails("existing@email.com", None))
+          .success
+          .value
+          .set(pages.ClaimDetailsCompletedPage, true)
+          .success
+          .value
+
+        val application = applicationBuilder(userAnswers = Some(ua))
+          .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+          .build()
+
+        running(application) {
+          val request = FakeRequest(POST, routes.ContactDetailsController.onSubmit(models.CheckMode).url)
+            .withFormUrlEncodedBody(
+              "contactEmail"     -> "new@email.com",
+              "contactTelephone" -> ""
+            )
+          val result = route(application, request).value
+          status(result) mustEqual SEE_OTHER
+
+          import org.mockito.ArgumentCaptor
+          val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+          verify(mockSessionRepository, times(1)).set(captor.capture())
+          captor.getValue.get(pages.ClaimDetailsAmendedPage) mustBe Some(true)
+        }
+      }
+
+      "must NOT set ClaimDetailsAmendedPage when contact details are unchanged" in {
+        val mockSessionRepository = mock[repositories.SessionRepository]
+        when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+        val ua = emptyUserAnswers
+          .set(pages.ContactDetailsPage, models.ContactDetails("test@email.com", None))
+          .success
+          .value
+          .set(pages.ClaimDetailsCompletedPage, true)
+          .success
+          .value
+
+        val application = applicationBuilder(userAnswers = Some(ua))
+          .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+          .build()
+
+        running(application) {
+          val request = FakeRequest(POST, routes.ContactDetailsController.onSubmit(models.CheckMode).url)
+            .withFormUrlEncodedBody(
+              "contactEmail"     -> "test@email.com",
+              "contactTelephone" -> ""
+            )
+          val result = route(application, request).value
+          status(result) mustEqual SEE_OTHER
+
+          import org.mockito.ArgumentCaptor
+          val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+          verify(mockSessionRepository, times(1)).set(captor.capture())
+          captor.getValue.get(pages.ClaimDetailsAmendedPage).isDefined mustBe false
+        }
+      }
+
+      "must NOT set ClaimDetailsAmendedPage when ClaimDetailsCompletedPage is not set" in {
+        val mockSessionRepository = mock[repositories.SessionRepository]
+        when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+          .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+          .build()
+
+        running(application) {
+          val request = FakeRequest(POST, routes.ContactDetailsController.onSubmit(models.NormalMode).url)
+            .withFormUrlEncodedBody(
+              "contactEmail"     -> "test@email.com",
+              "contactTelephone" -> ""
+            )
+          val result = route(application, request).value
+          status(result) mustEqual SEE_OTHER
+
+          import org.mockito.ArgumentCaptor
+          val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+          verify(mockSessionRepository, times(1)).set(captor.capture())
+          captor.getValue.get(pages.ClaimDetailsAmendedPage).isDefined mustBe false
+        }
+      }
     }
   }
 }

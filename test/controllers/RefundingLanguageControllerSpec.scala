@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{verify, when}
+import org.mockito.Mockito.{times, verify, when}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
@@ -29,6 +29,8 @@ import repositories.SessionRepository
 import pages.{RefundingCountryNamePage, RefundingCountryPage, RefundingLanguagePage}
 import play.api.mvc.Call
 import utils.ConfigLanguageMapping
+
+import scala.concurrent.Future
 
 class RefundingLanguageControllerSpec extends SpecBase with MockitoSugar {
 
@@ -200,6 +202,99 @@ class RefundingLanguageControllerSpec extends SpecBase with MockitoSugar {
           request,
           messages(application)
         ).toString
+      }
+    }
+
+    "must set ClaimDetailsAmendedPage to true when language is changed and ClaimDetailsCompletedPage is true" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val ua = emptyUserAnswers
+        .set(pages.RefundingCountryPage, "BE")
+        .success
+        .value
+        .set(pages.RefundingLanguagePage, models.RefundingLanguage.French)
+        .success
+        .value
+        .set(pages.ClaimDetailsCompletedPage, true)
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(ua))
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingLanguageController.onSubmit(models.CheckMode).url)
+          .withFormUrlEncodedBody(("value", "english"))
+
+        val result = route(application, request).value
+        status(result) mustEqual SEE_OTHER
+
+        import org.mockito.ArgumentCaptor
+        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        captor.getValue.get(pages.ClaimDetailsAmendedPage) mustBe Some(true)
+      }
+    }
+
+    "must NOT set ClaimDetailsAmendedPage when language is unchanged" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val ua = emptyUserAnswers
+        .set(pages.RefundingCountryPage, "BE")
+        .success
+        .value
+        .set(pages.RefundingLanguagePage, models.RefundingLanguage.English)
+        .success
+        .value
+        .set(pages.ClaimDetailsCompletedPage, true)
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(ua))
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingLanguageController.onSubmit(models.CheckMode).url)
+          .withFormUrlEncodedBody(("value", "english"))
+
+        val result = route(application, request).value
+        status(result) mustEqual SEE_OTHER
+
+        import org.mockito.ArgumentCaptor
+        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        captor.getValue.get(pages.ClaimDetailsAmendedPage).isDefined mustBe false
+      }
+    }
+
+    "must NOT set ClaimDetailsAmendedPage when ClaimDetailsCompletedPage is not set" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val ua = emptyUserAnswers
+        .set(pages.RefundingCountryPage, "BE")
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(ua))
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingLanguageController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "english"))
+
+        val result = route(application, request).value
+        status(result) mustEqual SEE_OTHER
+
+        import org.mockito.ArgumentCaptor
+        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        captor.getValue.get(pages.ClaimDetailsAmendedPage).isDefined mustBe false
       }
     }
   }

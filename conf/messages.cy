@@ -243,6 +243,8 @@ checkYourClaimDetails.businessActivity1.view.hidden = View first SIC code
 checkYourClaimDetails.businessActivity2.change.hidden = Change second SIC code
 checkYourClaimDetails.businessActivity3.change.hidden = Change third SIC code
 checkYourClaimDetails.paragraph = You cannot change the refunding EU member state after you save and continue.
+checkYourClaimDetails.claimDetails.title = Claim details
+checkYourClaimDetails.claimDetails.heading = Claim details
 
 beforeYouStart.title = Before you start
 beforeYouStart.heading = Before you start
@@ -284,6 +286,14 @@ supplierVatRegistrationNumber.hint = This can be up to 12 characters and may sta
 supplierVatRegistrationNumber.error.required = Enter the supplier’s VAT registration number
 supplierVatRegistrationNumber.error.invalid = Enter the supplier’s VAT registration number in the correct format
 supplierVatRegistrationNumber.error.length = Supplier’s VAT registration number must be 12 characters or less
+
+supplierTaxIdentifierNumber.title = What is the supplier’s tax identifier number?
+supplierTaxIdentifierNumber.heading = What is the supplier’s tax identifier number?
+supplierTaxIdentifierNumber.hint = This is 10 or 11 digits, for example 12/345/67890
+supplierTaxIdentifierNumber.error.required = Enter the supplier’s tax identifier number
+supplierTaxIdentifierNumber.error.length = Supplier’s tax identifier number cannot be more than 20 characters
+supplierTaxIdentifierNumber.checkYourAnswersLabel = Supplier’s tax identifier number
+supplierTaxIdentifierNumber.change.hidden = Change supplier’s tax identifier number
 
 totalPurchaseAmountBeforeVat.title = Total purchase amount before VAT
 totalPurchaseAmountBeforeVat.heading = Total purchase amount before VAT
@@ -371,3 +381,18 @@ purchaseType.foodAndDrink = Food, drink and restaurant services
 purchaseType.luxuries = Luxuries, entertainment and hospitality
 purchaseType.other = Other
 purchaseType.error.required = Select the type of purchase
+
+checkYourStateDetails.title = EU member state details
+checkYourStateDetails.heading = EU member state details
+checkYourStateDetails.p1 = You cannot change the refunding EU member state for an existing claim.
+checkYourStateDetails.p2 = If you want to claim a VAT refund from a different EU member state, you must delete this claim and start a new one. Any existing claim details will not be saved.
+checkYourStateDetails.h2 = Do you want to delete this claim and start a new one for a different EU member state?
+checkYourStateDetails.yes = Yes, delete this claim
+checkYourStateDetails.no = No, return to claim
+checkYourStateDetails.error.required = Select yes if you want to delete this claim
+
+describeItemsOnInvoice.title = Describe the items on your invoice
+describeItemsOnInvoice.heading = Describe the items on your invoice
+describeItemsOnInvoice.p = List each item and the exact amount you paid for it. Include the currency shown on the invoice. For example, an invoice including €150 for fuel and €50 for transport costs.
+describeItemsOnInvoice.error.required = Enter a description of the items on your invoice
+describeItemsOnInvoice.error.length = Item description must be 255 characters or less

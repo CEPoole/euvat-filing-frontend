@@ -68,6 +68,10 @@ class BusinessActivityController @Inject() (
       .fold(
         formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode), baCode(request.userAnswers)))),
         value =>
+          val isChanged = request.userAnswers.get(BusinessActivityPage) match {
+            case Some(existing) => existing != value
+            case None           => true
+          }
           for {
             updateAnswer1 <- Future.fromTry(request.userAnswers.set(BusinessActivityCodePage, baCode(request.userAnswers)))
             updateAnswer2 <- Future.fromTry(updateAnswer1.set(BusinessActivityPage, value))
@@ -77,8 +81,12 @@ class BusinessActivityController @Inject() (
                               val remove1 = updateAnswer2.remove(BusinessActivityCodeTwoPage)
                               Future.fromTry(remove1.flatMap(_.remove(BusinessActivityCodeThreePage)))
                             }
-            _ <- sessionRepository.set(finalAnswers)
-          } yield Redirect(navigator.nextPage(BusinessActivityPage, mode, finalAnswers))
+            finalAnswers2 <- if (isChanged && request.userAnswers.get(pages.ClaimDetailsCompletedPage).contains(true))
+                               Future.fromTry(finalAnswers.set(pages.ClaimDetailsAmendedPage, true))
+                             else
+                               Future.successful(finalAnswers)
+            _ <- sessionRepository.set(finalAnswers2)
+          } yield Redirect(navigator.nextPage(BusinessActivityPage, mode, finalAnswers2))
       )
   }
 }

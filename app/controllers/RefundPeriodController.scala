@@ -120,12 +120,21 @@ class RefundPeriodController @Inject() (
   )(using request: DataRequest[?], ec: ExecutionContext): Future[Result] = {
     val refundPeriod = RefundPeriod(startDate, endDate)
 
+    val isChanged = request.userAnswers.get(RefundPeriodPage) match {
+      case Some(existing) => existing.startDate != startDate || existing.endDate != endDate
+      case None           => true
+    }
+
     for {
       updatedAnswer1 <- Future.fromTry(request.userAnswers.set(TraderKnownFactsQuery, traderResponse))
       updatedAnswer2 <- Future.fromTry(updatedAnswer1.set(RefundPeriodPage, refundPeriod))
       updatedAnswer3 <- Future.fromTry(updatedAnswer2.remove(pages.CountryChangedPage))
-      _              <- sessionRepository.set(updatedAnswer3)
-    } yield Redirect(navigator.nextPage(RefundPeriodPage, mode, updatedAnswer3))
+      updatedAnswer4 <- if (isChanged && request.userAnswers.get(pages.ClaimDetailsCompletedPage).contains(true))
+                          Future.fromTry(updatedAnswer3.set(pages.ClaimDetailsAmendedPage, true))
+                        else
+                          Future.successful(updatedAnswer3)
+      _ <- sessionRepository.set(updatedAnswer4)
+    } yield Redirect(navigator.nextPage(RefundPeriodPage, mode, updatedAnswer4))
   }
 
   private def checkOverlappingPeriod(

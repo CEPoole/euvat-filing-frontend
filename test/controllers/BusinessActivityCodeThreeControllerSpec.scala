@@ -27,6 +27,8 @@ import play.api.inject.bind
 import pages.BusinessActivityCodeThreePage
 import play.api.mvc.Call
 
+import scala.concurrent.Future
+
 class BusinessActivityCodeThreeControllerSpec extends SpecBase with MockitoSugar {
 
   val onwardRoute = Call("GET", "/foo")
@@ -185,6 +187,108 @@ class BusinessActivityCodeThreeControllerSpec extends SpecBase with MockitoSugar
         val body = contentAsString(result)
         body must include(messages(application)("businessActivityCodeThree.error.duplicate"))
         body must include("4920")
+      }
+    }
+
+    "must set ClaimDetailsAmendedPage to true when third SIC code is changed and ClaimDetailsCompletedPage is true" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val ua = emptyUserAnswers
+        .set(pages.BusinessActivityCodePage, "7020")
+        .success
+        .value
+        .set(pages.BusinessActivityCodeTwoPage, "1234")
+        .success
+        .value
+        .set(pages.BusinessActivityCodeThreePage, "5678")
+        .success
+        .value
+        .set(pages.ClaimDetailsCompletedPage, true)
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(ua))
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.BusinessActivityCodeThreeController.onSubmit(models.CheckMode).url)
+          .withFormUrlEncodedBody(("value", "9999"))
+
+        val result = route(application, request).value
+        status(result) mustEqual SEE_OTHER
+
+        import org.mockito.ArgumentCaptor
+        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        captor.getValue.get(pages.ClaimDetailsAmendedPage) mustBe Some(true)
+      }
+    }
+
+    "must NOT set ClaimDetailsAmendedPage when third SIC code is unchanged" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val ua = emptyUserAnswers
+        .set(pages.BusinessActivityCodePage, "7020")
+        .success
+        .value
+        .set(pages.BusinessActivityCodeTwoPage, "1234")
+        .success
+        .value
+        .set(pages.BusinessActivityCodeThreePage, "5678")
+        .success
+        .value
+        .set(pages.ClaimDetailsCompletedPage, true)
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(ua))
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.BusinessActivityCodeThreeController.onSubmit(models.CheckMode).url)
+          .withFormUrlEncodedBody(("value", "5678"))
+
+        val result = route(application, request).value
+        status(result) mustEqual SEE_OTHER
+
+        import org.mockito.ArgumentCaptor
+        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        captor.getValue.get(pages.ClaimDetailsAmendedPage).isDefined mustBe false
+      }
+    }
+
+    "must NOT set ClaimDetailsAmendedPage when ClaimDetailsCompletedPage is not set" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val ua = emptyUserAnswers
+        .set(pages.BusinessActivityCodePage, "7020")
+        .success
+        .value
+        .set(pages.BusinessActivityCodeTwoPage, "1234")
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(ua))
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.BusinessActivityCodeThreeController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "5678"))
+
+        val result = route(application, request).value
+        status(result) mustEqual SEE_OTHER
+
+        import org.mockito.ArgumentCaptor
+        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        captor.getValue.get(pages.ClaimDetailsAmendedPage).isDefined mustBe false
       }
     }
   }

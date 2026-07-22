@@ -22,19 +22,19 @@ import models.{NormalMode, UserAnswers}
 import models.Mode
 import models.CheckMode
 import navigation.Navigator
-import pages.{BusinessActivityCodePage, BusinessActivityCodeThreePage, BusinessActivityCodeTwoPage}
+import pages.{BusinessActivityCodePage, BusinessActivityCodeThreePage, BusinessActivityCodeTwoPage, ClaimDetailsAmendedPage, ClaimDetailsCompletedPage}
 import play.api.Configuration
 import play.api.data.FormError
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-
 import views.html.BusinessActivityCodeThreeView
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import play.api.Logger
+
 import scala.util.control.NonFatal
 
 class BusinessActivityCodeThreeController @Inject() (
@@ -112,12 +112,20 @@ class BusinessActivityCodeThreeController @Inject() (
               val duplicateForm = form.fill(value).withError(duplicateError)
               Future.successful(BadRequest(view(duplicateForm, Some(routes.BusinessActivityTwoController.onPageLoad(mode).url), mode)))
             case None =>
+              val isChanged = baseAnswers.get(BusinessActivityCodeThreePage) match {
+                case Some(existing) => existing != value
+                case None           => true
+              }
               for {
                 updatedAnswers <- Future.fromTry(baseAnswers.set(BusinessActivityCodeThreePage, value))
-                _              <- sessionRepository.set(updatedAnswers)
+                updatedAnswers2 <- if (isChanged && updatedAnswers.get(ClaimDetailsCompletedPage).contains(true))
+                                     Future.fromTry(updatedAnswers.set(ClaimDetailsAmendedPage, true))
+                                   else
+                                     Future.successful(updatedAnswers)
+                _ <- sessionRepository.set(updatedAnswers2)
               } yield mode match {
                 case CheckMode  => Redirect(routes.BusinessActivityThreeController.onPageLoad())
-                case NormalMode => Redirect(navigator.nextPage(BusinessActivityCodeThreePage, mode, updatedAnswers))
+                case NormalMode => Redirect(navigator.nextPage(BusinessActivityCodeThreePage, mode, updatedAnswers2))
               }
           }
         }

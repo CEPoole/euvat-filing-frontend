@@ -113,7 +113,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
       }
 
       "must use RefundingCurrencyController as back link when country has two currencies" in {
-        val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "BG").success.value
+        val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "EE").success.value
         val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
         running(application) {
@@ -441,6 +441,132 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
           verify(mockSessionRepository, times(1)).set(captor.capture())
           val saved = captor.getValue
           saved.get(pages.CountryChangedPage).isDefined mustBe false
+        }
+      }
+
+      "must set ClaimDetailsAmendedPage to true when refund period is changed and ClaimDetailsCompletedPage is true" in {
+        when(mockService.retrieveTraderKnownFacts()(any()))
+          .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
+        when(mockService.getLatestApplications(any())(any()))
+          .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+
+        val mockSessionRepository = mock[repositories.SessionRepository]
+        when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+        val ua = emptyUserAnswers
+          .set(pages.ClaimDetailsCompletedPage, true)
+          .success
+          .value
+
+        val application = applicationBuilder(userAnswers = Some(ua))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[EuVatRefundsService].toInstance(mockService),
+            bind[repositories.SessionRepository].toInstance(mockSessionRepository),
+            bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30)
+          )
+          .build()
+
+        running(application) {
+          val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
+            .withFormUrlEncodedBody(
+              "start.month" -> "03",
+              "start.year"  -> "2024",
+              "end.month"   -> "08",
+              "end.year"    -> "2024"
+            )
+          val result = route(application, request).value
+          status(result) mustEqual SEE_OTHER
+
+          import org.mockito.ArgumentCaptor
+          val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+          verify(mockSessionRepository, times(1)).set(captor.capture())
+          captor.getValue.get(pages.ClaimDetailsAmendedPage) mustBe Some(true)
+        }
+      }
+
+      "must NOT set ClaimDetailsAmendedPage when refund period is unchanged" in {
+        when(mockService.retrieveTraderKnownFacts()(any()))
+          .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
+        when(mockService.getLatestApplications(any())(any()))
+          .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+
+        val mockSessionRepository = mock[repositories.SessionRepository]
+        when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+        val existingPeriod = RefundPeriod(
+          LocalDateTime.of(2024, 3, 1, 0, 0, 0, 0),
+          LocalDateTime.of(2024, 8, 31, 23, 59, 59, 999000000)
+        )
+
+        val ua = emptyUserAnswers
+          .set(pages.RefundPeriodPage, existingPeriod)
+          .success
+          .value
+          .set(pages.ClaimDetailsCompletedPage, true)
+          .success
+          .value
+
+        val application = applicationBuilder(userAnswers = Some(ua))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[EuVatRefundsService].toInstance(mockService),
+            bind[repositories.SessionRepository].toInstance(mockSessionRepository),
+            bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30)
+          )
+          .build()
+
+        running(application) {
+          val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
+            .withFormUrlEncodedBody(
+              "start.month" -> "03",
+              "start.year"  -> "2024",
+              "end.month"   -> "08",
+              "end.year"    -> "2024"
+            )
+          val result = route(application, request).value
+          status(result) mustEqual SEE_OTHER
+
+          import org.mockito.ArgumentCaptor
+          val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+          verify(mockSessionRepository, times(1)).set(captor.capture())
+          captor.getValue.get(pages.ClaimDetailsAmendedPage).isDefined mustBe false
+        }
+      }
+
+      "must NOT set ClaimDetailsAmendedPage when ClaimDetailsCompletedPage is not set" in {
+        when(mockService.retrieveTraderKnownFacts()(any()))
+          .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
+        when(mockService.getLatestApplications(any())(any()))
+          .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+
+        val mockSessionRepository = mock[repositories.SessionRepository]
+        when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[EuVatRefundsService].toInstance(mockService),
+            bind[repositories.SessionRepository].toInstance(mockSessionRepository),
+            bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30)
+          )
+          .build()
+
+        running(application) {
+          val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
+            .withFormUrlEncodedBody(
+              "start.month" -> "03",
+              "start.year"  -> "2024",
+              "end.month"   -> "08",
+              "end.year"    -> "2024"
+            )
+          val result = route(application, request).value
+          status(result) mustEqual SEE_OTHER
+
+          import org.mockito.ArgumentCaptor
+          val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+          verify(mockSessionRepository, times(1)).set(captor.capture())
+          captor.getValue.get(pages.ClaimDetailsAmendedPage).isDefined mustBe false
         }
       }
 

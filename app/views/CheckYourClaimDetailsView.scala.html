@@ -23,11 +23,16 @@
     customSummaryList: views.html.components.CustomSummaryList
 )
 
-@(sections: Seq[(String, Seq[(String, Option[String], Seq[(String, String, String)])])])(implicit request: Request[_], messages: Messages)
+@(sections: Seq[(String, Seq[(String, Option[String], Seq[(String, String, String)])])], isPostSubmission: Boolean, isAmended: Boolean)(implicit request: Request[_], messages: Messages)
 
-@layout(pageTitle = titleNoForm(messages("checkYourClaimDetails.title")), showBackLink = false) {
-    <h1 class="govuk-heading-l">@messages("checkYourClaimDetails.heading")</h1>
-    <p class="govuk-body">@messages("checkYourClaimDetails.paragraph")</p><br/>
+@layout(
+pageTitle = titleNoForm(messages(if(isPostSubmission) "checkYourClaimDetails.claimDetails.title" else "checkYourClaimDetails.title")),
+showBackLink = false
+) {
+    <h1 class="govuk-heading-l">@messages(if(isPostSubmission) "checkYourClaimDetails.claimDetails.heading" else "checkYourClaimDetails.heading")</h1>
+    @if(!isPostSubmission) {
+        <p class="govuk-body">@messages("checkYourClaimDetails.paragraph")</p><br/>
+    }
 
     @formHelper(action = routes.CheckYourClaimDetailsController.onSubmit(), Symbol("autoComplete") -> "off") {
         @for((labelKey, rows) <- sections) {
@@ -37,6 +42,9 @@
             </div>
         }
 
-        @govukButton(ButtonViewModel(messages("site.save.continue")))
+        @govukButton(ButtonViewModel(messages(
+            if(isPostSubmission && !isAmended) "site.continue"
+            else "site.save.continue"
+        )))
     }
 }

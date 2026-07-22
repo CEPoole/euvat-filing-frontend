@@ -216,10 +216,10 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
 
     "must include currency section when country has multiple currencies" in {
       val ua = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "BG")
+        .set(pages.RefundingCountryPage, "EE")
         .success
         .value
-        .set(pages.RefundingCurrencyPage, "BGN")
+        .set(pages.RefundingCurrencyPage, "EEK")
         .success
         .value
 
@@ -261,6 +261,120 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
+      }
+    }
+
+    "must render post submission view when ClaimDetailsCompletedPage is true" in {
+      val ua = emptyUserAnswers.set(pages.ClaimDetailsCompletedPage, true).success.value
+
+      val application = applicationBuilder(userAnswers = Some(ua)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val result = route(application, request).value
+
+        status(result) mustEqual OK
+        contentAsString(result) must include(messages(application)("checkYourClaimDetails.claimDetails.heading"))
+      }
+    }
+
+    "must render pre submission view when ClaimDetailsCompletedPage is not set" in {
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val result = route(application, request).value
+
+        status(result) mustEqual OK
+        contentAsString(result) must include(messages(application)("checkYourClaimDetails.heading"))
+      }
+    }
+
+    "must show Save and continue button when ClaimDetailsAmendedPage is true" in {
+      val ua = emptyUserAnswers
+        .set(pages.ClaimDetailsCompletedPage, true)
+        .success
+        .value
+        .set(pages.ClaimDetailsAmendedPage, true)
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(ua)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val result = route(application, request).value
+
+        status(result) mustEqual OK
+        contentAsString(result) must include(messages(application)("site.save.continue"))
+      }
+    }
+
+    "must show Continue button when post submission and ClaimDetailsAmendedPage is not set" in {
+      val ua = emptyUserAnswers.set(pages.ClaimDetailsCompletedPage, true).success.value
+
+      val application = applicationBuilder(userAnswers = Some(ua)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val result = route(application, request).value
+
+        status(result) mustEqual OK
+        contentAsString(result) must include(messages(application)("site.continue"))
+      }
+    }
+
+    "must clear ClaimDetailsAmendedPage on submit when post submission" in {
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+      when(mockService.createApplication(any())(any()))
+        .thenReturn(Future.successful(ApplicationResponse(123, "GB123456789", 10)))
+
+      val ua = emptyUserAnswers
+        .set(pages.ClaimDetailsCompletedPage, true)
+        .success
+        .value
+        .set(pages.ClaimDetailsAmendedPage, true)
+        .success
+        .value
+        .set(pages.RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(pages.RefundingCurrencyPage, "eur")
+        .success
+        .value
+        .set(pages.RefundingLanguagePage, RefundingLanguage.English)
+        .success
+        .value
+        .set(pages.RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10)))
+        .success
+        .value
+        .set(pages.ContactDetailsPage, ContactDetails("test@email.com", Some("07123456789")))
+        .success
+        .value
+        .set(pages.BusinessActivityCodePage, "9999")
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(ua))
+        .overrides(
+          bind[SessionRepository].toInstance(mockSessionRepository),
+          bind[EuVatRefundsService].toInstance(mockService)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.CheckYourClaimDetailsController.onSubmit().url)
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+
+        import org.mockito.ArgumentCaptor
+        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        val saved = captor.getValue
+        saved.get(pages.ClaimDetailsAmendedPage).isDefined mustBe false
       }
     }
   }

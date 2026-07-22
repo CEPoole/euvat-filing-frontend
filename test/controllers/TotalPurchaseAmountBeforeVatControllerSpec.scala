@@ -254,7 +254,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
 
     "must fallback to first currency symbol when no currency selected for a multi-currency country" in {
 
-      val userAnswers = UserAnswers(userAnswersId).set(RefundingCountryPage, "BG").success.value
+      val userAnswers = UserAnswers(userAnswersId).set(RefundingCountryPage, "EE").success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 

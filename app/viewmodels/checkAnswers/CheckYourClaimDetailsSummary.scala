@@ -31,10 +31,15 @@ object CheckYourClaimDetailsSummary {
 
   def rowCountry(answers: UserAnswers)(implicit messages: Messages): Option[Row] =
     answers.get(RefundingCountryNamePage).map { countryName =>
+      val changeUrl =
+        if (answers.get(ClaimDetailsCompletedPage).contains(true))
+          routes.CheckYourStateDetailsController.onPageLoad(CheckMode).url
+        else
+          routes.RefundingCountryController.onPageLoad(CheckMode).url
       (
         messages("checkYourClaimDetails.refundingCountry.subLabel"),
         Some(countryName),
-        Seq((routes.RefundingCountryController.onPageLoad(CheckMode).url, "site.change", "checkYourClaimDetails.refundingCountry.change.hidden"))
+        Seq((changeUrl, "site.change", "checkYourClaimDetails.refundingCountry.change.hidden"))
       )
     }
 
