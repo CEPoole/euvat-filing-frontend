@@ -393,6 +393,6 @@ checkYourStateDetails.error.required = Select yes if you want to delete this cla
 
 describeItemsOnInvoice.title = Describe the items on your invoice
 describeItemsOnInvoice.heading = Describe the items on your invoice
-describeItemsOnInvoice.p = List each item and the exact amount you paid for it. Include the currency shown on the invoice. For example, an invoice including €150 for fuel and €50 for transport costs.
+describeItemsOnInvoice.hint = List each item and the exact amount you paid for it. Include the currency shown on the invoice. For example, an invoice including €150 for fuel and €50 for transport costs.
 describeItemsOnInvoice.error.required = Enter a description of the items on your invoice
 describeItemsOnInvoice.error.length = Item description must be 255 characters or less

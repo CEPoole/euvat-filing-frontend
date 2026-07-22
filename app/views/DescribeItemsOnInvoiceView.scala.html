@@ -32,10 +32,7 @@
     @formHelper(action = routes.DescribeItemsOnInvoiceController.onSubmit(mode)) {
 
         @mainErrorSummary(form, Map("value" -> "value"))
-
-        <span class="govuk-caption-l hmrc-caption-l">
-                <span class="govuk-visually-hidden">This section is: </span>@messages("invoiceType.caption")
-        </span>
+        <span class="govuk-caption-l">@messages("purchase.caption")</span>
 
         @govukCharacterCount(CharacterCount(
             id = "value",
@@ -47,7 +44,7 @@
                 content = Text(messages("describeItemsOnInvoice.heading"))
             ),
             hint = Some(Hint(
-                content = Text(messages("describeItemsOnInvoice.p"))
+                content = Text(messages("describeItemsOnInvoice.hint"))
             )),
             value = form("value").value,
             errorMessage = form("value").error.map(err => ErrorMessage(content = Text(messages(err.message, err.args*))))
