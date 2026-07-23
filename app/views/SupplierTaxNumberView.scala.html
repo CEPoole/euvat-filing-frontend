@@ -21,76 +21,65 @@
 @this(
 layout: templates.Layout,
 formHelper: FormWithCSRF,
-mainErrorSummary: views.html.components.MainErrorSummary,
+govukErrorSummary: GovukErrorSummary,
 govukRadios: GovukRadios,
 govukButton: GovukButton
 )
 
 @(form: Form[SupplierTaxNumber], mode: Mode, call: Call, isSimplifiedInvoice: Boolean)(implicit request: Request[_], messages: Messages)
-@errored = @{form.error("value").isDefined}
 
 @layout(pageTitle = views.ViewUtils.title(form, messages("supplierTaxNumber.title")), backLinkUrl = Some(call.url)) {
 
 @formHelper(action = routes.SupplierTaxNumberController.onSubmit(mode)) {
-@mainErrorSummary(form, Map.empty)
 
-<div class="govuk-form-group @if(errored){govuk-form-group--error}">
-    <fieldset class="govuk-fieldset" @if(errored){aria-describedby="value-error"}>
-        <legend class="govuk-fieldset__legend govuk-fieldset__legend--l">
-            <h1 class="govuk-fieldset__heading">
-                <span class="govuk-caption-l">@messages("purchase.caption.add")</span>
-                @messages("supplierTaxNumber.heading")
-            </h1>
-        </legend>
+@if(form.errors.nonEmpty) {
+    @govukErrorSummary(ErrorSummaryViewModel(form))
+}
 
-        @form.error("value").map { e =>
-        <p id="value-error" class="govuk-error-message">
-            <span class="govuk-visually-hidden">@messages("error.prefix"):</span> @messages(e.message, e.args*)
-        </p>
-        }
+<span class="govuk-caption-l">@messages("purchase.caption.add")</span>
 
-        <div class="govuk-radios" data-module="govuk-radios">
+@{
+    val baseItems = Seq(
+        RadioItem(
+            id = Some("value"),
+            value = Some("vatRegistrationNumber"),
+            content = Text(messages("supplierTaxNumber.vatRegistrationNumber")),
+            hint = Some(Hint(content = Text(messages("supplierTaxNumber.vatRegistrationNumber.hint"))))
+        ),
+        RadioItem(
+            id = Some("value-2"),
+            value = Some("taxIdentifierNumber"),
+            content = Text(messages("supplierTaxNumber.taxIdentifierNumber")),
+            hint = Some(Hint(content = Text(messages("supplierTaxNumber.taxIdentifierNumber.hint"))))
+        )
+    )
 
-            <div class="govuk-radios__item">
-                <input class="govuk-radios__input" id="value" name="value" type="radio" value="vatRegistrationNumber"
-                       aria-describedby="value_0-hint"
-                       @if(form("value").value.contains("vatRegistrationNumber")){checked}>
-                <label class="govuk-label govuk-radios__label" for="value">
-                    @messages("supplierTaxNumber.vatRegistrationNumber")
-                </label>
-                <div id="value_0-hint" class="govuk-hint govuk-radios__hint" >
-                    @messages("supplierTaxNumber.vatRegistrationNumber.hint")
-                </div>
-            </div>
+    val items = if (isSimplifiedInvoice) {
+        baseItems ++ Seq(
+            RadioItem(divider = Some(messages("site.or"))),
+            RadioItem(
+                id = Some("value-3"),
+                value = Some("neither"),
+                content = Text(messages("supplierTaxNumber.neither")),
+            )
+        )
+    }   else baseItems
 
-            <div class="govuk-radios__item">
-                <input class="govuk-radios__input" id="value_1" name="value" type="radio" value="taxIdentifierNumber"
-                       aria-describedby="value_1-hint"
-                       @if(form("value").value.contains("taxIdentifierNumber")){checked}>
-                <label class="govuk-label govuk-radios__label" for="value_1">
-                    @messages("supplierTaxNumber.taxIdentifierNumber")
-                </label>
-                <div id="value_1-hint" class="govuk-hint govuk-radios__hint" >
-                    @messages("supplierTaxNumber.taxIdentifierNumber.hint")
-                </div>
-            </div>
-
-                @if(isSimplifiedInvoice){
-                <div class="govuk-radios__divider">@messages("site.or")</div>
-                <div class="govuk-radios__item">
-                    <input class="govuk-radios__input" id="value_2" name="value" type="radio" value="neither"
-                               @if(form("value").value.contains("neither")){checked}>
-                    <label class="govuk-label govuk-radios__label" for="value_2">
-                            @messages("supplierTaxNumber.neither")
-                    </label>
-                </div>
-                }
-            </div>
-    </fieldset>
-</div>
+    govukRadios(
+        RadiosViewModel(
+            field = form("value"),
+            legend = Legend(
+                content = Text(messages("supplierTaxNumber.heading")),
+                classes = "govuk-fieldset__legend--l",
+                isPageHeading = true
+            ),
+            items = items
+        )
+    )
+}
 
 @govukButton(
-ButtonViewModel(messages("site.continue"))
+    ButtonViewModel(messages("site.continue"))
 )
 }
 }
