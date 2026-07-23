@@ -21,7 +21,7 @@
     govukWarningText: GovukWarningText
 )
 
-@(backLink: Call)(implicit request: Request[_], messages: Messages)
+@(backLink: Call, mode: Mode)(implicit request: Request[_], messages: Messages)
 
 @layout(pageTitle = titleNoForm(messages("periodOverlapWarning.title")), showBackLink = false) {
 
@@ -34,7 +34,7 @@
         content = Text(messages("periodOverlapWarning.warning"))
     ))
 
-    @formHelper(action = routes.PeriodOverlapWarningController.onSubmit()) {
+    @formHelper(action = routes.PeriodOverlapWarningController.onSubmit(mode)) {
         <div style="display: flex; align-items: baseline; gap: 1rem;">
             @govukButton(ButtonViewModel(messages("site.continue")))
             <a class="govuk-link govuk-body" href="@backLink.url">@messages("periodOverlapWarning.backLink")</a>

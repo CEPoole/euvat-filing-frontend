@@ -17,7 +17,7 @@
 package controllers
 
 import base.SpecBase
-import models.NormalMode
+import models.{CheckMode, NormalMode}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import views.html.PeriodOverlapWarningView
@@ -26,33 +26,47 @@ class PeriodOverlapWarningControllerSpec extends SpecBase {
 
   "PeriodOverlapWarning Controller" - {
 
-    "must return OK and the correct view for a GET" in {
+    "must return OK and the correct view for a GET in NormalMode" in {
 
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
       running(application) {
-        val request = FakeRequest(GET, routes.PeriodOverlapWarningController.onPageLoad().url)
+        val request = FakeRequest(GET, routes.PeriodOverlapWarningController.onPageLoad(NormalMode).url)
 
         val result = route(application, request).value
 
         val view = application.injector.instanceOf[PeriodOverlapWarningView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(routes.RefundPeriodController.onPageLoad(NormalMode))(request, messages(application)).toString
+        contentAsString(result) mustEqual view(routes.RefundPeriodController.onPageLoad(NormalMode), NormalMode)(request, messages(application)).toString
       }
     }
 
-    "must redirect to ContactDetailsController on submit" in {
+    "must redirect to ContactDetailsController on submit in NormalMode" in {
 
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
       running(application) {
-        val request = FakeRequest(POST, routes.PeriodOverlapWarningController.onSubmit().url)
+        val request = FakeRequest(POST, routes.PeriodOverlapWarningController.onSubmit(NormalMode).url)
 
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.ContactDetailsController.onPageLoad(NormalMode).url
+      }
+    }
+
+    "must redirect to CheckYourClaimDetailsController on submit in CheckMode" in {
+
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.PeriodOverlapWarningController.onSubmit(CheckMode).url)
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.CheckYourClaimDetailsController.onPageLoad().url
       }
     }
   }

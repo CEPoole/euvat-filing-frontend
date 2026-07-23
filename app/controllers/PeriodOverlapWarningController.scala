@@ -17,7 +17,7 @@
 package controllers
 
 import controllers.actions.*
-import models.NormalMode
+import models.{CheckMode, Mode, NormalMode}
 
 import javax.inject.Inject
 import play.api.i18n.{I18nSupport, MessagesApi}
@@ -34,11 +34,14 @@ class PeriodOverlapWarningController @Inject()(
                                        view: PeriodOverlapWarningView
                                      ) extends FrontendBaseController with I18nSupport {
 
-  def onPageLoad: Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    Ok(view(routes.RefundPeriodController.onPageLoad(NormalMode)))
+  def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
+    Ok(view(routes.RefundPeriodController.onPageLoad(mode), mode))
   }
 
-  def onSubmit(): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    Redirect(controllers.routes.ContactDetailsController.onPageLoad(NormalMode))
+  def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
+    mode match {
+      case NormalMode => Redirect(routes.ContactDetailsController.onPageLoad(NormalMode))
+      case CheckMode  => Redirect(routes.CheckYourClaimDetailsController.onPageLoad())
+    }
   }
 }
