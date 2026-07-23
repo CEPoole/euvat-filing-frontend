@@ -43,12 +43,11 @@
         <p class="govuk-body">@messages("checkYourStateDetails.p1")</p>
         <p class="govuk-body">@messages("checkYourStateDetails.p2")</p>
 
-        <h2 class="govuk-heading-m">@messages("checkYourStateDetails.h2")</h2>
-
         <div class="govuk-form-group @if(isError){govuk-form-group--error}">
             <fieldset class="govuk-fieldset" @if(isError){aria-describedby="value-error"}>
-                <legend class="govuk-visually-hidden">@messages("checkYourStateDetails.h2")</legend>
-
+                <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+                    @messages("checkYourStateDetails.legend")
+                </legend>
                 @form.error("value").map { e =>
                 <p id="value-error" class="govuk-error-message">
                     <span class="govuk-visually-hidden">@messages("error.prefix"):</span> @messages(e.message, e.args*)

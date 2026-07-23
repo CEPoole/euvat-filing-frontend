@@ -199,12 +199,6 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
       case _           => routes.JourneyRecoveryController.onPageLoad()
     }
 
-  private def navigateFromCheckYourStateDetailsPage(mode: Mode)(userAnswers: UserAnswers): Call =
-    userAnswers.get(CheckYourStateDetailsPage) match {
-      case Some(true)  => routes.JourneyRecoveryController.onPageLoad() // TODO: replace when F8 delete application is in place
-      case Some(false) => Call("GET", "/file-eu-vat/claim-details")
-      case None        => routes.JourneyRecoveryController.onPageLoad()
-    }
   private def navigateFromPurchaseTypePage(mode: Mode)(userAnswers: UserAnswers): Call =
     userAnswers.get(PurchaseTypePage) match {
       case Some(_) =>
@@ -233,4 +227,10 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
       case _ => routes.JourneyRecoveryController.onPageLoad()
     }
 
+  private def navigateFromCheckYourStateDetailsPage(mode: Mode)(userAnswers: UserAnswers): Call =
+    userAnswers.get(CheckYourStateDetailsPage) match {
+      case Some(true)  => routes.JourneyRecoveryController.onPageLoad() // TODO: replace when F8 delete application is in place
+      case Some(false) => routes.CheckYourClaimDetailsController.onPageLoad()
+      case _           => routes.JourneyRecoveryController.onPageLoad()
+    }
 }

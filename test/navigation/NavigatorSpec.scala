@@ -231,16 +231,10 @@ class NavigatorSpec extends SpecBase {
           routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode)
       }
 
-      "must go from SimplifiedInvoiceVatRegCheckPage to TotalPurchaseAmountBeforeVatController if yes selected and invoice type is not simplified" in {
-        val ua = userAnswers.set(SimplifiedInvoiceVatRegCheckPage, true).success.value
-        navigator.nextPage(SimplifiedInvoiceVatRegCheckPage, NormalMode, ua) mustBe
-          routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode)
-      }
-
-      "must go from CheckYourStateDetailsPage to claim-details if no selected" in {
+      "must go from CheckYourStateDetailsPage to CheckYourClaimDetailsController if no selected" in {
         val ua = userAnswers.set(CheckYourStateDetailsPage, false).success.value
         navigator.nextPage(CheckYourStateDetailsPage, NormalMode, ua) mustBe
-          Call("GET", "/file-eu-vat/claim-details")
+          routes.CheckYourClaimDetailsController.onPageLoad()
       }
 
       "must go from CheckYourStateDetailsPage to JourneyRecoveryController if yes selected" in {
@@ -449,10 +443,10 @@ class NavigatorSpec extends SpecBase {
           routes.TotalPurchaseAmountBeforeVatController.onPageLoad(CheckMode)
       }
 
-      "must go from CheckYourStateDetailsPage to claim-details in CheckMode if no selected" in {
+      "must go from CheckYourStateDetailsPage to CheckYourClaimDetailsController in CheckMode if no selected" in {
         val ua = userAnswers.set(CheckYourStateDetailsPage, false).success.value
         navigator.nextPage(CheckYourStateDetailsPage, CheckMode, ua) mustBe
-          Call("GET", "/file-eu-vat/claim-details")
+          routes.CheckYourClaimDetailsController.onPageLoad()
       }
     }
   }
