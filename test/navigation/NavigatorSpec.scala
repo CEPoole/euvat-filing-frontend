@@ -32,7 +32,7 @@ class NavigatorSpec extends SpecBase {
       Configuration(
         ConfigFactory.parseString("""
           currency.mapping {
-            BG = ["euro|EUR|€", "bulgarianLev|BGN|лв"]
+            BG = ["bulgarianLev|BGN|лв"]
             EE = ["euro|EUR|€", "estonianKroon|EEK|kr"]
             AT = ["euro|EUR|€"]
           }
@@ -84,9 +84,9 @@ class NavigatorSpec extends SpecBase {
           routes.RefundPeriodController.onPageLoad(NormalMode)
       }
 
-      "must go from RefundingCurrencyPage to RefundPeriodController" in {
+      "must go from RefundingCurrencyPage to TotalPurchaseAmountBeforeVatController" in {
         navigator.nextPage(pages.RefundingCurrencyPage, NormalMode, userAnswers) mustBe
-          routes.RefundPeriodController.onPageLoad(NormalMode)
+          routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode)
       }
 
       "must go from RefundPeriodPage to ContactDetailsController" in {
