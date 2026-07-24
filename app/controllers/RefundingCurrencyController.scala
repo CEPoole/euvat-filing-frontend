@@ -73,6 +73,8 @@ class RefundingCurrencyController @Inject() (
           .getOrElse(form)
 
         val back = routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
+
+        Ok(view(preparedForm, items, back, mode))
     }
   }
 
