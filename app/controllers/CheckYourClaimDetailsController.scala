@@ -72,41 +72,41 @@ class CheckYourClaimDetailsController @Inject() (
                               request.userAnswers.remove(pages.ClaimDetailsAmendedPage)
                             }
                           }
-        appRequest     <- buildAppRequest(flaggedAnswers)
-        result         <- service.retrieveTraderKnownFacts().flatMap { traderFacts =>
-                            implicit val hc = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
-                            val latestReq = LatestApplicationRequest(
-                              applicantVatRegNumber = traderFacts.vatRegNumber.toString,
-                              refundingCountry = flaggedAnswers.get(pages.RefundingCountryPage),
-                              startDate = None,
-                              endDate = None,
-                              representativeId = None,
-                              maxNumber = 10000,
-                              orderBy = Some(0),
-                              sortOrder = Some("DESC"),
-                              startAt = Some(0)
-                            )
+        appRequest <- buildAppRequest(flaggedAnswers)
+        result <- service.retrieveTraderKnownFacts().flatMap { traderFacts =>
+                    implicit val hc = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
+                    val latestReq = LatestApplicationRequest(
+                      applicantVatRegNumber = traderFacts.vatRegNumber.toString,
+                      refundingCountry      = flaggedAnswers.get(pages.RefundingCountryPage),
+                      startDate             = None,
+                      endDate               = None,
+                      representativeId      = None,
+                      maxNumber             = 10000,
+                      orderBy               = Some(0),
+                      sortOrder             = Some("DESC"),
+                      startAt               = Some(0)
+                    )
 
-                            service.getLatestApplications(latestReq).flatMap { latestResp =>
-                              val isDuplicate = latestResp.applications.exists { app =>
-                                val statusIsD = app.applicationStatus.exists(_.equalsIgnoreCase("D"))
-                                val submissionIsNull = app.submissionStatus.isEmpty
-                                statusIsD || submissionIsNull
-                              }
+                    service.getLatestApplications(latestReq).flatMap { latestResp =>
+                      val isDuplicate = latestResp.applications.exists { app =>
+                        val statusIsD = app.applicationStatus.exists(_.equalsIgnoreCase("D"))
+                        val submissionIsNull = app.submissionStatus.isEmpty
+                        statusIsD || submissionIsNull
+                      }
 
-                              if (isDuplicate) Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
-                              else {
-                                for {
-                                  claimResponse  <- service.createApplication(appRequest)
-                                  updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
-                                  _              <- sessionRepository.set(updatedAnswers)
-                                } yield {
-                                  if (claimResponse.applicationId > 0) Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
-                                  else Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
-                                }
-                              }
-                            }
-                          }
+                      if (isDuplicate) Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
+                      else {
+                        for {
+                          claimResponse  <- service.createApplication(appRequest)
+                          updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
+                          _              <- sessionRepository.set(updatedAnswers)
+                        } yield {
+                          if (claimResponse.applicationId > 0) Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
+                          else Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
+                        }
+                      }
+                    }
+                  }
       } yield result
     )
       .recover { case ex: Exception =>

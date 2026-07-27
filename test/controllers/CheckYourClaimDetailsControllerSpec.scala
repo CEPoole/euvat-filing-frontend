@@ -33,7 +33,6 @@ import java.time.LocalDateTime
 import scala.concurrent.Future
 
 class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluency with MockitoSugar {
-  
 
   "Check Your Answers Controller" - {
     // use shared mock from SpecBase

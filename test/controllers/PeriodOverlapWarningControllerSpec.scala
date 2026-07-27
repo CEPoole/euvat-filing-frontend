@@ -38,7 +38,9 @@ class PeriodOverlapWarningControllerSpec extends SpecBase {
         val view = application.injector.instanceOf[PeriodOverlapWarningView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(routes.RefundPeriodController.onPageLoad(NormalMode), NormalMode)(request, messages(application)).toString
+        contentAsString(result) mustEqual view(routes.RefundPeriodController.onPageLoad(NormalMode), NormalMode)(request,
+                                                                                                                 messages(application)
+                                                                                                                ).toString
       }
     }
 

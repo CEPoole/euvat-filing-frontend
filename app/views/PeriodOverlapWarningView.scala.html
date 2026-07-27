@@ -24,20 +24,22 @@
 @(backLink: Call, mode: Mode)(implicit request: Request[_], messages: Messages)
 
 @layout(pageTitle = titleNoForm(messages("periodOverlapWarning.title")), showBackLink = false) {
-
-    <h1 class="govuk-heading-l">@messages("periodOverlapWarning.heading")</h1>
-
-    <p class="govuk-body">@messages("periodOverlapWarning.p")</p>
-
-    @govukWarningText(WarningText(
-        iconFallbackText = Some("Warning"),
-        content = Text(messages("periodOverlapWarning.warning"))
-    ))
-
     @formHelper(action = routes.PeriodOverlapWarningController.onSubmit(mode)) {
-        <div style="display: flex; align-items: baseline; gap: 1rem;">
-            @govukButton(ButtonViewModel(messages("site.continue")))
-            <a class="govuk-link govuk-body" href="@backLink.url">@messages("periodOverlapWarning.backLink")</a>
-        </div>
+
+        <h1 class="govuk-heading-l">@messages("periodOverlapWarning.heading")</h1>
+
+        <p class="govuk-body">@messages("periodOverlapWarning.p")</p>
+
+        @govukWarningText(WarningText(
+            iconFallbackText = Some("Warning"),
+            content = Text(messages("periodOverlapWarning.warning"))
+        ))
+
+        @formHelper(action = routes.PeriodOverlapWarningController.onSubmit(mode)) {
+            <div style="display: flex; align-items: baseline; gap: 1rem;">
+                @govukButton(ButtonViewModel(messages("periodOverlapWarning.correct")))
+                <a class="govuk-link govuk-body" href="@backLink.url">@messages("periodOverlapWarning.backLink")</a>
+            </div>
+        }
     }
 }

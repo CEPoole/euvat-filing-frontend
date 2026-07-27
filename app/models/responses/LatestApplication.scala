@@ -22,15 +22,15 @@ import play.api.libs.functional.syntax.*
 import java.time.LocalDateTime
 
 case class LatestApplication(
-                              applicationId: Long,
-                              refundingCountryCode: String,
-                              periodStartDate: LocalDateTime,
-                              periodEndDate: LocalDateTime,
-                              applicationNumber: String,
-                              applicationStatus: Option[String],
-                              submissionStatus: Option[String],
-                              applicationVersion: LocalDateTime
-                            )
+  applicationId: Long,
+  refundingCountryCode: String,
+  periodStartDate: LocalDateTime,
+  periodEndDate: LocalDateTime,
+  applicationNumber: String,
+  applicationStatus: Option[String],
+  submissionStatus: Option[String],
+  applicationVersion: LocalDateTime
+)
 
 object LatestApplication {
   implicit val format: OFormat[LatestApplication] = Json.format[LatestApplication]

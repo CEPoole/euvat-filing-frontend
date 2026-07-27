@@ -38,7 +38,7 @@ import java.time.LocalDateTime
 import scala.concurrent.Future
 
 class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
- 
+
   val formProviderBeforeSept30: RefundPeriodFormProvider = new forms.RefundPeriodFormProvider() {
     override protected def today: java.time.LocalDate = java.time.LocalDate.of(2024, 6, 1)
   }
@@ -1113,9 +1113,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
               .withFormUrlEncodedBody(
                 "start.month" -> "03",
-                "start.year" -> "2024",
-                "end.month" -> "08",
-                "end.year" -> "2024"
+                "start.year"  -> "2024",
+                "end.month"   -> "08",
+                "end.year"    -> "2024"
               )
             val result = route(application, request).value
 

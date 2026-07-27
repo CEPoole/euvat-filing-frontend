@@ -22,7 +22,7 @@ import org.mockito.Mockito.{times, verify, when}
 import org.scalatestplus.mockito.MockitoSugar
 import navigation.FakeNavigator
 import play.api.test.FakeRequest
-import models.responses.{LatestApplicationResponse, LatestApplication, TraderKnownFactsResponse}
+import models.responses.{LatestApplication, LatestApplicationResponse, TraderKnownFactsResponse}
 import java.time.LocalDateTime
 import org.mockito.ArgumentMatchers.any
 import play.api.test.Helpers.*
@@ -127,118 +127,128 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
-      "must show duplicate application error when duplicate exists" in {
-        val mockSessionRepository = mock[repositories.SessionRepository]
-        when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+    "must show duplicate application error when duplicate exists" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
+        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
 
-        // with new rule: duplicate applies when applicationStatus == "D" or submissionStatus == null
-        val sampleApp = LatestApplication(1L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("D"), Some("R"), LocalDateTime.now())
-        when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
+      // with new rule: duplicate applies when applicationStatus == "D" or submissionStatus == null
+      val sampleApp = LatestApplication(1L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("D"), Some("R"), LocalDateTime.now())
+      when(mockEuVatRefundsService.getLatestApplications(any())(any()))
+        .thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
 
-        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
-          .overrides(
-            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
-          )
-          .build()
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        .overrides(
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
 
-        running(application) {
-          val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
-            .withFormUrlEncodedBody(("value", "DE"))
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "DE"))
 
-          val result = route(application, request).value
+        val result = route(application, request).value
 
-          status(result) mustEqual BAD_REQUEST
-          contentAsString(result) must include(messages(application)("refundingCountry.error.duplicate"))
+        status(result) mustEqual BAD_REQUEST
+        contentAsString(result) must include(messages(application)("refundingCountry.error.duplicate"))
+      }
+    }
+
+    "must escalate 5xx backend errors" in {
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
+        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any()))
+        .thenReturn(scala.concurrent.Future.failed(new uk.gov.hmrc.http.UpstreamErrorResponse("boom", 500, 500, Map.empty)))
+
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "DE"))
+
+        val result = route(application, request)
+        whenReady(result.value.failed) { ex =>
+          ex.getMessage must include("boom")
         }
       }
+    }
 
-      "must escalate 5xx backend errors" in {
-        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
-        when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(scala.concurrent.Future.failed(new uk.gov.hmrc.http.UpstreamErrorResponse("boom", 500, 500, Map.empty)))
+    "must escalate 4xx backend errors" in {
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
+        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any()))
+        .thenReturn(scala.concurrent.Future.failed(new uk.gov.hmrc.http.UpstreamErrorResponse("boom400", 400, 400, Map.empty)))
 
-        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
-        running(application) {
-          val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
-            .withFormUrlEncodedBody(("value", "DE"))
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "DE"))
 
-          val result = route(application, request)
-          whenReady(result.value.failed) { ex =>
-            ex.getMessage must include("boom")
-          }
+        val result = route(application, request)
+        whenReady(result.value.failed) { ex =>
+          ex.getMessage must include("boom400")
         }
       }
+    }
 
-      "must escalate 4xx backend errors" in {
-        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
-        when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(scala.concurrent.Future.failed(new uk.gov.hmrc.http.UpstreamErrorResponse("boom400", 400, 400, Map.empty)))
+    "must bypass validation when application status is A" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
+        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
 
-        running(application) {
-          val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
-            .withFormUrlEncodedBody(("value", "DE"))
+      // under new rule, applicationStatus == D triggers validation (isDuplicate true), so to test bypass we use non-D and non-null submissionStatus
+      val sampleApp = LatestApplication(2L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("A"), Some("s"), LocalDateTime.now())
+      when(mockEuVatRefundsService.getLatestApplications(any())(any()))
+        .thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
 
-          val result = route(application, request)
-          whenReady(result.value.failed) { ex =>
-            ex.getMessage must include("boom400")
-          }
-        }
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        .overrides(
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "DE"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
       }
+    }
 
-      "must bypass validation when application status is A" in {
-        val mockSessionRepository = mock[repositories.SessionRepository]
-        when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+    "must treat submissionStatus 'S' case-insensitively and be treated as duplicate when applicationStatus is D" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
+        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
 
-        // under new rule, applicationStatus == D triggers validation (isDuplicate true), so to test bypass we use non-D and non-null submissionStatus
-        val sampleApp = LatestApplication(2L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("A"), Some("s"), LocalDateTime.now())
-        when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
+      val sampleApp = LatestApplication(3L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("D"), Some("S"), LocalDateTime.now())
+      when(mockEuVatRefundsService.getLatestApplications(any())(any()))
+        .thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
 
-        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
-          .overrides(
-            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
-          )
-          .build()
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        .overrides(
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
 
-        running(application) {
-          val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
-            .withFormUrlEncodedBody(("value", "DE"))
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "DE"))
 
-          val result = route(application, request).value
+        val result = route(application, request).value
 
-          status(result) mustEqual SEE_OTHER
-        }
+        status(result) mustEqual BAD_REQUEST
+        contentAsString(result) must include(messages(application)("refundingCountry.error.duplicate"))
       }
-
-      "must treat submissionStatus 'S' case-insensitively and be treated as duplicate when applicationStatus is D" in {
-        val mockSessionRepository = mock[repositories.SessionRepository]
-        when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
-
-        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
-
-        val sampleApp = LatestApplication(3L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("D"), Some("S"), LocalDateTime.now())
-        when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
-
-        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
-          .overrides(
-            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
-          )
-          .build()
-
-        running(application) {
-          val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
-            .withFormUrlEncodedBody(("value", "DE"))
-
-          val result = route(application, request).value
-
-          status(result) mustEqual BAD_REQUEST
-          contentAsString(result) must include(messages(application)("refundingCountry.error.duplicate"))
-        }
-      }
+    }
 
     "must skip RefundingLanguage and set default language when country has single language" in {
 
