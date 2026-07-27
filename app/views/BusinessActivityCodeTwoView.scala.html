@@ -41,18 +41,14 @@
                 @messages("businessActivityCodeTwo.heading")
             </h1>
 
-            @{Html(messages("businessActivityCodeTwo.hintHtml"))}
-
-            <div id="sic-code-hint" class="govuk-hint">
-                @messages("businessActivityCodeTwo.hint")
-            </div>
+            @{Html(messages("businessActivityCodeTwo.p"))}
 
             @govukInput(
                 InputViewModel(
                     field = form("value"),
-                    label = LabelViewModel(messages("businessActivityCodeTwo.heading")).withCssClass("govuk-visually-hidden")
+                    label = LabelViewModel(messages("businessActivityCodeTwo.textLabel"))
                 )
-                .withCssClass("govuk-input--width-5")
+                .withCssClass("govuk-input--width-4")
                 .withAutocomplete("off")
             )
         </div>

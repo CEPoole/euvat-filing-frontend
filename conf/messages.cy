@@ -167,8 +167,8 @@ businessActivity.error.required = Select yes if you want to add another SIC code
 
 businessActivityCodeTwo.title = What is the second SIC code?
 businessActivityCodeTwo.heading = What is the second SIC code?
-businessActivityCodeTwo.hint = Enter the SIC code
-businessActivityCodeTwo.hintHtml = <p class="govuk-body">You can find the SIC codes on the <a href="https://www.ons.gov.uk/methodology/classificationsandstandards/ukstandardindustrialclassificationofeconomicactivities/uksic2007" class="govuk-link" target="_blank" rel="noreferrer noopener">Office for National Statistics website (opens in a new tab)</a>.</p>
+businessActivityCodeTwo.textLabel = Enter the SIC code
+businessActivityCodeTwo.p = <p class="govuk-body">You can find the SIC codes on the <a href="https://www.ons.gov.uk/methodology/classificationsandstandards/ukstandardindustrialclassificationofeconomicactivities/uksic2007" class="govuk-link" target="_blank" rel="noreferrer noopener">Office for National Statistics website (opens in a new tab)</a>.</p>
 businessActivityCodeTwo.error.summary = Enter a SIC code
 businessActivityCodeTwo.error.required = Enter a SIC code
 businessActivityCodeTwo.error.invalid = Enter a SIC code in the correct format
@@ -189,8 +189,8 @@ removeSecond.error.required = Select yes if you want to remove the second SIC co
 
 businessActivityCodeThree.title = What is the third SIC code?
 businessActivityCodeThree.heading = What is the third SIC code?
-businessActivityCodeThree.hint = Enter the SIC code
-businessActivityCodeThree.hintHtml = <p class="govuk-body">You can find the SIC codes on the <a href="https://www.ons.gov.uk/methodology/classificationsandstandards/ukstandardindustrialclassificationofeconomicactivities/uksic2007" class="govuk-link" target="_blank" rel="noreferrer noopener">Office for National Statistics website (opens in a new tab)</a>.</p>
+businessActivityCodeThree.textLabel = Enter the SIC code
+businessActivityCodeThree.p = <p class="govuk-body">You can find the SIC codes on the <a href="https://www.ons.gov.uk/methodology/classificationsandstandards/ukstandardindustrialclassificationofeconomicactivities/uksic2007" class="govuk-link" target="_blank" rel="noreferrer noopener">Office for National Statistics website (opens in a new tab)</a>.</p>
 businessActivityCodeThree.error.summary = Enter a SIC code
 businessActivityCodeThree.error.required = Enter a SIC code
 businessActivityCodeThree.error.invalid = Enter a SIC code in the correct format
@@ -266,7 +266,7 @@ invoiceType.error.required = Select an invoice type
 
 suppliersName.title = What is the supplier’s name?
 suppliersName.heading = What is the supplier’s name?
-suppliersName.hint = Find the supplier’s name on the invoice or receipt.
+suppliersName.hint = Find the supplier’s name on the invoice or receipt
 suppliersName.error.required = Enter a supplier’s name
 suppliersName.error.length = The supplier’s name must be 35 characters or less
 suppliersName.checkYourAnswersLabel = Supplier’s name

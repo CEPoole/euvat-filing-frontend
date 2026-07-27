@@ -47,7 +47,7 @@
                 maxLength = Some(255),
                 label = Label(
                     isPageHeading = false,
-                    classes = "govuk-label--l"
+                    classes = "govuk-visually-hidden"
                 ),
                 value = form("value").value,
                 errorMessage = form("value").error.map(err => ErrorMessage(content = Text(messages(err.message, err.args*))))
