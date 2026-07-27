@@ -23,7 +23,6 @@ import models.{NormalMode, RefundPeriod}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.*
-import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import pages.RefundPeriodPage
 import play.api.i18n.Messages
@@ -36,7 +35,7 @@ import services.EuVatRefundsService
 import java.time.LocalDateTime
 import scala.concurrent.Future
 
-class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfterEach {
+class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
 
   val formProviderBeforeSept30: RefundPeriodFormProvider = new forms.RefundPeriodFormProvider() {
     override protected def today: java.time.LocalDate = java.time.LocalDate.of(2024, 6, 1)
@@ -47,13 +46,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
   }
 
   val onwardRoute: Call = Call("GET", "/foo")
-  val mockService: EuVatRefundsService = mock[EuVatRefundsService]
   private val baCode1 = "49200"
-
-  override def beforeEach(): Unit = {
-    super.beforeEach()
-    reset(mockService)
-  }
 
   "RefundPeriod Controller" - {
 
@@ -141,13 +134,12 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
 
     ".onSubmit" - {
       "must redirect to the next page when valid data is submitted" in {
-        when(mockService.retrieveTraderKnownFacts()(any()))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
           .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-        when(mockService.getLatestApplications(any())(any()))
+        when(mockEuVatRefundsService.getLatestApplications(any())(any()))
           .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
         val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
-          .overrides(bind[EuVatRefundsService].toInstance(mockService))
           .overrides(bind[Navigator].toInstance(new FakeNavigator(onwardRoute)))
           .overrides(bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
           .build()
@@ -296,12 +288,11 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
       }
 
       "must allow a short period when it ends in December" in {
-        when(mockService.retrieveTraderKnownFacts()(any()))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
           .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
 
         val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
           .overrides(bind[navigation.Navigator].toInstance(new FakeNavigator(onwardRoute)))
-          .overrides(bind[EuVatRefundsService].toInstance(mockService))
           .overrides(bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
           .build()
 
@@ -321,14 +312,13 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
       }
 
       "must allow a period exactly 3 months long" in {
-        when(mockService.retrieveTraderKnownFacts()(any()))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
           .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-        when(mockService.getLatestApplications(any())(any()))
+        when(mockEuVatRefundsService.getLatestApplications(any())(any()))
           .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
         val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
           .overrides(bind[navigation.Navigator].toInstance(new FakeNavigator(onwardRoute)))
-          .overrides(bind[EuVatRefundsService].toInstance(mockService))
           .overrides(bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
           .build()
 
@@ -402,9 +392,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
       }
 
       "must clear CountryChangedPage after successful submission" in {
-        when(mockService.retrieveTraderKnownFacts()(any()))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
           .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-        when(mockService.getLatestApplications(any())(any()))
+        when(mockEuVatRefundsService.getLatestApplications(any())(any()))
           .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
         val mockSessionRepository = mock[repositories.SessionRepository]
@@ -418,7 +408,6 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         val application = applicationBuilder(userAnswers = Some(userAnswers))
           .overrides(
             bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
-            bind[EuVatRefundsService].toInstance(mockService),
             bind[repositories.SessionRepository].toInstance(mockSessionRepository),
             bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30)
           )
@@ -445,9 +434,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
       }
 
       "must set ClaimDetailsAmendedPage to true when refund period is changed and ClaimDetailsCompletedPage is true" in {
-        when(mockService.retrieveTraderKnownFacts()(any()))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
           .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-        when(mockService.getLatestApplications(any())(any()))
+        when(mockEuVatRefundsService.getLatestApplications(any())(any()))
           .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
         val mockSessionRepository = mock[repositories.SessionRepository]
@@ -461,7 +450,6 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         val application = applicationBuilder(userAnswers = Some(ua))
           .overrides(
             bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
-            bind[EuVatRefundsService].toInstance(mockService),
             bind[repositories.SessionRepository].toInstance(mockSessionRepository),
             bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30)
           )
@@ -486,9 +474,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
       }
 
       "must NOT set ClaimDetailsAmendedPage when refund period is unchanged" in {
-        when(mockService.retrieveTraderKnownFacts()(any()))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
           .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-        when(mockService.getLatestApplications(any())(any()))
+        when(mockEuVatRefundsService.getLatestApplications(any())(any()))
           .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
         val mockSessionRepository = mock[repositories.SessionRepository]
@@ -510,7 +498,6 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         val application = applicationBuilder(userAnswers = Some(ua))
           .overrides(
             bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
-            bind[EuVatRefundsService].toInstance(mockService),
             bind[repositories.SessionRepository].toInstance(mockSessionRepository),
             bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30)
           )
@@ -535,9 +522,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
       }
 
       "must NOT set ClaimDetailsAmendedPage when ClaimDetailsCompletedPage is not set" in {
-        when(mockService.retrieveTraderKnownFacts()(any()))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
           .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-        when(mockService.getLatestApplications(any())(any()))
+        when(mockEuVatRefundsService.getLatestApplications(any())(any()))
           .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
         val mockSessionRepository = mock[repositories.SessionRepository]
@@ -546,7 +533,6 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
           .overrides(
             bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
-            bind[EuVatRefundsService].toInstance(mockService),
             bind[repositories.SessionRepository].toInstance(mockSessionRepository),
             bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30)
           )
@@ -592,18 +578,17 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         }
 
         "must accept start date in January of current year when today is after 30 September" in {
-          when(mockService.retrieveTraderKnownFacts()(any()))
-            .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-          when(mockService.getLatestApplications(any())(any()))
-            .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
+              .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
+            when(mockEuVatRefundsService.getLatestApplications(any())(any()))
+              .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
-          val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
-            .overrides(
-              bind[navigation.Navigator].toInstance(new FakeNavigator(onwardRoute)),
-              bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30),
-              bind[EuVatRefundsService].toInstance(mockService)
-            )
-            .build()
+            val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+              .overrides(
+                bind[navigation.Navigator].toInstance(new FakeNavigator(onwardRoute)),
+                bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30)
+              )
+              .build()
 
           running(application) {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
@@ -641,15 +626,14 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         }
 
         "must accept start date in January of previous year when today is on or before 30 September" in {
-          when(mockService.retrieveTraderKnownFacts()(any()))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
             .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-          when(mockService.getLatestApplications(any())(any()))
+          when(mockEuVatRefundsService.getLatestApplications(any())(any()))
             .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
           val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
             .overrides(
               bind[navigation.Navigator].toInstance(new FakeNavigator(onwardRoute)),
-              bind[EuVatRefundsService].toInstance(mockService),
               bind[forms.RefundPeriodFormProvider].toInstance(formProviderBeforeSept30)
             )
             .build()
@@ -672,14 +656,13 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
 
       "overlap check" - {
         "must skip overlap check and redirect when end date is in December" in {
-          when(mockService.retrieveTraderKnownFacts()(any()))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
             .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-          when(mockService.getLatestApplications(any())(any()))
+          when(mockEuVatRefundsService.getLatestApplications(any())(any()))
             .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
           val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
             .overrides(bind[Navigator].toInstance(new FakeNavigator(onwardRoute)))
-            .overrides(bind[EuVatRefundsService].toInstance(mockService))
             .overrides(bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
             .build()
 
@@ -695,19 +678,18 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
 
             status(result) mustEqual SEE_OTHER
             redirectLocation(result).value mustEqual onwardRoute.url
-            verify(mockService, times(0)).getLatestApplications(any())(any())
+            verify(mockEuVatRefundsService, times(0)).getLatestApplications(any())(any())
           }
         }
 
         "must redirect when no draft applications exist" in {
-          when(mockService.retrieveTraderKnownFacts()(any()))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
             .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-          when(mockService.getLatestApplications(any())(any()))
+          when(mockEuVatRefundsService.getLatestApplications(any())(any()))
             .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
           val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
             .overrides(bind[Navigator].toInstance(new FakeNavigator(onwardRoute)))
-            .overrides(bind[EuVatRefundsService].toInstance(mockService))
             .overrides(bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
             .build()
 
@@ -727,14 +709,13 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         }
 
         "must redirect to next page when draft exists but period does not overlap" in {
-          when(mockService.retrieveTraderKnownFacts()(any()))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
             .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-          when(mockService.getLatestApplications(any())(any()))
+          when(mockEuVatRefundsService.getLatestApplications(any())(any()))
             .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
           val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
             .overrides(bind[Navigator].toInstance(new FakeNavigator(onwardRoute)))
-            .overrides(bind[EuVatRefundsService].toInstance(mockService))
             .overrides(bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
             .build()
 
@@ -754,9 +735,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         }
 
         "must show overlap error when draft exists and submitted status with both matching refund period" in {
-          when(mockService.retrieveTraderKnownFacts()(any()))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
             .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-          when(mockService.getLatestApplications(any())(any()))
+          when(mockEuVatRefundsService.getLatestApplications(any())(any()))
             .thenReturn(
               Future.successful(
                 LatestApplicationResponse(
@@ -779,7 +760,6 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
 
           val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
             .overrides(bind[Navigator].toInstance(new FakeNavigator(onwardRoute)))
-            .overrides(bind[EuVatRefundsService].toInstance(mockService))
             .overrides(bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
             .build()
 
@@ -800,9 +780,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         }
 
         "must show overlap error when draft exists with both matching period" in {
-          when(mockService.retrieveTraderKnownFacts()(any()))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
             .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-          when(mockService.getLatestApplications(any())(any()))
+          when(mockEuVatRefundsService.getLatestApplications(any())(any()))
             .thenReturn(
               Future.successful(
                 LatestApplicationResponse(
@@ -825,7 +805,6 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
 
           val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
             .overrides(bind[Navigator].toInstance(new FakeNavigator(onwardRoute)))
-            .overrides(bind[EuVatRefundsService].toInstance(mockService))
             .overrides(bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
             .build()
 
@@ -846,9 +825,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         }
 
         "must show overlap error when approved submitted application overlaps with start refund period matching" in {
-          when(mockService.retrieveTraderKnownFacts()(any()))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
             .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-          when(mockService.getLatestApplications(any())(any()))
+          when(mockEuVatRefundsService.getLatestApplications(any())(any()))
             .thenReturn(
               Future.successful(
                 LatestApplicationResponse(
@@ -871,7 +850,6 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
 
           val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
             .overrides(bind[Navigator].toInstance(new FakeNavigator(onwardRoute)))
-            .overrides(bind[EuVatRefundsService].toInstance(mockService))
             .overrides(bind[RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
             .build()
 
@@ -893,19 +871,18 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
 
       "Business Function F6" - {
         "must accept as valid period if vat registration date is in first quarter of year" in {
-          when(mockService.retrieveTraderKnownFacts()(any()))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
             .thenReturn(
               Future.successful(
                 TraderKnownFactsResponse(123, tradeClass = Some(baCode1), dateOfRegistration = Some(LocalDateTime.of(2025, 1, 1, 0, 0)))
               )
             )
-          when(mockService.getLatestApplications(any())(any()))
+          when(mockEuVatRefundsService.getLatestApplications(any())(any()))
             .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
           val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
             .overrides(
               bind[navigation.Navigator].toInstance(new FakeNavigator(onwardRoute)),
-              bind[EuVatRefundsService].toInstance(mockService),
               bind[forms.RefundPeriodFormProvider].toInstance(formProviderBeforeSept30)
             )
             .build()
@@ -926,18 +903,17 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         }
 
         "must accept as valid period if vat registration date is in second quarter of year" in {
-          when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(
             Future.successful(
               TraderKnownFactsResponse(123, tradeClass = Some(baCode1), dateOfRegistration = Some(LocalDateTime.of(2025, 5, 20, 10, 38)))
             )
           )
-          when(mockService.getLatestApplications(any())(any()))
+          when(mockEuVatRefundsService.getLatestApplications(any())(any()))
             .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
           val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
             .overrides(
               bind[navigation.Navigator].toInstance(new FakeNavigator(onwardRoute)),
-              bind[EuVatRefundsService].toInstance(mockService),
               bind[forms.RefundPeriodFormProvider].toInstance(formProviderBeforeSept30)
             )
             .build()
@@ -958,7 +934,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         }
 
         "must accept as valid period if end date is within vat de-registration date" in {
-          when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(
             Future.successful(
               TraderKnownFactsResponse(123,
                                        tradeClass           = Some(baCode1),
@@ -967,13 +943,12 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
                                       )
             )
           )
-          when(mockService.getLatestApplications(any())(any()))
+          when(mockEuVatRefundsService.getLatestApplications(any())(any()))
             .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
           val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
             .overrides(
               bind[navigation.Navigator].toInstance(new FakeNavigator(onwardRoute)),
-              bind[EuVatRefundsService].toInstance(mockService),
               bind[forms.RefundPeriodFormProvider].toInstance(formProviderBeforeSept30)
             )
             .build()
@@ -994,7 +969,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         }
 
         "must reject as invalid for vat registration date is in second quarter of year if start date is not within grace period" in {
-          when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(
             Future.successful(
               TraderKnownFactsResponse(123, tradeClass = Some(baCode1), dateOfRegistration = Some(LocalDateTime.of(2025, 5, 20, 10, 38)))
             )
@@ -1003,7 +978,6 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
           val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
             .overrides(
               bind[navigation.Navigator].toInstance(new FakeNavigator(onwardRoute)),
-              bind[EuVatRefundsService].toInstance(mockService),
               bind[forms.RefundPeriodFormProvider].toInstance(formProviderBeforeSept30)
             )
             .build()
@@ -1024,18 +998,14 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         }
 
         "must reject as invalid for vat registration date is in first quarter of year if start date is before" in {
-          when(mockService.retrieveTraderKnownFacts()(any()))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
             .thenReturn(
               Future.successful(
                 TraderKnownFactsResponse(123, tradeClass = Some(baCode1), dateOfRegistration = Some(LocalDateTime.of(2025, 2, 20, 10, 38)))
               )
             )
 
-          val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
-            .overrides(
-              bind[EuVatRefundsService].toInstance(mockService)
-            )
-            .build()
+          val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
           running(application) {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
@@ -1053,16 +1023,14 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar with BeforeA
         }
 
         "must reject as invalid for vat de-registration date if end date is after" in {
-          when(mockService.retrieveTraderKnownFacts()(any()))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
             .thenReturn(
               Future.successful(
                 TraderKnownFactsResponse(123, tradeClass = Some(baCode1), dateOfDeregistration = Some(LocalDateTime.of(2026, 3, 31, 0, 0)))
               )
             )
 
-          val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
-            .overrides(bind[EuVatRefundsService].toInstance(mockService))
-            .build()
+          val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
           running(application) {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)

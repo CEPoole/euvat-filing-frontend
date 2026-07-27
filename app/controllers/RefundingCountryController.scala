@@ -33,7 +33,12 @@ import views.html.RefundingCountryView
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
-import play.api.Logger
+import play.api.Logging
+import play.api.libs.json.Json
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
+import uk.gov.hmrc.http.UpstreamErrorResponse
+import models.requests.LatestApplicationRequest
+import services.EuVatRefundsService
 
 import scala.util.control.NonFatal
 
@@ -44,6 +49,7 @@ class RefundingCountryController @Inject() (
   identify: IdentifierAction,
   getData: DataRetrievalAction,
   requireData: DataRequiredAction,
+  euVatRefundsService: EuVatRefundsService,
   formProvider: RefundingCountryFormProvider,
   config: Configuration,
   configLanguageMapping: ConfigLanguageMapping,
@@ -52,7 +58,8 @@ class RefundingCountryController @Inject() (
   view: RefundingCountryView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
-    with I18nSupport {
+    with I18nSupport
+    with Logging {
 
   private def buildFormAndCountries() = {
     val countries = CountryList.fromConfig(config)
@@ -108,41 +115,76 @@ class RefundingCountryController @Inject() (
             baseAnswers.get(RefundingCountryNamePage).map(stored => stored.split(",", 2).headOption.getOrElse(stored))
           }
 
-          val result = for {
-            updatedAnswers0 <- Future.fromTry(baseAnswers.set(RefundingCountryPage, value))
-            updatedAnswers1 <- Future.fromTry(updatedAnswers0.set(RefundingCountryNamePage, name))
-            // If the country has changed, remove any previously stored language so the user must re-select
-            updatedAnswers2 <- maybePrevCode match {
-                                 case Some(prev) if !prev.equalsIgnoreCase(value) =>
-                                   for {
-                                     a <- Future.fromTry(updatedAnswers1.remove(pages.RefundingLanguagePage))
-                                     b <- Future.fromTry(a.remove(pages.RefundingCurrencyPage))
-                                     c <- Future.fromTry(b.set(pages.CountryChangedPage, true))
-                                   } yield c
-                                 case _ => Future.successful(updatedAnswers1)
-                               }
-            updatedAnswers3 <- if (langs.size == 1) {
-                                 val langStr = langs.head
-                                 val langModel = RefundingLanguage.values.find(_.toString == langStr).getOrElse(RefundingLanguage.English)
-                                 Future.fromTry(updatedAnswers2.set(pages.RefundingLanguagePage, langModel))
-                               } else Future.successful(updatedAnswers2)
-            updatedAnswers4 <- {
-              val currencies = configCurrencyMapping.currenciesFor(value)
-              if (currencies.size == 1 && langs.size == 1)
-                Future.fromTry(updatedAnswers3.set(pages.RefundingCurrencyPage, currencies.head._2))
-              else
-                Future.successful(updatedAnswers3)
-            }
-            _ <- sessionRepository.set(updatedAnswers4)
-          } yield Redirect(navigator.nextPage(RefundingCountryPage, mode, updatedAnswers4))
+          def continueWithSave(updatedAnswers4: UserAnswers) =
+            for {
+              _ <- sessionRepository.set(updatedAnswers4)
+            } yield Redirect(navigator.nextPage(RefundingCountryPage, mode, updatedAnswers4))
+
+          val result = euVatRefundsService.retrieveTraderKnownFacts().flatMap { traderFacts =>
+            implicit val hc = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
+
+            val latestReq = LatestApplicationRequest(
+              applicantVatRegNumber = traderFacts.vatRegNumber.toString,
+              refundingCountry = Some(value),
+              startDate = None,
+              endDate = None,
+              representativeId = None,
+              maxNumber = 10000,
+              orderBy = Some(0),
+              sortOrder = Some("DESC"),
+              startAt = Some(0)
+            )
+
+              euVatRefundsService.getLatestApplications(latestReq).flatMap { response =>
+
+                // Validation applies when applicationStatus == "D" OR submissionStatus is null
+                val isDuplicate = response.applications.exists { app =>
+                  val statusIsD = app.applicationStatus.exists(_.equalsIgnoreCase("D"))
+                  val submissionIsNull = app.submissionStatus.isEmpty
+                  statusIsD || submissionIsNull
+                }
+
+                if (isDuplicate) {
+                  // duplicate application - show error on the form
+                  val formWithError = form.fill(value).withError("value", "refundingCountry.error.duplicate")
+                  Future.successful(BadRequest(view(formWithError, countries, routes.TaskListDashboardController.onPageLoad(), mode)))
+                } else {
+                  // no duplicates - proceed with previous save flow
+                  for {
+                    updatedAnswers0 <- Future.fromTry(baseAnswers.set(RefundingCountryPage, value))
+                    updatedAnswers1 <- Future.fromTry(updatedAnswers0.set(RefundingCountryNamePage, name))
+                    updatedAnswers2 <- maybePrevCode match {
+                                         case Some(prev) if !prev.equalsIgnoreCase(value) =>
+                                           for {
+                                             a <- Future.fromTry(updatedAnswers1.remove(pages.RefundingLanguagePage))
+                                             b <- Future.fromTry(a.remove(pages.RefundingCurrencyPage))
+                                             c <- Future.fromTry(b.set(pages.CountryChangedPage, true))
+                                           } yield c
+                                         case _ => Future.successful(updatedAnswers1)
+                                       }
+                    updatedAnswers3 <- if (langs.size == 1) {
+                                         val langStr = langs.head
+                                         val langModel = RefundingLanguage.values.find(_.toString == langStr).getOrElse(RefundingLanguage.English)
+                                         Future.fromTry(updatedAnswers2.set(pages.RefundingLanguagePage, langModel))
+                                       } else Future.successful(updatedAnswers2)
+                    updatedAnswers4 <- {
+                      val currencies = configCurrencyMapping.currenciesFor(value)
+                      if (currencies.size == 1 && langs.size == 1)
+                        Future.fromTry(updatedAnswers3.set(pages.RefundingCurrencyPage, currencies.head._2))
+                      else
+                        Future.successful(updatedAnswers3)
+                    }
+                    res <- continueWithSave(updatedAnswers4)
+                  } yield res
+                }
+              }
+          }
 
           result
         }
       )
 
-    boundResult.recover { case NonFatal(e) =>
-      Logger(getClass).error("Error in RefundingCountryController.onSubmit", e)
-      BadRequest(view(form.bindFromRequest(), countries, routes.TaskListDashboardController.onPageLoad(), mode))
-    }
+    // Let any upstream/system errors bubble up to the global error handler
+    boundResult
   }
 }

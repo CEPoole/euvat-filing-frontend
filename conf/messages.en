@@ -72,6 +72,8 @@ refundingCountry.error.summary = Select an EU member state
 refundingCountry.error.required = Select an EU member state
 refundingCountry.error.invalid = Select a valid EU member state
 refundingCountry.error.invalid.summary = Select a valid EU member state
+refundingCountry.error.duplicate = You cannot have more than one draft claim for each EU member state
+refundingCountry.error.duplicate.summary = You cannot have more than one draft claim for each EU member state
 
 refundingLanguage.title = Which language do you want to use for this claim?
 refundingLanguage.heading = Which language do you want to use for this claim?

@@ -21,6 +21,7 @@ import models.responses.{ApplicationResponse, LatestApplicationResponse, TraderK
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
+import play.api.libs.json.Json
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReadsInstances, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -42,10 +43,18 @@ class EuVatRefundsConnector @Inject() (config: ServicesConfig, http: HttpClientV
   }
 
   def getLatestApplications(request: LatestApplicationRequest)(implicit hc: HeaderCarrier): Future[LatestApplicationResponse] =
-    http
-      .post(url"$euVatRefundsBaseUrl/get-latest-application")
-      .withBody(Json.toJson(request))
-      .execute[LatestApplicationResponse]
+    {
+      val bodyJson = Json.toJson(request)
+      logger.info(s"EuVatRefundsConnector POST $euVatRefundsBaseUrl/get-latest-application body=$bodyJson")
+      http
+        .post(url"$euVatRefundsBaseUrl/get-latest-application")
+        .withBody(bodyJson)
+        .execute[LatestApplicationResponse]
+        .map { resp =>
+          logger.info(s"EuVatRefundsConnector response: ${Json.toJson(resp)}")
+          resp
+        }
+    }
 
   def createApplication(request: ApplicationRequest)(implicit hc: HeaderCarrier): Future[ApplicationResponse] = {
     http
