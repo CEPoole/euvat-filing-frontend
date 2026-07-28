@@ -37,17 +37,16 @@ import scala.concurrent.Future
 
 class RefundPeriodMatrixSpec extends SpecBase with MockitoSugar with BeforeAndAfterEach {
 
-  val mockService: EuVatRefundsService = mock[EuVatRefundsService]
   val onwardRoute: Call = Call("GET", "/foo")
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockService)
-    when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(TraderKnownFactsResponse(111111111, tradeClass = None)))
-    when(mockService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+    reset(mockEuVatRefundsService)
+    when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(TraderKnownFactsResponse(111111111, tradeClass = None)))
+    when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
   }
 
-  private def appBuilder(userAnswers: Option[models.UserAnswers] = None, formProviderOverride: Option[forms.RefundPeriodFormProvider] = None) =
+  private def appBuilder(userAnswers: Option[models.UserAnswers] = None, formProviderOverride: Option[forms.RefundPeriodFormProvider] = None) = {
     // Provide a default form provider with 'today' after Sept 30 to make cutoff deterministic
     val defaultFormProvider: forms.RefundPeriodFormProvider = new forms.RefundPeriodFormProvider() {
       // Use 2021-10-01 so the September-cutoff falls to Jan 2021,
@@ -58,17 +57,17 @@ class RefundPeriodMatrixSpec extends SpecBase with MockitoSugar with BeforeAndAf
     val fp = formProviderOverride.getOrElse(defaultFormProvider)
 
     applicationBuilder(userAnswers).overrides(
-      bind[EuVatRefundsService].toInstance(mockService),
       bind[forms.RefundPeriodFormProvider].toInstance(fp)
     )
+  }
 
   "RefundPeriod Matrix" - {
 
     "ID1: Exempt VRN 01/2020-12/2020 should submit" in {
       val trader = TraderKnownFactsResponse(111111111, tradeClass = None)
       val userAnswers = emptyUserAnswers.set(queries.TraderKnownFactsQuery, trader).success.value
-      when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
-      when(mockService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
       val application = appBuilder(userAnswers = Some(userAnswers))
         .configure("settings.refund.can.create.vrns" -> "111111111", "settings.refund.start.date.latest.permitted" -> "12/20")
@@ -94,8 +93,8 @@ class RefundPeriodMatrixSpec extends SpecBase with MockitoSugar with BeforeAndAf
     "ID2: Exempt VRN after latest should show after-latest error" in {
       val trader = TraderKnownFactsResponse(222222222, tradeClass = None)
       val userAnswers = emptyUserAnswers.set(queries.TraderKnownFactsQuery, trader).success.value
-      when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
-      when(mockService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
       val application = appBuilder(userAnswers = Some(userAnswers))
         .configure("settings.refund.can.create.vrns" -> "222222222", "settings.refund.start.date.earliest.permitted" -> "01/20", "settings.refund.start.date.latest.permitted" -> "12/20")
@@ -122,14 +121,13 @@ class RefundPeriodMatrixSpec extends SpecBase with MockitoSugar with BeforeAndAf
     "ID3: Exempt VRN period too short (Oct-Nov 2020) should error" in {
       val trader = TraderKnownFactsResponse(333333333, tradeClass = None)
       val userAnswers = emptyUserAnswers.set(queries.TraderKnownFactsQuery, trader).success.value
-      when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
-      when(mockService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
       val application = appBuilder(userAnswers = Some(userAnswers))
         .configure("settings.refund.can.create.vrns" -> "333333333", "settings.refund.start.date.earliest.permitted" -> "01/20", "settings.refund.start.date.latest.permitted" -> "12/20")
         .build()
 
-      running(application) {
         val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
           .withFormUrlEncodedBody(
             "start.month" -> "10",
@@ -149,8 +147,8 @@ class RefundPeriodMatrixSpec extends SpecBase with MockitoSugar with BeforeAndAf
     "ID4: Exempt VRN before earliest should show before-earliest" in {
       val trader = TraderKnownFactsResponse(444444444, tradeClass = None)
       val userAnswers = emptyUserAnswers.set(queries.TraderKnownFactsQuery, trader).success.value
-      when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
-      when(mockService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
       val application = appBuilder(userAnswers = Some(userAnswers))
         .configure("settings.refund.can.create.vrns" -> "444444444")
@@ -178,8 +176,8 @@ class RefundPeriodMatrixSpec extends SpecBase with MockitoSugar with BeforeAndAf
     "ID5: Non-exempt VRN before earliest (config 01/21) should show before-earliest" in {
       val trader = TraderKnownFactsResponse(555555555, tradeClass = None)
       val userAnswers = emptyUserAnswers.set(queries.TraderKnownFactsQuery, trader).success.value
-      when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
-      when(mockService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
       val application = appBuilder(userAnswers = Some(userAnswers))
         .configure("settings.refund.start.date.earliest.peritted" -> "01/21")
@@ -208,8 +206,8 @@ class RefundPeriodMatrixSpec extends SpecBase with MockitoSugar with BeforeAndAf
     "ID6: Non-exempt with missing earliest config should default to Jan 2021 and enforce earliest" in {
       val trader = TraderKnownFactsResponse(666666666, tradeClass = None)
       val userAnswers = emptyUserAnswers.set(queries.TraderKnownFactsQuery, trader).success.value
-      when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
-      when(mockService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
       // Do not configure settings.refund.start.date.earliest.permitted so controller uses default Jan 2021
       val application = appBuilder(userAnswers = Some(userAnswers)).build()
@@ -235,8 +233,8 @@ class RefundPeriodMatrixSpec extends SpecBase with MockitoSugar with BeforeAndAf
     "ID7: Non-exempt start after end should show start-before-end error" in {
       val trader = TraderKnownFactsResponse(777777777, tradeClass = None)
       val userAnswers = emptyUserAnswers.set(queries.TraderKnownFactsQuery, trader).success.value
-      when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
-      when(mockService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
       val lateFormProvider: forms.RefundPeriodFormProvider = new forms.RefundPeriodFormProvider() {
         override protected def today: java.time.LocalDate = java.time.LocalDate.of(2026, 10, 1)
@@ -264,8 +262,8 @@ class RefundPeriodMatrixSpec extends SpecBase with MockitoSugar with BeforeAndAf
     "ID8: Cross-year span should show start/end same-year error" in {
       val trader = TraderKnownFactsResponse(888888880, tradeClass = None)
       val userAnswers = emptyUserAnswers.set(queries.TraderKnownFactsQuery, trader).success.value
-      when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
-      when(mockService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
       val lateFormProvider: forms.RefundPeriodFormProvider = new forms.RefundPeriodFormProvider() {
         override protected def today: java.time.LocalDate = java.time.LocalDate.of(2026, 10, 1)
@@ -295,8 +293,8 @@ class RefundPeriodMatrixSpec extends SpecBase with MockitoSugar with BeforeAndAf
     "ID9: Period ending in December (3 or less) should submit" in {
       val trader = TraderKnownFactsResponse(888888881, tradeClass = None)
       val userAnswers = emptyUserAnswers.set(queries.TraderKnownFactsQuery, trader).success.value
-      when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
-      when(mockService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
       val application = appBuilder(userAnswers = Some(userAnswers))
         .configure("settings.refund.can.create.vrns" -> "888888881")
@@ -322,8 +320,8 @@ class RefundPeriodMatrixSpec extends SpecBase with MockitoSugar with BeforeAndAf
     "ID10: End date in the future should show end-in-past error" in {
       val trader = TraderKnownFactsResponse(888888882, tradeClass = None)
       val userAnswers = emptyUserAnswers.set(queries.TraderKnownFactsQuery, trader).success.value
-      when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
-      when(mockService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
       val midFormProvider: forms.RefundPeriodFormProvider = new forms.RefundPeriodFormProvider() {
         override protected def today: java.time.LocalDate = java.time.LocalDate.of(2024, 6, 1)
@@ -447,7 +445,7 @@ class RefundPeriodMatrixSpec extends SpecBase with MockitoSugar with BeforeAndAf
         applicationVersion = LocalDateTime.now()
       )
 
-      when(mockService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List(existingApp), 1)))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List(existingApp), 1)))
 
       val application = appBuilder(userAnswers = Some(userAnswers)).build()
 
@@ -469,4 +467,3 @@ class RefundPeriodMatrixSpec extends SpecBase with MockitoSugar with BeforeAndAf
       }
     }
   }
-}

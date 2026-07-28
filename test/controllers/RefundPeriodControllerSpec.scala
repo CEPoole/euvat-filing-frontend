@@ -38,7 +38,7 @@ import java.time.LocalDateTime
 import scala.concurrent.Future
 
 class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
-
+ 
   val formProviderBeforeSept30: RefundPeriodFormProvider = new forms.RefundPeriodFormProvider() {
     override protected def today: java.time.LocalDate = java.time.LocalDate.of(2024, 6, 1)
   }
@@ -54,13 +54,13 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockService)
-    when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
-    when(mockService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+    reset(mockEuVatRefundsService)
+    when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+    when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
   }
 
   private def appBuilder(userAnswers: Option[models.UserAnswers] = None) =
-    applicationBuilder(userAnswers).overrides(bind[EuVatRefundsService].toInstance(mockService))
+    applicationBuilder(userAnswers)
 
   "RefundPeriod Controller" - {
 
@@ -154,7 +154,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
           .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, trader).success.value
 
-        when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
 
         val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
           .overrides(bind[Navigator].toInstance(new FakeNavigator(onwardRoute)))
@@ -308,7 +308,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         val trader = TraderKnownFactsResponse(123, tradeClass = Some(baCode1))
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, trader).success.value
 
-        when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
 
         val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
           .overrides(bind[navigation.Navigator].toInstance(new FakeNavigator(onwardRoute)))
@@ -335,7 +335,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         val exemptVrn = 999900106
         val traderExempt = TraderKnownFactsResponse(exemptVrn, tradeClass = Some(baCode1))
 
-        when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(traderExempt))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(traderExempt))
 
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, traderExempt).success.value
 
@@ -367,7 +367,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         val exemptVrn = 999900106
         val traderExempt = TraderKnownFactsResponse(exemptVrn, tradeClass = Some(baCode1))
 
-        when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(traderExempt))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(traderExempt))
 
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, traderExempt).success.value
 
@@ -395,7 +395,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
 
       "must ignore configured latest for non-exempt VRN" in {
         val nonExemptTrader = TraderKnownFactsResponse(123, tradeClass = Some(baCode1))
-        when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(nonExemptTrader))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(nonExemptTrader))
 
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, nonExemptTrader).success.value
 
@@ -434,7 +434,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         val exemptVrn = 999900106
         val traderExempt = TraderKnownFactsResponse(exemptVrn, tradeClass = Some(baCode1))
 
-        when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(traderExempt))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(traderExempt))
 
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, traderExempt).success.value
 
@@ -462,7 +462,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
 
       "must show both start-and-end-in-same-year and before-earliest when non-exempt VRN and dates span years but are before earliest" in {
         val nonExemptTrader = TraderKnownFactsResponse(123, tradeClass = Some(baCode1))
-        when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(nonExemptTrader))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(nonExemptTrader))
 
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, nonExemptTrader).success.value
 
@@ -496,7 +496,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
 
       "must show before-earliest error on both fields when non-exempt VRN and both dates before earliest" in {
         val nonExemptTrader = TraderKnownFactsResponse(123, tradeClass = Some(baCode1))
-        when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(nonExemptTrader))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(nonExemptTrader))
 
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, nonExemptTrader).success.value
 
@@ -529,7 +529,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
 
       "must prioritise field errors over earliest business rule when form has missing parts" in {
         val nonExemptTrader = TraderKnownFactsResponse(99999, tradeClass = Some(baCode1))
-        when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(nonExemptTrader))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(nonExemptTrader))
 
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, nonExemptTrader).success.value
 
@@ -561,7 +561,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
 
       "must show before-earliest error on start field when non-exempt VRN and start before earliest" in {
         val nonExemptTrader = TraderKnownFactsResponse(12345, tradeClass = Some(baCode1))
-        when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(nonExemptTrader))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(nonExemptTrader))
 
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, nonExemptTrader).success.value
 
@@ -591,7 +591,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
 
       "must show before-earliest error on end field when non-exempt VRN and end before earliest" in {
         val nonExemptTrader = TraderKnownFactsResponse(54321, tradeClass = Some(baCode1))
-        when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(nonExemptTrader))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(nonExemptTrader))
 
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, nonExemptTrader).success.value
 
@@ -623,7 +623,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         val exemptVrn = 999900106
         val traderExempt = TraderKnownFactsResponse(exemptVrn, tradeClass = Some(baCode1))
 
-        when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(traderExempt))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(traderExempt))
 
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, traderExempt).success.value
 
@@ -656,8 +656,8 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
       "must disable earliest validation when config is missing or blank" in {
         val nonExemptTrader = TraderKnownFactsResponse(123, tradeClass = Some(baCode1))
 
-        when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(nonExemptTrader))
-        when(mockService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(nonExemptTrader))
+        when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, nonExemptTrader).success.value
 
@@ -699,7 +699,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
           .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, trader).success.value
 
-        when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
 
         val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
           .overrides(bind[navigation.Navigator].toInstance(new FakeNavigator(onwardRoute)))
@@ -962,13 +962,13 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         }
 
         "must accept start date in January of current year when today is after 30 September" in {
-          when(mockService.retrieveTraderKnownFacts()(any()))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
             .thenReturn(Future.successful(TraderKnownFactsResponse(123, tradeClass = Some(baCode1))))
-          when(mockService.getLatestApplications(any())(any()))
+          when(mockEuVatRefundsService.getLatestApplications(any())(any()))
             .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
           val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, trader).success.value
 
-          when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
 
           val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
             .overrides(
@@ -1019,7 +1019,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
           val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, trader).success.value
 
-          when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
 
           val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
             .overrides(
@@ -1271,7 +1271,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
           val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, trader).success.value
 
-          when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
 
           val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
             .overrides(
@@ -1305,7 +1305,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
           val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, trader).success.value
 
-          when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
 
           val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
             .overrides(
@@ -1343,7 +1343,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
           val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, trader).success.value
 
-          when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
 
           val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
             .overrides(
@@ -1371,7 +1371,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
           val trader = TraderKnownFactsResponse(123, tradeClass = Some(baCode1), dateOfRegistration = Some(LocalDateTime.of(2025, 5, 20, 10, 38)))
           val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, trader).success.value
 
-          when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
 
           val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
             .overrides(
@@ -1396,23 +1396,12 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         }
 
         "must reject as invalid for vat registration date is in first quarter of year if start date is before" in {
-<<<<<<< HEAD
-          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
-            .thenReturn(
-              Future.successful(
-                TraderKnownFactsResponse(123, tradeClass = Some(baCode1), dateOfRegistration = Some(LocalDateTime.of(2025, 2, 20, 10, 38)))
-              )
-            )
-
-          val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
-=======
           val trader = TraderKnownFactsResponse(123, tradeClass = Some(baCode1), dateOfRegistration = Some(LocalDateTime.of(2025, 2, 20, 10, 38)))
           val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, trader).success.value
 
-          when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
 
           val application = appBuilder(userAnswers = Some(userAnswersWithTrader)).build()
->>>>>>> 1a4e6c5 (DTR-6482 : F7 - Minimum and Maximum Date Validations for Start date and end date)
 
           running(application) {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
@@ -1433,7 +1422,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
           val trader = TraderKnownFactsResponse(123, tradeClass = Some(baCode1), dateOfDeregistration = Some(LocalDateTime.of(2026, 3, 31, 0, 0)))
           val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, trader).success.value
 
-          when(mockService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
+          when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
 
           val application = appBuilder(userAnswers = Some(userAnswersWithTrader)).build()
 
