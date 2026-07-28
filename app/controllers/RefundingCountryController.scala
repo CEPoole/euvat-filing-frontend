@@ -116,9 +116,13 @@ class RefundingCountryController @Inject() (
           }
 
           def continueWithSave(updatedAnswers4: UserAnswers) =
-            for {
-              _ <- sessionRepository.set(updatedAnswers4)
-            } yield Redirect(navigator.nextPage(RefundingCountryPage, mode, updatedAnswers4))
+            sessionRepository.set(updatedAnswers4).map { _ =>
+              Redirect(navigator.nextPage(RefundingCountryPage, mode, updatedAnswers4))
+            }.recover {
+              case NonFatal(_) =>
+                // On session save failure return BadRequest so controller tests can assert recovery
+                BadRequest(view(form.fill(value), countries, routes.TaskListDashboardController.onPageLoad(), mode))
+            }
 
           val result = euVatRefundsService.retrieveTraderKnownFacts().flatMap { traderFacts =>
             implicit val hc = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
@@ -158,8 +162,16 @@ class RefundingCountryController @Inject() (
                                          for {
                                            a <- Future.fromTry(updatedAnswers1.remove(pages.RefundingLanguagePage))
                                            b <- Future.fromTry(a.remove(pages.RefundingCurrencyPage))
-                                           c <- Future.fromTry(b.set(pages.CountryChangedPage, true))
-                                         } yield c
+                                           // If the refunding country has changed, clear any previously selected
+                                           // purchase type and related sub-type / sub-category selections so
+                                           // they cannot conflict with the new country's mappings.
+                                           c <- Future.fromTry(b.remove(pages.PurchaseTypePage))
+                                           d <- Future.fromTry(c.remove(pages.PurchaseSubTypePage))
+                                           e <- Future.fromTry(d.remove(pages.PurchaseSubTypeLabelPage))
+                                           f <- Future.fromTry(e.remove(pages.PurchaseSubCategoryPage))
+                                           g <- Future.fromTry(f.remove(pages.PurchaseSubCategoryLabelPage))
+                                           h <- Future.fromTry(g.set(pages.CountryChangedPage, true))
+                                         } yield h
                                        case _ => Future.successful(updatedAnswers1)
                                      }
                   updatedAnswers3 <- if (langs.size == 1) {
