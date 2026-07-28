@@ -221,11 +221,11 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
   private def navigateFromSupplierTaxNumberPage(mode: Mode)(userAnswers: UserAnswers): Call =
     userAnswers.get(SupplierTaxNumberPage) match {
       case Some(SupplierTaxNumber.Vatregistrationnumber) =>
-        routes.JourneyRecoveryController.onPageLoad() // TODO - link to VAT registration number page once built
+        routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
       case Some(SupplierTaxNumber.Taxidentifiernumber) =>
         routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)
       case Some(SupplierTaxNumber.Neither) =>
-        routes.PurchaseTypeController.onPageLoad(mode)
+        routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
       case _ => routes.JourneyRecoveryController.onPageLoad()
     }
 
