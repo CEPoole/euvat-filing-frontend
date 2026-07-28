@@ -206,7 +206,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual onwardRoute.url
+        redirectLocation(result).value mustEqual ("/file-eu-vat" + onwardRoute.url)
         verify(mockSessionRepository, times(1)).set(any())
       }
     }

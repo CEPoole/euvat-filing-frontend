@@ -52,7 +52,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         .build()
 
       running(application) {
-        val request = FakeRequest(GET, "/fuel-use")
+        val request = FakeRequest(GET, "/file-eu-vat/fuel-use")
         val result = route(application, request).value
 
         status(result) mustEqual OK
@@ -70,7 +70,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         .build()
 
       running(application) {
-        val request = FakeRequest(GET, "/fuel-use")
+        val request = FakeRequest(GET, "/file-eu-vat/fuel-use")
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
@@ -91,7 +91,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         .build()
 
       running(application) {
-        val request = FakeRequest(GET, "/fuel-use")
+        val request = FakeRequest(GET, "/file-eu-vat/fuel-use")
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
@@ -119,13 +119,13 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         .build()
 
       running(application) {
-        val request = FakeRequest(POST, "/fuel-use")
+        val request = FakeRequest(POST, "/file-eu-vat/fuel-use")
           .withFormUrlEncodedBody(("value", "1"))
 
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual "/fuel-type"
+        redirectLocation(result).value mustEqual "/file-eu-vat/fuel-type"
 
         val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
@@ -154,7 +154,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         .build()
 
       running(application) {
-        val request = FakeRequest(POST, "/fuel-use")
+        val request = FakeRequest(POST, "/file-eu-vat/fuel-use")
           .withFormUrlEncodedBody(("value", "1.1"))
 
         val result = route(application, request).value
@@ -163,7 +163,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         val loc = redirectLocation(result).value
         // The controller should route to the friendly subcategory path defined
         // by PurchaseSubCategoryType for dotted parent codes (e.g. "1.1").
-        loc must include ("/fuel-type")
+        loc must include ("/file-eu-vat/fuel-type")
         loc mustNot include ("parentCode=")
 
         val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
@@ -197,7 +197,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         .build()
 
       running(application) {
-        val request = FakeRequest(POST, "/fuel-use")
+        val request = FakeRequest(POST, "/file-eu-vat/fuel-use")
           .withFormUrlEncodedBody(("value", "2"))
 
         val result = route(application, request).value
@@ -234,7 +234,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         .build()
 
       running(application) {
-        val request = FakeRequest(POST, "/fuel-use")
+        val request = FakeRequest(POST, "/file-eu-vat/fuel-use")
           .withFormUrlEncodedBody(("value", "1"))
 
         val result = route(application, request).value
@@ -264,7 +264,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         .build()
 
       running(application) {
-        val request = FakeRequest(POST, "/fuel-use")
+        val request = FakeRequest(POST, "/file-eu-vat/fuel-use")
           .withFormUrlEncodedBody(("value", ""))
 
         val result = route(application, request).value
@@ -291,7 +291,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         .build()
 
       running(application) {
-        val request = FakeRequest(GET, "/fuel-use")
+        val request = FakeRequest(GET, "/file-eu-vat/fuel-use")
         val result = route(application, request).value
 
         status(result) mustEqual OK
@@ -321,11 +321,11 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
           .build()
 
         running(application) {
-          val request = FakeRequest(GET, "/fuel-use")
+          val request = FakeRequest(GET, "/file-eu-vat/fuel-use")
           val result = route(application, request).value
 
           status(result) mustEqual SEE_OTHER
-          redirectLocation(result).value mustEqual "/fuel-use"
+          redirectLocation(result).value mustEqual "/file-eu-vat/fuel-use"
 
           val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
           verify(mockSessionRepository, times(1)).set(captor.capture())
@@ -358,13 +358,13 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         .build()
 
       running(application) {
-        val request = FakeRequest(POST, "/fuel-use")
+        val request = FakeRequest(POST, "/file-eu-vat/fuel-use")
           .withFormUrlEncodedBody(("value", "1"))
 
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual "/fuel-type"
+        redirectLocation(result).value mustEqual "/file-eu-vat/fuel-type"
       }
     }
 
@@ -381,7 +381,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         .build()
 
       running(application) {
-        val request = FakeRequest(POST, "/fuel-use")
+        val request = FakeRequest(POST, "/file-eu-vat/fuel-use")
           .withFormUrlEncodedBody(("value", ""))
 
         val result = route(application, request).value

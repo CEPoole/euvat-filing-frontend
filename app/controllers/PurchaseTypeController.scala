@@ -24,8 +24,9 @@ import navigation.Navigator
 import pages.{PurchaseTypePage, CountryChangedPage}
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
+import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents, RequestHeader}
 import repositories.SessionRepository
+import utils.MountPrefix
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import views.html.PurchaseTypeView
 
@@ -97,7 +98,14 @@ class PurchaseTypeController @Inject() (
           for {
             updatedAnswers <- Future.fromTry(saved)
             _              <- sessionRepository.set(updatedAnswers)
-          } yield Redirect(navigator.nextPage(PurchaseTypePage, mode, updatedAnswers))
+          } yield {
+            val call = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)
+            val prefix = MountPrefix.get
+            if (prefix.isEmpty) Redirect(call)
+            else Redirect(play.api.mvc.Call(call.method, s"$prefix${call.url}"))
+          }
       )
   }
+
+  // mount prefix is provided by utils.MountPrefix
 }

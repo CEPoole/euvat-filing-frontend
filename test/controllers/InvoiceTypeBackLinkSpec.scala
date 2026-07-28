@@ -93,7 +93,7 @@ class InvoiceTypeBackLinkSpec extends SpecBase {
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, play.api.mvc.Call("GET", "/fuel-type"))(request, messages(application)).toString)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, play.api.mvc.Call("GET", "/file-eu-vat/fuel-type"))(request, messages(application)).toString)
       }
     }
 

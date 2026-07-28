@@ -119,9 +119,15 @@ class PurchaseSubTypeController @Inject() (
   private def resolvedSlugFor(parentKey: String, fallback: String): String =
     PurchaseType.values.find(_.toString == parentKey).map(PurchaseType.slugOf).getOrElse(fallback)
 
-  private def formActionFor(resolvedSlug: String) = play.api.mvc.Call("POST", s"/$resolvedSlug")
+  private def formActionFor(resolvedSlug: String)(implicit request: play.api.mvc.RequestHeader) = {
+    val prefix = utils.MountPrefix.get
+    val path = if (prefix.isEmpty) s"/${resolvedSlug}" else s"$prefix/${resolvedSlug}"
+    play.api.mvc.Call("POST", path)
+  }
 
   private def backUrlFor(mode: Mode) = controllers.routes.PurchaseTypeController.onPageLoad(mode).url
+
+  // mount prefix computed with utils.MountPrefix
 
   private def resolveCountryCode(userAnswers: UserAnswers): Option[String] =
     userAnswers.get(RefundingCountryPage).orElse {
@@ -139,7 +145,12 @@ class PurchaseSubTypeController @Inject() (
         afterClearedFlag         <- afterRemovedSubTypeLabel.remove(pages.CountryChangedPage)
       } yield afterClearedFlag
 
-      Future.fromTry(clearedAnswers).flatMap(updated => sessionRepository.set(updated).map(_ => Redirect(play.api.mvc.Call("GET", s"/${purchaseTypeSlug}"))))
+        Future.fromTry(clearedAnswers).flatMap(updated => sessionRepository.set(updated).map { _ =>
+        implicit val req: play.api.mvc.RequestHeader = request
+        val prefix = utils.MountPrefix.get
+        val path = if (prefix.isEmpty) s"/${purchaseTypeSlug}" else s"$prefix/${purchaseTypeSlug}"
+        Redirect(play.api.mvc.Call("GET", path))
+      })
     } else {
       resolveParentAndCountry(purchaseTypeSlug, request.userAnswers) match {
         case Some((parentKey, country)) =>
@@ -195,10 +206,7 @@ class PurchaseSubTypeController @Inject() (
                     val maybeCall = candidates.iterator.map { c =>
                       try {
                         val slug = PurchaseSubCategoryType.pathFor(parentKey, c)
-                        val prefix = request.path.lastIndexOf('/') match {
-                          case i if i > 0 => request.path.substring(0, i)
-                          case _           => ""
-                        }
+                        val prefix = utils.MountPrefix.get
                         Some(play.api.mvc.Call("GET", s"$prefix/$slug"))
                       } catch {
                         case _: Throwable => None

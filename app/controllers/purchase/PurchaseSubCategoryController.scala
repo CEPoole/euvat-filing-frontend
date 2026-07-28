@@ -77,18 +77,26 @@ class PurchaseSubCategoryController @Inject() (
   private def tryReverseParent(parentKey: String, candidate: String)(implicit request: play.api.mvc.RequestHeader): Option[play.api.mvc.Call] = {
     try {
       val slug = PurchaseSubCategoryType.pathFor(parentKey, candidate)
-      val prefix = request.path.lastIndexOf('/') match {
-        case i if i > 0 => request.path.substring(0, i)
-        case _           => ""
-      }
-      Some(play.api.mvc.Call("POST", s"$prefix/$slug"))
+      val prefix = utils.MountPrefix.get
+      val url = if (prefix.isEmpty) s"/$slug" else s"$prefix/$slug"
+      Some(play.api.mvc.Call("POST", url))
     } catch { case _: Throwable => None }
   }
 
-  private def computeFormAction(purchaseTypeSlug: String, candidates: Seq[String])(implicit request: play.api.mvc.RequestHeader): play.api.mvc.Call =
-    candidates.iterator.flatMap(c => tryReverseParent(purchaseTypeSlug, c)).find(_ => true).getOrElse(play.api.mvc.Call("POST", s"/${purchaseTypeSlug}"))
+  private def computeFormAction(parentKey: String, purchaseTypeSlug: String, candidates: Seq[String])(implicit request: play.api.mvc.RequestHeader): play.api.mvc.Call = {
+    val prefix = utils.MountPrefix.get
+    candidates.iterator.flatMap(c => tryReverseParent(parentKey, c)).find(_ => true).getOrElse(
+      play.api.mvc.Call("POST", (if (prefix.isEmpty) s"/${purchaseTypeSlug}" else s"$prefix/${purchaseTypeSlug}"))
+    )
+  }
 
-  private def backUrlFor(purchaseTypeSlug: String): String = play.api.mvc.Call("GET", s"/${purchaseTypeSlug}").url
+  private def backUrlFor(purchaseTypeSlug: String)(implicit request: play.api.mvc.RequestHeader): String = {
+    val prefix = utils.MountPrefix.get
+    val url = if (prefix.isEmpty) s"/${purchaseTypeSlug}" else s"$prefix/${purchaseTypeSlug}"
+    play.api.mvc.Call("GET", url).url
+  }
+
+  // mount prefix computed with utils.MountPrefix
 
   private def findByLastSegment(parentKey: String, seg: String, country: String): Option[String] =
     config.subcodesFor(country, parentKey).map(_._1).find(code => code.split("\\.").lastOption.contains(seg))
@@ -123,7 +131,7 @@ class PurchaseSubCategoryController @Inject() (
     val last = resolvedParentCode.split("\\.").lastOption.getOrElse(resolvedParentCode)
     val candidates = Seq(resolvedParentCode, last, head).distinct
 
-    val formAction = computeFormAction(purchaseTypeSlug, candidates)(request)
+    val formAction = computeFormAction(parentKey, purchaseTypeSlug, candidates)(request)
     val backUrl = backUrlFor(purchaseTypeSlug)
 
     val parentBase = resolvedParentCode.split("\\.").headOption.getOrElse(resolvedParentCode)

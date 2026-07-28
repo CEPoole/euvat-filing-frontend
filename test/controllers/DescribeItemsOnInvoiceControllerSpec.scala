@@ -94,7 +94,7 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
           val result = route(application, request).value
 
           status(result) mustEqual OK
-          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, Call("GET", "/fuel-type-or-vehicle"))(request, messages(application)).toString)
+          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, Call("GET", "/file-eu-vat/fuel-type-or-vehicle"))(request, messages(application)).toString)
         }
       }
 
