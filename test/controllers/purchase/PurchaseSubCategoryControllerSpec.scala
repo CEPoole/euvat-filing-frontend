@@ -24,6 +24,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import play.api.inject.bind
 import utils.ConfigPurchaseMapping
+import controllers.routes
 import play.api.mvc.Call
 
 import org.mockito.ArgumentCaptor
@@ -111,7 +112,7 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual controllers.routes.InvoiceTypeController.onPageLoad(models.NormalMode).url
+        redirectLocation(result).value mustEqual routes.InvoiceTypeController.onPageLoad(models.NormalMode).url
       }
     }
 
@@ -140,13 +141,50 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual controllers.routes.InvoiceTypeController.onPageLoad(models.NormalMode).url
+        redirectLocation(result).value mustEqual routes.InvoiceTypeController.onPageLoad(models.NormalMode).url
 
         val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
         val saved = captor.getValue
         saved.get(pages.PurchaseSubCategoryPage) mustBe Some("1.1")
         saved.get(pages.PurchaseSubCategoryLabelPage).isDefined mustBe true
+      }
+    }
+
+    "must remove subcategory and redirect to InvoiceType when None selected" in {
+      val fakeConfig = new ConfigPurchaseMapping() {
+        override def subcategoriesFor(country: String, parentKey: String, subcode: String) = Seq(("1.1", "purchase.sub.fuel.1.1"))
+        override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
+      }
+
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+
+      val userAnswers = emptyUserAnswers
+        .set(pages.RefundingCountryPage, "DE").success.value
+        .set(pages.PurchaseSubCategoryPage, "1.1").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[ConfigPurchaseMapping].toInstance(fakeConfig),
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, "/file-eu-vat/fuel-type")
+          .withFormUrlEncodedBody(("value", ConfigPurchaseMapping.NoneValue))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.InvoiceTypeController.onPageLoad(models.NormalMode).url
+
+        val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        val saved = captor.getValue
+        saved.get(pages.PurchaseSubCategoryPage) mustBe Some(ConfigPurchaseMapping.NoneValue)
+        saved.get(pages.PurchaseSubCategoryLabelPage) mustBe Some(ConfigPurchaseMapping.NoneValue)
       }
     }
 
@@ -212,7 +250,7 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
         val postRequest = FakeRequest(POST, "/").withFormUrlEncodedBody(("value", "1.1.4"))
         val postResult = controller.onSubmit("fuel-use", "1.1", models.NormalMode).apply(postRequest)
         status(postResult) mustEqual SEE_OTHER
-        redirectLocation(postResult).value mustEqual controllers.routes.InvoiceTypeController.onPageLoad(models.NormalMode).url
+        redirectLocation(postResult).value mustEqual routes.InvoiceTypeController.onPageLoad(models.NormalMode).url
 
         val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(2)).set(captor.capture())

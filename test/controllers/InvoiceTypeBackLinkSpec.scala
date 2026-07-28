@@ -21,6 +21,7 @@ import models.{NormalMode, PurchaseType}
 import pages.{InvoiceTypePage, PurchaseTypePage, PurchaseSubCategoryPage, PurchaseSubTypePage}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import play.api.mvc.Call
 
 class InvoiceTypeBackLinkSpec extends SpecBase {
 
@@ -93,7 +94,7 @@ class InvoiceTypeBackLinkSpec extends SpecBase {
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, play.api.mvc.Call("GET", "/file-eu-vat/fuel-type"))(request, messages(application)).toString)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, Call("GET", "/file-eu-vat/fuel-type"))(request, messages(application)).toString)
       }
     }
 

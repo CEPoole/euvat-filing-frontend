@@ -22,6 +22,7 @@ import play.api.Environment
 import scala.io.Source
 import scala.jdk.CollectionConverters.*
 import uk.gov.hmrc.govukfrontend.views.viewmodels.radios.RadioItem
+import uk.gov.hmrc.govukfrontend.views.viewmodels.content.Text
 
 // Import commonly used types from the Typesafe config library so the code
 // below can use short names instead of fully-qualified class names.
@@ -40,6 +41,10 @@ case class PurchaseNode(parent: String, code: String, label: String, children: S
  * swallowed and an empty mapping is returned so the application can fall
  * back to sensible defaults.
  */
+
+object ConfigPurchaseMapping {
+  val NoneValue: String = "__none__"
+}
 
 class ConfigPurchaseMapping @Inject() (config: Configuration = Configuration.empty, env: Environment = Environment.simple()) {
 
@@ -356,9 +361,13 @@ class ConfigPurchaseMapping @Inject() (config: Configuration = Configuration.emp
         case k if purchaseMap.get(k).isDefined => purchaseMap(k)
       }).getOrElse(labelKey)
       RadioItem(
-        content = uk.gov.hmrc.govukfrontend.views.viewmodels.content.Text(label),
+        content = Text(label),
         value = Some(code),
         id = Some(s"value_$idx")
       )
-    }
+    } :+ RadioItem(
+      content = Text("None"),
+      value = Some(ConfigPurchaseMapping.NoneValue),
+      id = Some(s"value_none")
+    )
 }

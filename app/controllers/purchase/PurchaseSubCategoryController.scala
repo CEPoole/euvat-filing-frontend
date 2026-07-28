@@ -24,7 +24,8 @@ import play.api.i18n.{I18nSupport, MessagesApi}
 import models.PurchaseType
 import models.PurchaseSubCategoryType
 import models.{Mode, UserAnswers}
-import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
+import play.api.mvc.{Action, AnyContent, MessagesControllerComponents, Call}
+import controllers.routes
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import utils.ConfigPurchaseMapping
@@ -74,26 +75,26 @@ class PurchaseSubCategoryController @Inject() (
     Seq(asIs, dropLeading, lastSeg).collectFirst { case k if msgs.isDefinedAt(k) => msgs(k) }
   }
 
-  private def tryReverseParent(parentKey: String, candidate: String)(implicit request: play.api.mvc.RequestHeader): Option[play.api.mvc.Call] = {
+  private def tryReverseParent(parentKey: String, candidate: String)(implicit request: play.api.mvc.RequestHeader): Option[Call] = {
     try {
       val slug = PurchaseSubCategoryType.pathFor(parentKey, candidate)
       val prefix = utils.MountPrefix.get
       val url = if (prefix.isEmpty) s"/$slug" else s"$prefix/$slug"
-      Some(play.api.mvc.Call("POST", url))
+      Some(Call("POST", url))
     } catch { case _: Throwable => None }
   }
 
-  private def computeFormAction(parentKey: String, purchaseTypeSlug: String, candidates: Seq[String])(implicit request: play.api.mvc.RequestHeader): play.api.mvc.Call = {
+  private def computeFormAction(parentKey: String, purchaseTypeSlug: String, candidates: Seq[String])(implicit request: play.api.mvc.RequestHeader): Call = {
     val prefix = utils.MountPrefix.get
     candidates.iterator.flatMap(c => tryReverseParent(parentKey, c)).find(_ => true).getOrElse(
-      play.api.mvc.Call("POST", (if (prefix.isEmpty) s"/${purchaseTypeSlug}" else s"$prefix/${purchaseTypeSlug}"))
+      Call("POST", (if (prefix.isEmpty) s"/${purchaseTypeSlug}" else s"$prefix/${purchaseTypeSlug}"))
     )
   }
 
   private def backUrlFor(purchaseTypeSlug: String)(implicit request: play.api.mvc.RequestHeader): String = {
     val prefix = utils.MountPrefix.get
     val url = if (prefix.isEmpty) s"/${purchaseTypeSlug}" else s"$prefix/${purchaseTypeSlug}"
-    play.api.mvc.Call("GET", url).url
+    Call("GET", url).url
   }
 
   // mount prefix computed with utils.MountPrefix
@@ -159,7 +160,7 @@ class PurchaseSubCategoryController @Inject() (
           afterClearedFlag             <- afterRemovedSubCategoryLabel.remove(pages.CountryChangedPage)
         } yield afterClearedFlag
 
-        Future.fromTry(clearedAnswers).flatMap(updated => sessionRepository.set(updated).map(_ => Redirect(play.api.mvc.Call("GET", request.path))))
+        Future.fromTry(clearedAnswers).flatMap(updated => sessionRepository.set(updated).map(_ => Redirect(Call("GET", request.path))))
       } else {
         val maybeParent = PurchaseType.fromSlug(purchaseTypeSlug).map(_.toString)
         val maybeCountry = resolveCountryCode(request.userAnswers)
@@ -171,7 +172,7 @@ class PurchaseSubCategoryController @Inject() (
 
             val (resolvedParentCode, options) = computeResolvedParentAndOptions(parentKey, effectiveParentCode, parentCode, country)
 
-            if (options.isEmpty) Future.successful(Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode)))
+            if (options.isEmpty) Future.successful(Redirect(routes.InvoiceTypeController.onPageLoad(mode)))
             else {
               val (resolvedParentCode2, options2, items2, pageTitle2, heading2, preparedForm2, formAction2, backUrl2, parentBase2, childToPersist2, parentLabelKeyOpt2) =
                 prepareSubCategoryViewData(purchaseTypeSlug, parentKey, parentCode, effectiveParentCode, country, request.userAnswers)(request)
@@ -204,25 +205,40 @@ class PurchaseSubCategoryController @Inject() (
         val (resolvedParentCode, options, items, pageTitle, heading, preparedForm, formAction, backUrl, parentBase, childToPersist, parentLabelKeyOpt) =
           prepareSubCategoryViewData(purchaseTypeSlug, parentKey, parentCode, parentCode, country, request.userAnswers)(request)
 
-        if (options.isEmpty) Future.successful(Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode)))
+        if (options.isEmpty) Future.successful(Redirect(routes.InvoiceTypeController.onPageLoad(mode)))
         else {
           form
             .bindFromRequest()
             .fold(
               formWithErrors => Future.successful(BadRequest(view(formWithErrors, items, pageTitle, heading, formAction, backUrl))),
               value => {
-                val labelKeyOpt = options.find(_._1 == value).map(_._2)
-                val label = labelKeyOpt.map(k => messagesApi.preferred(request)(k)).getOrElse(value)
+                if (value == ConfigPurchaseMapping.NoneValue) {
+                  val noneLabel = ConfigPurchaseMapping.NoneValue
+                  val savedTry = for {
+                    a1 <- request.userAnswers.set(PurchaseSubCategoryPage, ConfigPurchaseMapping.NoneValue)
+                    a2 <- a1.set(PurchaseSubCategoryLabelPage, noneLabel)
+                  } yield a2
 
-                val savedTry = for {
-                  afterSet <- request.userAnswers.set(PurchaseSubCategoryPage, value)
-                  afterSetLabel <- afterSet.set(PurchaseSubCategoryLabelPage, label)
-                } yield afterSetLabel
+                  val fut = for {
+                    updated <- Future.fromTry(savedTry)
+                    _ <- sessionRepository.set(updated)
+                  } yield Redirect(routes.InvoiceTypeController.onPageLoad(mode))
 
-                for {
-                  updated <- Future.fromTry(savedTry)
-                  _ <- sessionRepository.set(updated)
-                } yield Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode))
+                  fut
+                } else {
+                  val labelKeyOpt = options.find(_._1 == value).map(_._2)
+                  val label = labelKeyOpt.map(k => messagesApi.preferred(request)(k)).getOrElse(value)
+
+                  val savedTry = for {
+                    afterSet <- request.userAnswers.set(PurchaseSubCategoryPage, value)
+                    afterSetLabel <- afterSet.set(PurchaseSubCategoryLabelPage, label)
+                  } yield afterSetLabel
+
+                  for {
+                    updated <- Future.fromTry(savedTry)
+                    _ <- sessionRepository.set(updated)
+                  } yield Redirect(routes.InvoiceTypeController.onPageLoad(mode))
+                }
               }
             )
         }

@@ -102,7 +102,7 @@ class PurchaseTypeController @Inject() (
             val call = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)
             val prefix = MountPrefix.get
             if (prefix.isEmpty) Redirect(call)
-            else Redirect(play.api.mvc.Call(call.method, s"$prefix${call.url}"))
+            else Redirect(Call(call.method, s"$prefix${call.url}"))
           }
       )
   }
