@@ -16,8 +16,8 @@
 
 package connectors
 
-import models.requests.{AddPurchaseRequest, ApplicationRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest}
-import models.responses.{AddPurchaseResponse, ApplicationResponse, LatestApplicationResponse, TraderKnownFactsResponse, SupplierTaxIdentifierCountResponse}
+import models.requests.{AddPurchaseRequest, ApplicationRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest, SupplierVrnCountRequest}
+import models.responses.{AddPurchaseResponse, ApplicationResponse, LatestApplicationResponse, TraderKnownFactsResponse, SupplierTaxIdentifierCountResponse, SupplierVrnCountResponse}
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
@@ -60,6 +60,13 @@ class EuVatRefundsConnector @Inject() (config: ServicesConfig, http: HttpClientV
       .post(url"$euVatRefundsBaseUrl/create-application")
       .withBody(Json.toJson(request))
       .execute[ApplicationResponse]
+  }
+
+  def getSupplierVrnCount(request: SupplierVrnCountRequest)(implicit hc: HeaderCarrier): Future[SupplierVrnCountResponse] = {
+    http
+      .post(url"$euVatRefundsBaseUrl/get-supplier-vrn-count")
+      .withBody(Json.toJson(request))
+      .execute[SupplierVrnCountResponse]
   }
 
   def addPurchase(request: AddPurchaseRequest)(implicit hc: HeaderCarrier): Future[AddPurchaseResponse] =
