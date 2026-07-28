@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package controllers
+package controllers.purchase
 
 import base.SpecBase
 import org.mockito.ArgumentMatchers.any
@@ -203,7 +203,7 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
         .build()
 
       running(application) {
-        val controller = application.injector.instanceOf[controllers.PurchaseSubCategoryController]
+        val controller = application.injector.instanceOf[controllers.purchase.PurchaseSubCategoryController]
 
         val getRequest = FakeRequest(GET, "/")
         val getResult = controller.onPageLoad("fuel-use", "1.1", models.NormalMode).apply(getRequest)

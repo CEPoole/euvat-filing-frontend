@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package controllers
+package controllers.purchase
 
 import base.SpecBase
 import org.mockito.ArgumentMatchers.any

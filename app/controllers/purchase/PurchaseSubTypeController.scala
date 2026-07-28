@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package controllers
+package controllers.purchase
 
 import controllers.actions.*
 import forms.PurchaseSubTypeFormProvider
@@ -53,14 +53,6 @@ class PurchaseSubTypeController @Inject() (
 
   val form = formProvider()
 
-  // Helpers to reduce duplication between onPageLoad and onSubmit
-  // resolveParentAndCountry:
-  //  - Given a `purchaseTypeSlug` (friendly slug from the route) and the current
-  //    `UserAnswers`, determine the canonical `parentKey` (internal enum key) and
-  //    the resolved country code to use when looking up purchase mappings.
-  //  - Returns `Some((parentKey, country))` when both are available, otherwise
-  //    `None` to indicate the request cannot proceed and should be redirected
-  //    to the Journey Recovery flow.
   private def resolveParentAndCountry(purchaseTypeSlug: String, userAnswers: UserAnswers): Option[(String, String)] = {
     val maybeParent = PurchaseType.fromSlug(purchaseTypeSlug).map(_.toString).orElse(userAnswers.get(PurchaseTypePage).map(_.toString))
     val maybeCountry = resolveCountryCode(userAnswers)
@@ -71,10 +63,6 @@ class PurchaseSubTypeController @Inject() (
   }
 
   private def prepareViewData(parentKey: String, country: String, purchaseTypeSlug: String, userAnswers: UserAnswers)(implicit request: play.api.mvc.RequestHeader) = {
-    // prepareViewData:
-    //  - Centralizes construction of the view data used by both `onPageLoad` and
-    //    the error branch of `onSubmit` so both render the same form, labels,
-    //    and radio options.
     val options = config.subcodesFor(country, parentKey)
     val items = config.buildRadioItems(options, messagesApi.preferred(request))
     val parentHeading = parentHeadingFor(parentKey)
@@ -86,11 +74,6 @@ class PurchaseSubTypeController @Inject() (
   }
 
   private def persistSelection(currentAnswers: UserAnswers, parentKey: String, value: String, label: String): scala.util.Try[UserAnswers] =
-    // persistSelection:
-    //  - Persist the selected `value` and human-friendly `label` into the
-    //    `UserAnswers`. If the selection changed, clear any dependent
-    //    `PurchaseSubCategory` and its label. Also ensure `PurchaseTypePage` is
-    //    set (derived from `parentKey`) so downstream pages can rely on it.
     currentAnswers.get(PurchaseSubTypePage) match {
       case Some(previousSelection) if previousSelection != value =>
         for {
@@ -138,23 +121,17 @@ class PurchaseSubTypeController @Inject() (
 
   private def formActionFor(resolvedSlug: String) = play.api.mvc.Call("POST", s"/$resolvedSlug")
 
-  private def backUrlFor(mode: Mode) = routes.PurchaseTypeController.onPageLoad(mode).url
+  private def backUrlFor(mode: Mode) = controllers.routes.PurchaseTypeController.onPageLoad(mode).url
 
   private def resolveCountryCode(userAnswers: UserAnswers): Option[String] =
     userAnswers.get(RefundingCountryPage).orElse {
       userAnswers.get(RefundingCountryNamePage).map { stored =>
-        // `RefundingCountryNamePage` may be stored as "CODE,Name" or "Name,CODE".
-        // Prefer the token after the comma when present since it is often the
-        // ISO code; fall back to the whole stored value otherwise.
         val parts = stored.split(",", 2).map(_.trim)
         if (parts.length > 1) parts.last else stored
       }
     }
 
   def onPageLoad(purchaseTypeSlug: String, mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-    // If the country was changed we must clear any previously stored
-    // `PurchaseSubType` and its label so the user is shown the correct set of
-    // options for the newly selected country.
     if (request.userAnswers.get(pages.CountryChangedPage).contains(true)) {
       val clearedAnswers = for {
         afterRemovedSubType      <- request.userAnswers.remove(PurchaseSubTypePage)
@@ -162,11 +139,8 @@ class PurchaseSubTypeController @Inject() (
         afterClearedFlag         <- afterRemovedSubTypeLabel.remove(pages.CountryChangedPage)
       } yield afterClearedFlag
 
-      // Persist the cleared answers and redirect back to the slug route so the
-      // page reloads with the country-specific options.
       Future.fromTry(clearedAnswers).flatMap(updated => sessionRepository.set(updated).map(_ => Redirect(play.api.mvc.Call("GET", s"/${purchaseTypeSlug}"))))
     } else {
-      // Resolve canonical parent key and the country code used for lookups.
       resolveParentAndCountry(purchaseTypeSlug, request.userAnswers) match {
         case Some((parentKey, country)) =>
 
@@ -179,19 +153,12 @@ class PurchaseSubTypeController @Inject() (
             Future.successful(Ok(view(preparedForm, items, parentHeading, parentHeading, formAction, backUrl)))
           }
 
-        case None => Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
+        case None => Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
       }
     }
   }
 
   def onSubmit(purchaseTypeSlug: String, mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-    // Handle form submission: validate, persist selection and navigate.
-    // Steps:
-    //  1. Resolve parent/country
-    //  2. Validate form
-    //  3. Persist selection (clearing dependent data if changed)
-    //  4. If children exist, route to first child-friendly-slug; otherwise
-    //     route to DescribeItemsOnInvoice (Other+99) or InvoiceType
     resolveParentAndCountry(purchaseTypeSlug, request.userAnswers) match {
       case Some((parentKey, country)) =>
         val (options, items, parentHeading, _, resolvedSlug, _) =
@@ -213,7 +180,6 @@ class PurchaseSubTypeController @Inject() (
                 val labelKeyOpt = config.subcodesFor(country, parentKey).find(_._1 == value).map(_._2)
                 val label = labelKeyOpt.map(k => messagesApi.preferred(request)(k)).getOrElse(value)
 
-                // Persist selection and store updated answers in session
                 val savedTry = persistSelection(request.userAnswers, parentKey, value, label)
 
                 for {
@@ -223,7 +189,6 @@ class PurchaseSubTypeController @Inject() (
                   val children = config.subcategoriesFor(country, parentKey, value)
 
                   if (children.nonEmpty) {
-                    // Determine a safe parent candidate to route to.
                     val routeParentCodeCandidate = value
                     val candidates = Seq(routeParentCodeCandidate).distinct
 
@@ -245,10 +210,6 @@ class PurchaseSubTypeController @Inject() (
                       case None       => Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode))
                     }
                   } else {
-                    // No child subcategories exist. If this is the `Other` purchase type and
-                    // the selected sub-type is the 'none of these / give more details' code
-                    // (commonly `99` as the last segment) then route to the Describe Items
-                    // on Invoice page so the user can provide free-text details.
                     val lastSeg = value.split("\\.").lastOption.getOrElse(value)
                     val isOtherPurchaseType = PurchaseType.fromSlug(resolvedSlug).contains(PurchaseType.Other)
 
@@ -260,7 +221,8 @@ class PurchaseSubTypeController @Inject() (
             )
         }
 
-      case None => Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
+      case None => Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
     }
   }
+
 }
