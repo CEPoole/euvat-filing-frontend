@@ -42,13 +42,13 @@
             @{
                 val baseItems = Seq(
                     RadioItem(
-                        id = Some("value"),
+                        id = Some("value_0"),
                         value = Some("vatRegistrationNumber"),
                         content = Text(messages("supplierTaxNumber.vatRegistrationNumber")),
                         hint = Some(Hint(content = Text(messages("supplierTaxNumber.vatRegistrationNumber.hint"))))
                     ),
                     RadioItem(
-                        id = Some("value-2"),
+                        id = Some("value_1"),
                         value = Some("taxIdentifierNumber"),
                         content = Text(messages("supplierTaxNumber.taxIdentifierNumber")),
                         hint = Some(Hint(content = Text(messages("supplierTaxNumber.taxIdentifierNumber.hint"))))
@@ -59,7 +59,7 @@
                     baseItems ++ Seq(
                         RadioItem(divider = Some(messages("site.or"))),
                         RadioItem(
-                            id = Some("value-3"),
+                            id = Some("value_2"),
                             value = Some("neither"),
                             content = Text(messages("supplierTaxNumber.neither")),
                         )
