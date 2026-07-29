@@ -40,14 +40,6 @@ object PurchaseType extends Enumerable.Implicits {
     case Other        => "purchase-type-other"
   }
 
-  def fromSlug(slug: String): Option[PurchaseType] = slug match {
-    case "fuel-use"                              => Some(Fuel)
-    case "transport-cost"                        => Some(Transport)
-    case "food-drink-restaurant-cost"            => Some(FoodAndDrink)
-    case "luxury-entertainment-hospitality-cost" => Some(Luxuries)
-    case "purchase-type-other"                   => Some(Other)
-    case _                                        => None
-  }
 
   def options(implicit messages: Messages): Seq[RadioItem] = values.zipWithIndex.map { case (value, index) =>
     RadioItem(

@@ -53,7 +53,7 @@ class PurchaseSubTypeController @Inject() (
   val form = formProvider()
 
   private def resolveParentAndCountry(purchaseTypeSlug: String, userAnswers: UserAnswers): Option[(String, String)] = {
-    val maybeParent = PurchaseType.fromSlug(purchaseTypeSlug).map(_.toString).orElse(userAnswers.get(PurchaseTypePage).map(_.toString))
+    val maybeParent = PurchaseType.values.find(pt => PurchaseType.slugOf(pt) == purchaseTypeSlug).map(_.toString).orElse(userAnswers.get(PurchaseTypePage).map(_.toString))
     val maybeCountry = resolveCountryCode(userAnswers)
     (maybeParent, maybeCountry) match {
       case (Some(parentKey), Some(country)) => Some((parentKey, country))
@@ -236,7 +236,7 @@ class PurchaseSubTypeController @Inject() (
 
                     } else {
                       val lastSeg = value.split("\\.").lastOption.getOrElse(value)
-                      val isOtherPurchaseType = PurchaseType.fromSlug(resolvedSlug).contains(PurchaseType.Other)
+                      val isOtherPurchaseType = PurchaseType.values.find(pt => PurchaseType.slugOf(pt) == resolvedSlug).contains(PurchaseType.Other)
 
                       if (isOtherPurchaseType && lastSeg == "99")
                         Redirect(controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(mode))

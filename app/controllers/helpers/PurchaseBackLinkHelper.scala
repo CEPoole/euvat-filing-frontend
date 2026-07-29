@@ -35,11 +35,17 @@ object PurchaseBackLinkHelper {
     (maybePurchaseTypeSlug, maybeParentCode, maybeChildCode) match {
       case (Some(slug), None, Some(child)) =>
         if (child.contains(".")) {
-          val parent = child.split("\\.").head
-          PurchaseType.fromSlug(slug) match {
+          PurchaseType.values.find(pt => PurchaseType.slugOf(pt) == slug) match {
             case Some(pt) =>
               val parentKey = pt.toString
-              val slugOpt = PurchaseSubCategoryType.slugFor(parentKey, parent).orElse(PurchaseSubCategoryType.firstSlugFor(parentKey))
+              val slugOpt = PurchaseSubCategoryType.slugFor(parentKey, child)
+                .orElse {
+                  // fallback to parent head (e.g. "1") then to first available slug
+                  val parent = child.split("\\.").head
+                  PurchaseSubCategoryType.slugFor(parentKey, parent)
+                }
+                .orElse(PurchaseSubCategoryType.firstSlugFor(parentKey))
+
               slugOpt.map(s => {
                 val p = MountPrefix.get
                 if (p.isEmpty) Call("GET", s"/$s") else Call("GET", s"$p/$s")
@@ -54,8 +60,8 @@ object PurchaseBackLinkHelper {
         val candidates = Seq(parent, last, head, child).distinct
 
         val maybeCall = candidates.iterator.map { c =>
-          try {
-            PurchaseType.fromSlug(slug) match {
+            try {
+            PurchaseType.values.find(pt => PurchaseType.slugOf(pt) == slug) match {
               case Some(pt) =>
                 val parentKey = pt.toString
                 val slugPath = PurchaseSubCategoryType.pathFor(parentKey, c)

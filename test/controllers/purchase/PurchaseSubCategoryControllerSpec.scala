@@ -43,7 +43,7 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
         override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
       }
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value.set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig))
@@ -68,6 +68,7 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
 
         val userAnswers = emptyUserAnswers
           .set(pages.RefundingCountryPage, "DE").success.value
+          .set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
           .set(pages.PurchaseSubCategoryPage, "1.1").success.value
           .set(pages.PurchaseSubCategoryLabelPage, "label").success.value
           .set(pages.CountryChangedPage, true).success.value
@@ -101,7 +102,7 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
         override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
       }
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value.set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig))
@@ -125,7 +126,7 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
       val mockSessionRepository = mock[repositories.SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value.set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -162,6 +163,7 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
 
       val userAnswers = emptyUserAnswers
         .set(pages.RefundingCountryPage, "DE").success.value
+        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
         .set(pages.PurchaseSubCategoryPage, "1.1").success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
@@ -198,7 +200,7 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
       val mockSessionRepository = mock[repositories.SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value.set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -231,7 +233,7 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
       val mockSessionRepository = mock[repositories.SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryNamePage, "Austria,AT").success.value
+      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryNamePage, "Austria,AT").success.value.set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -244,11 +246,11 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
         val controller = application.injector.instanceOf[controllers.purchase.PurchaseSubCategoryController]
 
         val getRequest = FakeRequest(GET, "/")
-        val getResult = controller.onPageLoad("fuel-use", "1.1", models.NormalMode).apply(getRequest)
+        val getResult = controller.onPageLoad(models.NormalMode).apply(getRequest)
         status(getResult) mustEqual OK
 
         val postRequest = FakeRequest(POST, "/").withFormUrlEncodedBody(("value", "1.1.4"))
-        val postResult = controller.onSubmit("fuel-use", "1.1", models.NormalMode).apply(postRequest)
+        val postResult = controller.onSubmit(models.NormalMode).apply(postRequest)
         status(postResult) mustEqual SEE_OTHER
         redirectLocation(postResult).value mustEqual routes.InvoiceTypeController.onPageLoad(models.NormalMode).url
 
@@ -272,6 +274,7 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
 
       val userAnswers = emptyUserAnswers
         .set(pages.RefundingCountryPage, "DE").success.value
+        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
         .set(pages.PurchaseSubTypePage, "1.1").success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
@@ -298,7 +301,7 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
         override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
       }
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value.set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig))
@@ -322,7 +325,7 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
         override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
       }
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value.set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig))

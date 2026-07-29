@@ -84,17 +84,23 @@ class PurchaseSubCategoryController @Inject() (
     } catch { case _: Throwable => None }
   }
 
-  private def computeFormAction(parentKey: String, purchaseTypeSlug: String, candidates: Seq[String])(implicit request: play.api.mvc.RequestHeader): Call = {
+  private def computeFormAction(parentKey: String, candidates: Seq[String], userAnswers: UserAnswers)(implicit request: play.api.mvc.RequestHeader): Call = {
     val prefix = utils.MountPrefix.get
+    val maybeSessionSlug = userAnswers.get(PurchaseTypePage).map(models.PurchaseType.slugOf)
     candidates.iterator.flatMap(c => tryReverseParent(parentKey, c)).find(_ => true).getOrElse(
-      Call("POST", (if (prefix.isEmpty) s"/${purchaseTypeSlug}" else s"$prefix/${purchaseTypeSlug}"))
+      maybeSessionSlug.map { slug => Call("POST", (if (prefix.isEmpty) s"/$slug" else s"$prefix/$slug")) }
+        .getOrElse(Call("POST", (if (prefix.isEmpty) s"/" else s"$prefix/")))
     )
   }
 
-  private def backUrlFor(purchaseTypeSlug: String)(implicit request: play.api.mvc.RequestHeader): String = {
+  private def backUrlFor(userAnswers: UserAnswers)(implicit request: play.api.mvc.RequestHeader): String = {
     val prefix = utils.MountPrefix.get
-    val url = if (prefix.isEmpty) s"/${purchaseTypeSlug}" else s"$prefix/${purchaseTypeSlug}"
-    Call("GET", url).url
+    userAnswers.get(PurchaseTypePage).map(models.PurchaseType.slugOf) match {
+      case Some(slug) =>
+        val url = if (prefix.isEmpty) s"/$slug" else s"$prefix/$slug"
+        Call("GET", url).url
+      case None => controllers.routes.PurchaseTypeController.onPageLoad(models.NormalMode).url
+    }
   }
 
   // mount prefix computed with utils.MountPrefix
@@ -113,7 +119,7 @@ class PurchaseSubCategoryController @Inject() (
     }
   }
 
-  private def prepareSubCategoryViewData(purchaseTypeSlug: String, parentKey: String, parentCode: String, effectiveParentCode: String, country: String, userAnswers: UserAnswers)(implicit request: play.api.mvc.RequestHeader) = {
+  private def prepareSubCategoryViewData(parentKey: String, parentCode: String, effectiveParentCode: String, country: String, userAnswers: UserAnswers)(implicit request: play.api.mvc.RequestHeader) = {
     val msgs = messagesApi.preferred(request)
 
     val (resolvedParentCode, options) = computeResolvedParentAndOptions(parentKey, effectiveParentCode, parentCode, country)
@@ -132,8 +138,8 @@ class PurchaseSubCategoryController @Inject() (
     val last = resolvedParentCode.split("\\.").lastOption.getOrElse(resolvedParentCode)
     val candidates = Seq(resolvedParentCode, last, head).distinct
 
-    val formAction = computeFormAction(parentKey, purchaseTypeSlug, candidates)(request)
-    val backUrl = backUrlFor(purchaseTypeSlug)
+    val formAction = computeFormAction(parentKey, candidates, userAnswers)(request)
+    val backUrl = backUrlFor(userAnswers)
 
     val parentBase = resolvedParentCode.split("\\.").headOption.getOrElse(resolvedParentCode)
 
@@ -150,7 +156,7 @@ class PurchaseSubCategoryController @Inject() (
       }
     }
 
-  def onPageLoad(purchaseTypeSlug: String, parentCode: String, mode: Mode): Action[AnyContent] =
+  def onPageLoad(mode: Mode): Action[AnyContent] =
     (identify andThen getData andThen requireData).async { implicit request =>
 
       if (request.userAnswers.get(pages.CountryChangedPage).contains(true)) {
@@ -160,50 +166,64 @@ class PurchaseSubCategoryController @Inject() (
           afterClearedFlag             <- afterRemovedSubCategoryLabel.remove(pages.CountryChangedPage)
         } yield afterClearedFlag
 
-        Future.fromTry(clearedAnswers).flatMap(updated => sessionRepository.set(updated).map(_ => Redirect(Call("GET", request.path))))
+        Future.fromTry(clearedAnswers).flatMap { updated =>
+          sessionRepository.set(updated).map(_ => Redirect(Call("GET", request.path)))
+        }
+
       } else {
-        val maybeParent = PurchaseType.fromSlug(purchaseTypeSlug).map(_.toString)
+        val maybeParent  = request.userAnswers.get(pages.PurchaseTypePage).map(_.toString)
         val maybeCountry = resolveCountryCode(request.userAnswers)
 
         (maybeParent, maybeCountry) match {
           case (Some(parentKey), Some(country)) =>
             val parentFromSessionOpt = request.userAnswers.get(pages.PurchaseSubTypePage)
-            val effectiveParentCode = parentFromSessionOpt.getOrElse(parentCode)
+            val effectiveParentCode  = parentFromSessionOpt.getOrElse {
+              // fallback to first configured subcode for this parentKey when session missing
+              config.subcodesFor(country, parentKey).headOption.map(_._1).getOrElse("")
+            }
 
-            val (resolvedParentCode, options) = computeResolvedParentAndOptions(parentKey, effectiveParentCode, parentCode, country)
+                val (resolvedParentCode, options) = computeResolvedParentAndOptions(parentKey, effectiveParentCode, effectiveParentCode, country)
 
             if (options.isEmpty) Future.successful(Redirect(routes.InvoiceTypeController.onPageLoad(mode)))
             else {
               val (resolvedParentCode2, options2, items2, pageTitle2, heading2, preparedForm2, formAction2, backUrl2, parentBase2, childToPersist2, parentLabelKeyOpt2) =
-                prepareSubCategoryViewData(purchaseTypeSlug, parentKey, parentCode, effectiveParentCode, country, request.userAnswers)(request)
+                prepareSubCategoryViewData(parentKey, effectiveParentCode, effectiveParentCode, country, request.userAnswers)(request)
 
               request.userAnswers.get(pages.PurchaseSubTypePage) match {
                 case Some(existing) if existing.split("\\.").headOption.contains(parentBase2) =>
                   Future.successful(Ok(view(preparedForm2, items2, pageTitle2, heading2, formAction2, backUrl2)))
+
                 case _ =>
                   val labelForParent = parentLabelKeyOpt2.flatMap(k => Some(messagesApi.preferred(request)(k))).getOrElse(childToPersist2)
                   val saved = for {
-                    afterSetParent       <- request.userAnswers.set(pages.PurchaseSubTypePage, childToPersist2)
-                    afterSetParentLabel  <- afterSetParent.set(pages.PurchaseSubTypeLabelPage, labelForParent)
+                    afterSetParent      <- request.userAnswers.set(pages.PurchaseSubTypePage, childToPersist2)
+                    afterSetParentLabel <- afterSetParent.set(pages.PurchaseSubTypeLabelPage, labelForParent)
                   } yield afterSetParentLabel
 
-                  Future.fromTry(saved).flatMap(finalAnswers => sessionRepository.set(finalAnswers).map(_ => Ok(view(preparedForm2, items2, pageTitle2, heading2, formAction2, backUrl2))))
+                  Future.fromTry(saved).flatMap { finalAnswers =>
+                    sessionRepository.set(finalAnswers).map(_ => Ok(view(preparedForm2, items2, pageTitle2, heading2, formAction2, backUrl2)))
+                  }
               }
             }
 
           case _ => Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
         }
       }
-  }
+    }
 
-  def onSubmit(purchaseTypeSlug: String, parentCode: String, mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-    val maybeParent = PurchaseType.fromSlug(purchaseTypeSlug).map(_.toString)
+  def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
+    val maybeParent = request.userAnswers.get(pages.PurchaseTypePage).map(_.toString)
     val maybeCountry = resolveCountryCode(request.userAnswers)
 
     (maybeParent, maybeCountry) match {
       case (Some(parentKey), Some(country)) =>
+        val parentFromSessionOpt = request.userAnswers.get(pages.PurchaseSubTypePage)
+        val effectiveParentCode  = parentFromSessionOpt.getOrElse {
+          config.subcodesFor(country, parentKey).headOption.map(_._1).getOrElse("")
+        }
+
         val (resolvedParentCode, options, items, pageTitle, heading, preparedForm, formAction, backUrl, parentBase, childToPersist, parentLabelKeyOpt) =
-          prepareSubCategoryViewData(purchaseTypeSlug, parentKey, parentCode, parentCode, country, request.userAnswers)(request)
+          prepareSubCategoryViewData(parentKey, effectiveParentCode, effectiveParentCode, country, request.userAnswers)(request)
 
         if (options.isEmpty) Future.successful(Redirect(routes.InvoiceTypeController.onPageLoad(mode)))
         else {

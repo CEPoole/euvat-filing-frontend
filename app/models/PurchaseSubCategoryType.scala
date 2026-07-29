@@ -29,7 +29,9 @@ object PurchaseSubCategoryType {
     "fuel" -> Map(
       "1.1" -> "fuel-type",
       "1.2" -> "fuel-type-or-vehicle",
-      "1.3" -> "vehicle-use",
+      "1.3" -> "fuel-type",
+      "1.8" -> "vehicle-use",
+      "1.9" -> "vehicle-use",
       "1.10" -> "fuel-type",
       "1.11" -> "fuel-type"
     ),
@@ -37,8 +39,11 @@ object PurchaseSubCategoryType {
       "3.1" -> "what-transport-cost",
       "3.2" -> "what-transport-cost",
       "3.3" -> "what-transport-cost",
-      "3.5" -> "what-transport-cost",
-      "3.6" -> "what-transport-cost"
+      "3.4" -> "what-transport-cost",
+      "3.5" -> "vehicle-use",
+      "3.6" -> "vehicle-use",
+      "3.7" -> "vehicle-use",
+      "3.8" -> "vehicle-use"
     ),
     "foodAndDrink" -> Map(
       "7.1" -> "who-food-drink-for",
@@ -62,7 +67,8 @@ object PurchaseSubCategoryType {
    * have an explicit mapping.
    */
   def firstSlugFor(parentKey: String): Option[String] =
-    mapping.get(parentKey).flatMap(_.values.headOption)
+    // Choose a deterministic first slug by sorting parent codes numerically/alphabetically
+    mapping.get(parentKey).flatMap(m => m.toSeq.sortBy(_._1).headOption.map(_._2))
 
   /**
    * Builds a friendly path fragment for a parent. Falls back to a generic
