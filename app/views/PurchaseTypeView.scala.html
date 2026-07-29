@@ -30,14 +30,11 @@
 
 @(form: Form[?], mode: Mode, call: Call)(implicit request: Request[?], messages: Messages)
 
-@radioLegend = {<h2 class="govuk-fieldset__heading">@messages("purchaseType.h2")</h2>}
-
 @layout(pageTitle = views.ViewUtils.title(form, "purchaseType.title"), backLinkUrl = Some(call.url)) {
-    <span class="govuk-caption-l hmrc-caption-l">
-            <span class="govuk-visually-hidden">This section is: </span>@messages("invoiceType.caption")
-    </span>
-
-    <h1 class="govuk-heading-l">@messages("purchaseType.heading")</h1>
+    <h1 class="govuk-heading-l">
+        <span class="govuk-caption-l">@messages("purchase.caption")</span>
+        @messages("purchaseType.heading")
+    </h1>
 
     @formHelper(action = routes.PurchaseTypeController.onSubmit(mode)) {
         @mainErrorSummary(form, Map("value" -> "value_0"))
@@ -51,7 +48,7 @@
         @govukRadios(
             RadiosViewModel(
                 field  = form("value"),
-                legend = LegendViewModel(HtmlContent(radioLegend)).withCssClass("govuk-fieldset__legend--m"),
+                legend = LegendViewModel(HtmlContent(messages("purchaseType.h2"))).withCssClass("govuk-fieldset__legend--m"),
                 items  = PurchaseType.options
             )
         )

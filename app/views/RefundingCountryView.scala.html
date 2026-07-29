@@ -41,27 +41,26 @@
         @mainErrorSummary(form, Map("value" -> (form("value").id + "-input")))
 
         <div class="govuk-form-group @if(isError){govuk-form-group--error}">
-            <h2 class="govuk-caption-l hmrc-caption-l"><span class="govuk-visually-hidden">This section is: </span>@messages("claim.caption.add")</h2>
-            <h1 id="refunding-country-heading" class="govuk-heading-l">@messages("refundingCountry.heading")</h1>
+            <span class="govuk-caption-l">@messages("claim.caption")</span>
 
             @govukSelect(
-            Select(
-                id = form("value").id + "-input",
-                name = "value",
-                classes = TwoThirds.toString,
-                label = Label(content = Text(messages("refundingCountry.heading")), classes = "govuk-visually-hidden"),
-                items = Seq(SelectItem(value = Some(""), text = "Select a country", selected = form("value").value.isEmpty)) ++ countries.map { case (name, code) =>
-                    SelectItem(value = Some(code), text = name, selected = form("value").value.contains(code))
-                },
-                hint = Some(Hint(content = messages("refundingCountry.hint"))),
-                attributes = Map(
-                    "aria-describedby" -> (form("value").id + "-input-hint"),
-                    "data-ac-typed" -> "#valueTyped",
-                    "data-ac-heading" -> "#refunding-country-heading",
-                    "data-ac-input-classes" -> "govuk-input govuk-!-width-two-thirds"
-                ),
-                errorMessage = form.error("value").map { e => ErrorMessage(content = Text(messages(e.message, e.args: _*))) }
-            ).asAccessibleAutocomplete(Some(AccessibleAutocomplete(showAllValues = false, autoSelect = false, minLength = None)))
+                Select(
+                    id = form("value").id + "-input",
+                    name = "value",
+                    classes = TwoThirds.toString,
+                    label = Label(content = Text(messages("refundingCountry.heading")), classes = "govuk-label--l", isPageHeading = true),
+                    items = Seq(SelectItem(value = Some(""), text = "Select a country", selected = form("value").value.isEmpty)) ++ countries.map { case (name, code) =>
+                        SelectItem(value = Some(code), text = name, selected = form("value").value.contains(code))
+                    },
+                    hint = Some(Hint(content = messages("refundingCountry.hint"))),
+                    attributes = Map(
+                        "aria-describedby" -> (form("value").id + "-input-hint"),
+                        "data-ac-typed" -> "#valueTyped",
+                        "data-ac-heading" -> "#refunding-country-heading",
+                        "data-ac-input-classes" -> "govuk-input govuk-!-width-two-thirds"
+                    ),
+                    errorMessage = form.error("value").map { e => ErrorMessage(content = Text(messages(e.message, e.args: _*))) }
+                ).asAccessibleAutocomplete(Some(AccessibleAutocomplete(showAllValues = false, autoSelect = false, minLength = None)))
             )
 
         </div>
@@ -70,7 +69,7 @@
 
         @govukButton(ButtonViewModel(messages("site.continue")))
 
-           @* Shared autocomplete sync handled globally via `autocomplete-sync.js` included in the layout. *@
+        @* Shared autocomplete sync handled globally via `autocomplete-sync.js` included in the layout. *@
 
     }
 }

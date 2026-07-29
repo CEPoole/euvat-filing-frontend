@@ -14,7 +14,7 @@
  * limitations under the License.
  *@
 
-@import viewmodels.InputWidth._
+@import viewmodels.InputWidth.*
 @import views.html.components.MainErrorSummary
 @import viewmodels.LabelSize
 
@@ -35,10 +35,10 @@
 
         @mainErrorSummary(form)
 
-        <span class="govuk-caption-l hmrc-caption-l"><span class="govuk-visually-hidden">This section is: </span>@messages("purchase.caption.add")</span>
-
-        <h1 class="govuk-heading-l">@messages("totalVatClaim.heading")</h1>
-
+        <h1 class="govuk-heading-l">
+            <span class="govuk-caption-l">@messages("purchase.caption")</span>
+            @messages("totalVatClaim.heading")
+        </h1>
         <p class="govuk-body-m">@messages("totalVatClaim.p1")</p>
 
         @govukInput(

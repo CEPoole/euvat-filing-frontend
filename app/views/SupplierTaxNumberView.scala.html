@@ -14,16 +14,16 @@
  * limitations under the License.
  *@
 
-@import uk.gov.hmrc.govukfrontend.views.html.components._
+@import uk.gov.hmrc.govukfrontend.views.html.components.*
 @import uk.gov.hmrc.govukfrontend.views.viewmodels.content.HtmlContent
 @import views.html.components.MainErrorSummary
 
 @this(
-layout: templates.Layout,
-formHelper: FormWithCSRF,
-mainErrorSummary: views.html.components.MainErrorSummary,
-govukRadios: GovukRadios,
-govukButton: GovukButton
+    layout: templates.Layout,
+    formHelper: FormWithCSRF,
+    mainErrorSummary: views.html.components.MainErrorSummary,
+    govukRadios: GovukRadios,
+    govukButton: GovukButton
 )
 
 @(form: Form[_], mode: Mode, call: Call)(implicit request: Request[_], messages: Messages)
@@ -31,56 +31,53 @@ govukButton: GovukButton
 
 @layout(pageTitle = views.ViewUtils.title(form, messages("supplierTaxNumber.title")), backLinkUrl = Some(call.url)) {
 
-@formHelper(action = routes.SupplierTaxNumberController.onSubmit(mode)) {
-@mainErrorSummary(form, Map.empty)
+    @formHelper(action = routes.SupplierTaxNumberController.onSubmit(mode)) {
+        @mainErrorSummary(form, Map.empty)
 
-<span class="govuk-caption-l hmrc-caption-l">
-            <span class="govuk-visually-hidden">This section is: </span>@messages("supplierTaxNumber.caption")
-        </span>
+        <h1 class="govuk-heading-l">
+            <span class="govuk-caption-l">@messages("purchase.caption")</span>
+            @messages("supplierTaxNumber.heading")
+        </h1>
 
-<h1 class="govuk-heading-l">@messages("supplierTaxNumber.heading")</h1>
+        <div class="govuk-form-group @if(errored){govuk-form-group--error}">
+            <fieldset class="govuk-fieldset" @if(errored){aria-describedby="value-error"}>
 
-<div class="govuk-form-group @if(errored){govuk-form-group--error}">
-    <fieldset class="govuk-fieldset" @if(errored){aria-describedby="value-error"}>
+                @form.error("value").map { e =>
+                <p id="value-error" class="govuk-error-message">
+                    <span class="govuk-visually-hidden">@messages("error.prefix"):</span> @messages(e.message, e.args*)
+                </p>
+                }
 
-        @form.error("value").map { e =>
-        <p id="value-error" class="govuk-error-message">
-            <span class="govuk-visually-hidden">@messages("error.prefix"):</span> @messages(e.message, e.args*)
-        </p>
-        }
+                <div class="govuk-radios" data-module="govuk-radios">
+                    <div class="govuk-radios__item">
+                        <input class="govuk-radios__input" id="value" name="value" type="radio" value="vatRegistrationNumber"
+                               aria-describedby="value_0-hint"
+                               @if(form("value").value.contains("vatRegistrationNumber")){checked}>
+                        <label class="govuk-label govuk-radios__label" for="value">
+                            @messages("supplierTaxNumber.vatRegistrationNumber")
+                        </label>
+                        <div id="value_0-hint" class="govuk-hint govuk-radios__hint" >
+                            @messages("supplierTaxNumber.vatRegistrationNumber.hint")
+                        </div>
+                    </div>
 
-        <div class="govuk-radios" data-module="govuk-radios">
-
-            <div class="govuk-radios__item">
-                <input class="govuk-radios__input" id="value" name="value" type="radio" value="vatRegistrationNumber"
-                       aria-describedby="value_0-hint"
-                       @if(form("value").value.contains("vatRegistrationNumber")){checked}>
-                <label class="govuk-label govuk-radios__label" for="value">
-                    @messages("supplierTaxNumber.vatRegistrationNumber")
-                </label>
-                <div id="value_0-hint" class="govuk-hint govuk-radios__hint" >
-                    @messages("supplierTaxNumber.vatRegistrationNumber.hint")
+                    <div class="govuk-radios__item">
+                        <input class="govuk-radios__input" id="value_1" name="value" type="radio" value="taxIdentifierNumber"
+                               aria-describedby="value_1-hint"
+                               @if(form("value").value.contains("taxIdentifierNumber")){checked}>
+                        <label class="govuk-label govuk-radios__label" for="value_1">
+                            @messages("supplierTaxNumber.taxIdentifierNumber")
+                        </label>
+                        <div id="value_1-hint" class="govuk-hint govuk-radios__hint" >
+                            @messages("supplierTaxNumber.taxIdentifierNumber.hint")
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <div class="govuk-radios__item">
-                <input class="govuk-radios__input" id="value_1" name="value" type="radio" value="taxIdentifierNumber"
-                       aria-describedby="value_1-hint"
-                       @if(form("value").value.contains("taxIdentifierNumber")){checked}>
-                <label class="govuk-label govuk-radios__label" for="value_1">
-                    @messages("supplierTaxNumber.taxIdentifierNumber")
-                </label>
-                <div id="value_1-hint" class="govuk-hint govuk-radios__hint" >
-                    @messages("supplierTaxNumber.taxIdentifierNumber.hint")
-                </div>
-            </div>
-
+            </fieldset>
         </div>
-    </fieldset>
-</div>
 
-@govukButton(
-ButtonViewModel(messages("site.continue"))
-)
-}
+        @govukButton(
+            ButtonViewModel(messages("site.continue"))
+        )
+    }
 }

@@ -28,9 +28,10 @@
 
 @layout(pageTitle = titleNoForm(messages("beforeYouStart.title")), backLinkUrl = Some(backLinkCall.url)) {
     @formHelper(action = routes.BeforeYouStartPurchaseController.onSubmit()) {
-
-        <h2 class="govuk-caption-l hmrc-caption-l"><span class="govuk-visually-hidden">This section is </span>@messages("purchase.caption.add")</h2>
-        <h1 class="govuk-heading-l">@messages("beforeYouStart.heading")</h1>
+        <h1 class="govuk-heading-l">
+            <span class="govuk-caption-l">@messages("purchase.caption")</span>
+            @messages("beforeYouStart.heading")
+        </h1>
         <p class="govuk-body">@messages("beforeYouStart.p1")</p>
 
         <ul class="govuk-list govuk-list--bullet">

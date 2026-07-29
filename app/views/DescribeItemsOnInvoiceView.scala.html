@@ -14,7 +14,6 @@
  * limitations under the License.
  *@
 
-@import uk.gov.hmrc.govukfrontend.views.html.components._
 @import uk.gov.hmrc.govukfrontend.views.html.components.CharacterCount
 
 @this(
@@ -31,33 +30,30 @@
 
 @layout(pageTitle = views.ViewUtils.title(form, "describeItemsOnInvoice.title"), backLinkUrl = Some(routes.PurchaseTypeController.onPageLoad(mode).url)) {
 
-@formHelper(action = routes.DescribeItemsOnInvoiceController.onSubmit(mode)) {
+    @formHelper(action = routes.DescribeItemsOnInvoiceController.onSubmit(mode)) {
 
-@mainErrorSummary(form, Map("value" -> "value"))
+        @mainErrorSummary(form, Map("value" -> "value"))
 
-    <div class="govuk-form-group @if(isError){govuk-form-group--error}">
+        <div class="govuk-form-group @if(isError){govuk-form-group--error}">
+            <span class="govuk-caption-l">@messages("purchase.caption")</span>
 
-        <span class="govuk-caption-l">@messages("purchase.caption.add")</span>
+            @govukCharacterCount(CharacterCount(
+                id = "value",
+                name = "value",
+                maxLength = Some(255),
+                label = Label(
+                    isPageHeading = true,
+                    classes = "govuk-label--l",
+                    content = Text(messages("describeItemsOnInvoice.heading"))
+                ),
+                hint = Some(Hint(
+                    content = Text(messages("describeItemsOnInvoice.hint"))
+                )),
+                value = form("value").value,
+                errorMessage = form("value").error.map(err => ErrorMessage(content = Text(messages(err.message, err.args*))))
+            ))
+        </div>
 
-        <h1 class="govuk-heading-l">@messages("describeItemsOnInvoice.heading")</h1>
-
-        <p class="govuk-body">@messages("describeItemsOnInvoice.p")</p>
-
-        @govukCharacterCount(CharacterCount(
-            id = "value",
-            name = "value",
-            maxLength = Some(255),
-            label = Label(
-                isPageHeading = false,
-                classes = "govuk-visually-hidden",
-                content = Text(messages("describeItemsOnInvoice.heading"))
-            ),
-            value = form("value").value,
-            errorMessage = form("value").error.map(err => ErrorMessage(content = Text(messages(err.message, err.args*))))
-        ))
-
-    </div>
-
-    @govukButton(ButtonViewModel(messages("site.continue")))
+        @govukButton(ButtonViewModel(messages("site.continue")))
     }
 }

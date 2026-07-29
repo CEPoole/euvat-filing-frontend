@@ -40,55 +40,52 @@
             @govukErrorSummary(ErrorSummaryViewModel(form, errorLinkOverrides = errorLinkOverrides))
         }
 
-    <h2 class="govuk-caption-l hmrc-caption-l">
-      <span class="govuk-visually-hidden">This section is: </span>@messages("claim.caption.add")
-    </h2>
-    <h1 class="govuk-heading-l">@messages("refundPeriod.heading")</h1>
+        <h1 class="govuk-heading-l">
+            <span class="govuk-caption-l">@messages("claim.caption")</span>
+            @messages("refundPeriod.heading")
+        </h1>
+        <p class="govuk-body">@messages("refundPeriod.rules.heading")</p>
 
-    <p class="govuk-body">
-      @messages("refundPeriod.rules.heading")
-    </p>
+        <ul class="govuk-list govuk-list--bullet">
+          <li>@messages("refundPeriod.rule.1")</li>
+          <li>@messages("refundPeriod.rule.2")</li>
+          <li>@messages("refundPeriod.rule.3")</li>
+          <li>@messages("refundPeriod.rule.4")</li>
+        </ul>
 
-    <ul class="govuk-list govuk-list--bullet">
-      <li>@messages("refundPeriod.rule.1")</li>
-      <li>@messages("refundPeriod.rule.2")</li>
-      <li>@messages("refundPeriod.rule.3")</li>
-      <li>@messages("refundPeriod.rule.4")</li>
-    </ul>
+        @defining(
+          DateInput(
+            fieldset = Some(Fieldset(legend = Some(Legend(content = HtmlContent(messages("refundPeriod.start.heading")), classes = "govuk-fieldset__legend--m")))),
+            items = Seq(
+              InputItem(id = s"${form("start").id}.month", name = s"${form("start").name}.month", value = form("start.month").value, label = Some(messages("date.month")), classes = "govuk-input--width-2" + (if (highlighted.contains("start.month")) " govuk-input--error" else "")),
+              InputItem(id = s"${form("start").id}.year", name = s"${form("start").name}.year", value = form("start.year").value, label = Some(messages("date.year")), classes = "govuk-input--width-4" + (if (highlighted.contains("start.year")) " govuk-input--error" else ""), inputmode = Some("numeric"), pattern = Some("[0-9]*"))
+           ),
+          id = form("start").id,
+          errorMessage = startErrorMessage
+            .orElse(if (highlighted.contains("start.month") || highlighted.contains("start.year")) Some("") else None)
+            .map(msg => ErrorMessage(content = HtmlContent(msg)))
+          )
+        ) { startDate =>
+          @govukDateInput(startDate.withHint(HintViewModel(messages("refundPeriod.start.hint"))))
+        }
 
-    @defining(
-      DateInput(
-        fieldset = Some(Fieldset(legend = Some(Legend(content = HtmlContent(messages("refundPeriod.start.heading")), classes = "govuk-fieldset__legend--m")))),
-        items = Seq(
-          InputItem(id = s"${form("start").id}.month", name = s"${form("start").name}.month", value = form("start.month").value, label = Some(messages("date.month")), classes = "govuk-input--width-2" + (if (highlighted.contains("start.month")) " govuk-input--error" else "")),
-          InputItem(id = s"${form("start").id}.year", name = s"${form("start").name}.year", value = form("start.year").value, label = Some(messages("date.year")), classes = "govuk-input--width-4" + (if (highlighted.contains("start.year")) " govuk-input--error" else ""), inputmode = Some("numeric"), pattern = Some("[0-9]*"))
-       ),
-      id = form("start").id,
-      errorMessage = startErrorMessage
-        .orElse(if (highlighted.contains("start.month") || highlighted.contains("start.year")) Some("") else None)
-        .map(msg => ErrorMessage(content = HtmlContent(msg)))
-      )
-    ) { startDate =>
-      @govukDateInput(startDate.withHint(HintViewModel(messages("refundPeriod.start.hint"))))
+        @defining(
+          DateInput(
+            fieldset = Some(Fieldset(legend = Some(Legend(content = HtmlContent(messages("refundPeriod.end.heading")), classes = "govuk-fieldset__legend--m")))),
+            items = Seq(
+              InputItem(id = s"${form("end").id}.month", name = s"${form("end").name}.month", value = form("end.month").value, label = Some(messages("date.month")), classes = "govuk-input--width-2" + (if (highlighted.contains("end.month")) " govuk-input--error" else "")),
+              InputItem(id = s"${form("end").id}.year", name = s"${form("end").name}.year", value = form("end.year").value, label = Some(messages("date.year")), classes = "govuk-input--width-4" + (if (highlighted.contains("end.year")) " govuk-input--error" else ""), inputmode = Some("numeric"), pattern = Some("[0-9]*"))
+          ),
+          id = form("end").id,
+          errorMessage = endErrorMessage
+            .orElse(if (highlighted.contains("end.month") || highlighted.contains("end.year")) Some("") else None)
+            .map(msg => ErrorMessage(content = HtmlContent(msg)))
+          )
+        ) { endDate =>
+            @govukDateInput(endDate.withHint(HintViewModel(messages("refundPeriod.end.hint"))))
+        }
+
+        @govukButton(ButtonViewModel(messages("site.continue")))
+
     }
-
-    @defining(
-      DateInput(
-        fieldset = Some(Fieldset(legend = Some(Legend(content = HtmlContent(messages("refundPeriod.end.heading")), classes = "govuk-fieldset__legend--m")))),
-        items = Seq(
-          InputItem(id = s"${form("end").id}.month", name = s"${form("end").name}.month", value = form("end.month").value, label = Some(messages("date.month")), classes = "govuk-input--width-2" + (if (highlighted.contains("end.month")) " govuk-input--error" else "")),
-          InputItem(id = s"${form("end").id}.year", name = s"${form("end").name}.year", value = form("end.year").value, label = Some(messages("date.year")), classes = "govuk-input--width-4" + (if (highlighted.contains("end.year")) " govuk-input--error" else ""), inputmode = Some("numeric"), pattern = Some("[0-9]*"))
-      ),
-      id = form("end").id,
-      errorMessage = endErrorMessage
-        .orElse(if (highlighted.contains("end.month") || highlighted.contains("end.year")) Some("") else None)
-        .map(msg => ErrorMessage(content = HtmlContent(msg)))
-      )
-    ) { endDate =>
-    @govukDateInput(endDate.withHint(HintViewModel(messages("refundPeriod.end.hint"))))
-    }
-
-    @govukButton(ButtonViewModel(messages("site.continue")))
-
-  }
 }

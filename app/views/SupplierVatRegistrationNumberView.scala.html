@@ -36,14 +36,15 @@
         @mainErrorSummary(form, Map.empty)
 
         <div class="govuk-form-group @if(isError){govuk-form-group--error}">
-
-            <h2 class="govuk-caption-l hmrc-caption-l"><span class="govuk-visually-hidden">This section is: </span>@messages("purchase.caption.add")</h2>
-            <h1 class="govuk-heading-l">@messages("supplierVatRegistrationNumber.heading")</h1>
-
+            <span class="govuk-caption-l">@messages("purchase.caption")</span>
             @govukInput(
                 InputViewModel(
                     field = form("value"),
-                    label = LabelViewModel(messages("supplierVatRegistrationNumber.heading")).withCssClass("govuk-visually-hidden")
+                    label = Label(
+                        isPageHeading = true,
+                        classes = "govuk-label--l",
+                        content = Text(messages("supplierVatRegistrationNumber.heading"))
+                    )
                 )
                 .withCssClass("govuk-input--width-10")
                 .withAutocomplete("off")
