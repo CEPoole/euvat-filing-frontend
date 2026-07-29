@@ -35,20 +35,20 @@
         @mainErrorSummary(form, Map("value" -> "value"))
 
         <div class="govuk-form-group @if(isError){govuk-form-group--error}">
-            <h1 class="govuk-heading-l">
-                <span class="govuk-caption-l">@messages("purchase.caption")</span>
-                @messages("describeItemsOnInvoice.heading")
-            </h1>
-            <p class="govuk-body">@messages("describeItemsOnInvoice.p")</p>
+            <span class="govuk-caption-l">@messages("purchase.caption")</span>
 
             @govukCharacterCount(CharacterCount(
                 id = "value",
                 name = "value",
                 maxLength = Some(255),
                 label = Label(
-                    isPageHeading = false,
-                    classes = "govuk-visually-hidden"
+                    isPageHeading = true,
+                    classes = "govuk-label--l",
+                    content = Text(messages("describeItemsOnInvoice.heading"))
                 ),
+                hint = Some(Hint(
+                    content = Text(messages("describeItemsOnInvoice.hint"))
+                )),
                 value = form("value").value,
                 errorMessage = form("value").error.map(err => ErrorMessage(content = Text(messages(err.message, err.args*))))
             ))
