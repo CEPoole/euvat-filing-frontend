@@ -26,7 +26,7 @@ import pages.RefundingCurrencyPage
 import play.api.Logger
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, MessagesControllerComponents, Request}
+import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents, Request}
 import repositories.SessionRepository
 import uk.gov.hmrc.govukfrontend.views.Aliases.Text
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
@@ -54,6 +54,8 @@ class RefundingCurrencyController @Inject() (
   val form: Form[RefundingCurrency] = formProvider()
   private val logger = Logger(getClass)
 
+  private def backLink(mode: Mode): Call = routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
+
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     resolveCountryCode(request.userAnswers) match {
       case None =>
@@ -72,9 +74,7 @@ class RefundingCurrencyController @Inject() (
           }
           .getOrElse(form)
 
-        val back = routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
-
-        Ok(view(preparedForm, items, back, mode))
+        Ok(view(preparedForm, items, backLink(mode), mode))
     }
   }
 
@@ -93,8 +93,7 @@ class RefundingCurrencyController @Inject() (
               val currencies = configCurrencyMapping.currenciesFor(countryCode)
               val msgs = messagesApi.preferred(request)
               val items = buildRadioItems(currencies, msgs)
-              val back = routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
-              Future.successful(BadRequest(view(formWithErrors, items, back, mode)))
+              Future.successful(BadRequest(view(formWithErrors, items, backLink(mode), mode)))
           },
         value =>
           resolveCountryCode(request.userAnswers) match {
