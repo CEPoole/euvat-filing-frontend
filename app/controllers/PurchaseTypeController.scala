@@ -101,7 +101,7 @@ class PurchaseTypeController @Inject() (
           } yield {
             val call = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)
             val prefix = MountPrefix.get
-            if (prefix.isEmpty) Redirect(call)
+            if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
             else Redirect(Call(call.method, s"$prefix${call.url}"))
           }
       )

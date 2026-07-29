@@ -211,6 +211,32 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "must redirect to InvoiceType when no subcodes exist for the selected purchase type" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+
+      // set country to LT which has no 'fuel' mapping in purchase-mapping.conf
+      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "LT").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, purchaseTypeSubmitRoute)
+          .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual ("/file-eu-vat/invoice-type")
+        verify(mockSessionRepository, times(1)).set(any())
+      }
+    }
+
     "must clear DescribeItemsOnInvoice when purchase type is changed on POST" in {
         val mockSessionRepository = mock[SessionRepository]
         when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
