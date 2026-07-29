@@ -187,9 +187,7 @@ class PurchaseSubTypeController @Inject() (
 
               val msgs = messagesApi.preferred(request)
               val requiredKeyCandidates = Seq(s"purchase.sub.${parentKey}.error.required")
-              println(s"requiredKeyCandidates: $requiredKeyCandidates")
               val requiredKey = requiredKeyCandidates.find(k => msgs.isDefinedAt(k)).getOrElse("error.required")
-              println(s"requiredKey: $requiredKey")
 
               formProvider(requiredKey).bindFromRequest().fold(
                 formWithErrors => {

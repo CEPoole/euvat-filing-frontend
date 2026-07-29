@@ -146,7 +146,6 @@ class PurchaseSubCategoryController @Inject() (
       s"purchase.sub.${parentKey}.error.required"
     )
     val requiredKey = candidateKeys.find(k => msgs.isDefinedAt(k)).getOrElse("error.required")
-    println(s"candidateKeys=$candidateKeys, requiredKey=$requiredKey")
     val preparedForm = userAnswers.get(PurchaseSubCategoryPage).fold(formProvider(requiredKey))(formProvider(requiredKey).fill)
 
     val head = resolvedParentCode.split("\\.").headOption.getOrElse(resolvedParentCode)
