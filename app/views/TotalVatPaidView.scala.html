@@ -14,10 +14,9 @@
  * limitations under the License.
  *@
 
-@import viewmodels.InputWidth._
+@import viewmodels.InputWidth.*
 @import viewmodels.LabelSize
 @import views.html.components.MainErrorSummary
-
 @import forms.mappings.Mappings
 
 @this(
@@ -36,12 +35,10 @@
 
         @mainErrorSummary(form, Map.empty)
 
-        <span class="govuk-caption-l hmrc-caption-l"><span class="govuk-visually-hidden">This section is: </span>@messages("purchase.caption.add")</span>
-
         <h1 class="govuk-heading-l">
-          @messages("totalVatPaid.heading")
+            <span class="govuk-caption-l">@messages("purchase.caption")</span>
+            @messages("totalVatPaid.heading")
         </h1>
-
         <div id="total-vat-paid" class="govuk-body">@Html(messages("totalVatPaid.p1"))</div>
 
         @govukInput(

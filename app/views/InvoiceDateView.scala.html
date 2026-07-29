@@ -20,7 +20,6 @@
 @import uk.gov.hmrc.govukfrontend.views.viewmodels.errormessage.ErrorMessage
 @import uk.gov.hmrc.govukfrontend.views.viewmodels.dateinput.{DateInput, InputItem}
 @import viewmodels.govuk.date.DateViewModel
-@import viewmodels.govuk.fieldset.*
 @import uk.gov.hmrc.govukfrontend.views.viewmodels.fieldset.*
 
 @this(
@@ -38,43 +37,38 @@
 @layout(pageTitle = title(form, messages("invoiceDate.title")), backLinkUrl = Some(backLink.url)) {
 
     @formHelper(action = controllers.routes.InvoiceDateController.onSubmit(mode), Symbol("autoComplete") -> "off") {
+        @defining({
+            val field = form("value")
+            val dayEmpty = field("day").value.isEmpty
+            val monthEmpty = field("month").value.isEmpty
+            val yearEmpty = field("year").value.isEmpty
 
-                @defining({
-                        val field = form("value")
-                        val dayEmpty = field("day").value.isEmpty
-                        val monthEmpty = field("month").value.isEmpty
-                        val yearEmpty = field("year").value.isEmpty
+            if (dayEmpty) "day"
+            else if (monthEmpty) "month"
+            else if (yearEmpty) "year"
+            else {
+                val hasDayError = field.error.exists(_.args.contains(messages("date.error.day")))
+                val hasMonthError = field.error.exists(_.args.contains(messages("date.error.month")))
+                val hasYearError = field.error.exists(_.args.contains(messages("date.error.year")))
 
-                        if (dayEmpty) "day"
-                        else if (monthEmpty) "month"
-                        else if (yearEmpty) "year"
-                        else {
-                            val hasDayError = field.error.exists(_.args.contains(messages("date.error.day")))
-                            val hasMonthError = field.error.exists(_.args.contains(messages("date.error.month")))
-                            val hasYearError = field.error.exists(_.args.contains(messages("date.error.year")))
-
-                            if (hasDayError) "day"
-                            else if (hasMonthError) "month"
-                            else if (hasYearError) "year"
-                            else "day"
-                        }
-                }) { firstMissing =>
+                if (hasDayError) "day"
+                else if (hasMonthError) "month"
+                else if (hasYearError) "year"
+                else "day"
+            }
+        }) { firstMissing =>
             @if(form.errors.nonEmpty) {
                 @govukErrorSummary(ErrorSummaryViewModel(form, errorLinkOverrides = Map("value" -> s"value.${firstMissing}")))
             }
         }
 
         <div class="govuk-form-group @if(isError){govuk-form-group--error}">
-
-            <h2 class="govuk-caption-l hmrc-caption-l"><span class="govuk-visually-hidden">This section is: </span>@messages("purchase.caption.add")</h2>
-
-            <!-- Visible page heading rendered outside the date fieldset so the red error bar doesn't appear next to it -->
-            <h1 id="invoice-date-heading" class="govuk-heading-l">@messages("invoiceDate.heading")</h1>
+            <span class="govuk-caption-l">@messages("purchase.caption")</span>
 
             @govukDateInput(
                 DateViewModel(
                     field  = form("value"),
-                    legend = viewmodels.govuk.fieldset.LegendViewModel(uk.gov.hmrc.govukfrontend.views.viewmodels.content.Text(messages("invoiceDate.heading"))).withCssClass("govuk-visually-hidden")
+                    legend = LegendViewModel(messages("invoiceDate.heading")).asPageHeading().withCssClass("govuk-fieldset__legend--l")
                 ).withHint(HintViewModel(messages("invoiceDate.hint")))
             )
 

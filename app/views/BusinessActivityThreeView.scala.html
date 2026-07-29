@@ -29,12 +29,10 @@
 
 @layout(pageTitle = titleNoForm(messages("businessActivityThree.title")), backLinkUrl = Some(routes.BusinessActivityCodeThreeController.onPageLoad(NormalMode).url)) {
     @formHelper(action = routes.BusinessActivityThreeController.onSubmit()) {
-
-        <h2 class="govuk-caption-l hmrc-caption-l">
-            <span class="govuk-visually-hidden">This section is: </span>@messages("claim.caption.add")
-        </h2>
-        <h1 class="govuk-heading-l">@messages("businessActivityThree.heading")</h1>
-
+        <h1 class="govuk-heading-l">
+            <span class="govuk-caption-l">@messages("claim.caption")</span>
+            @messages("businessActivityThree.heading")
+        </h1>
         @govukInsetText(InsetText(
             content = HtmlContent(s"${messages("businessActivityThree.lead")} ${baCode1}")
         ))

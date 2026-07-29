@@ -34,11 +34,10 @@
 
     @formHelper(action = routes.CheckYourStateDetailsController.onSubmit(mode)) {
         @mainErrorSummary(form)
-
-        <span class="govuk-caption-l hmrc-caption-l">
-            <span class="govuk-visually-hidden">This section is: </span>@messages("claim.caption.add")
-        </span>
-        <h1 class="govuk-heading-l">@messages("checkYourStateDetails.heading")</h1>
+        <h1 class="govuk-heading-l">
+            <span class="govuk-caption-l">@messages("claim.caption")</span>
+            @messages("checkYourStateDetails.heading")
+        </h1>
 
         <p class="govuk-body">@messages("checkYourStateDetails.p1")</p>
         <p class="govuk-body">@messages("checkYourStateDetails.p2")</p>

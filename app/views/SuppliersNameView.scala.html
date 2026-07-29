@@ -14,7 +14,7 @@
  * limitations under the License.
  *@
 
-@import viewmodels.InputWidth._
+@import viewmodels.InputWidth.*
 @import views.html.components.MainErrorSummary
 
 @this(
@@ -33,25 +33,25 @@
 
     @formHelper(action = routes.SuppliersNameController.onSubmit(mode), Symbol("autocomplete") -> "off") {
 
-    @mainErrorSummary(form, Map.empty)
+        @mainErrorSummary(form, Map.empty)
 
-    <div class="govuk-form-group @if(isError){govuk-form-group--error}">
-
-        <h2 class="govuk-caption-l hmrc-caption-l"><span class="govuk-visually-hidden">This section is: </span>@messages("purchase.caption.add")</h2>
-        <h1 class="govuk-heading-l">@messages("suppliersName.heading")</h1>
+        <div class="govuk-form-group @if(isError){govuk-form-group--error}">
+            <span class="govuk-caption-l">@messages("purchase.caption")</span>
 
             @govukInput(
                 InputViewModel(
                     field = form("value"),
-                    label = LabelViewModel(messages("suppliersName.heading")).withCssClass("govuk-visually-hidden")
-
+                    label = Label(
+                        isPageHeading = true,
+                        classes = "govuk-label--l",
+                        content = Text(messages("suppliersName.heading"))
+                    )
                 )
                 .withWidth(Full)
                 .withAutocomplete("off")
                 .withHint(HintViewModel(Text(messages("suppliersName.hint"))))
             )
-
-    </div>
+        </div>
 
         @govukButton(
             ButtonViewModel(messages("site.continue"))

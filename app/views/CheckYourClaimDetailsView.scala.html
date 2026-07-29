@@ -17,19 +17,19 @@
 @import views.html.components.*
 
 @this(
-layout: templates.Layout,
-formHelper: FormWithCSRF,
-govukButton: GovukButton,
-customSummaryList: views.html.components.CustomSummaryList
+    layout: templates.Layout,
+    formHelper: FormWithCSRF,
+    govukButton: GovukButton,
+    customSummaryList: views.html.components.CustomSummaryList
 )
 
 @(sections: Seq[(String, Seq[(String, Option[String], Seq[(String, String, String)])])], isPostSubmission: Boolean, isAmended: Boolean)(implicit request: Request[_], messages: Messages)
 
 @layout(
-pageTitle = titleNoForm(messages(if(isPostSubmission) "claimDetails.title" else "checkYourClaimDetails.title")),
+pageTitle = titleNoForm(messages(if(isPostSubmission) "checkYourClaimDetails.claimDetails.title" else "checkYourClaimDetails.title")),
 showBackLink = false
 ) {
-    <h1 class="govuk-heading-l">@messages(if(isPostSubmission) "claimDetails.heading" else "checkYourClaimDetails.heading")</h1>
+    <h1 class="govuk-heading-l">@messages(if(isPostSubmission) "checkYourClaimDetails.claimDetails.heading" else "checkYourClaimDetails.heading")</h1>
     @if(!isPostSubmission) {
         <p class="govuk-body">@messages("checkYourClaimDetails.paragraph")</p><br/>
     }

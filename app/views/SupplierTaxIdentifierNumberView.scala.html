@@ -14,7 +14,7 @@
  * limitations under the License.
  *@
 
-@import viewmodels.InputWidth._
+@import viewmodels.InputWidth.*
 @import viewmodels.LabelSize
 @import views.html.components.MainErrorSummary
 @import uk.gov.hmrc.govukfrontend.views.viewmodels.content.Text
@@ -36,13 +36,15 @@
         @mainErrorSummary(form, Map("value" -> "event-name"))
 
         <div class="govuk-form-group @if(form.error("value").isDefined){govuk-form-group--error}">
-            <h2 class="govuk-caption-l hmrc-caption-l"><span class="govuk-visually-hidden">@messages("this.section.is")</span>@messages("purchase.caption.add")</h2>
-            <h1 class="govuk-heading-l">@messages("supplierTaxIdentifierNumber.heading")</h1>
-
+            <span class="govuk-caption-l">@messages("purchase.caption")</span>
             @govukInput(
                 InputViewModel(
                     field = form("value"),
-                    label = LabelViewModel(messages("supplierTaxIdentifierNumber.heading")).withCssClass("govuk-visually-hidden")
+                    label = Label(
+                        isPageHeading = true,
+                        classes = "govuk-label--l",
+                        content = Text(messages("supplierTaxIdentifierNumber.heading"))
+                    )
                 )
                 .withId("event-name")
                 .withAttribute("name" -> "eventName")

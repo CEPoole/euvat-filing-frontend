@@ -36,11 +36,10 @@
 @layout(pageTitle = views.ViewUtils.title(form, messages("businessActivityTwo.title")), backLinkUrl = Some(call.url)) {
     @formHelper(action = routes.BusinessActivityTwoController.onSubmit(mode)) {
         @mainErrorSummary(form)
-
-        <h2 class="govuk-caption-l hmrc-caption-l">
-         <span class="govuk-visually-hidden">This section is: </span>@messages("claim.caption.add")
-        </h2>
-        <h1 class="govuk-heading-l">@messages("businessActivityTwo.heading")</h1>
+        <h1 class="govuk-heading-l">
+            <span class="govuk-caption-l">@messages("claim.caption")</span>
+            @messages("businessActivityTwo.heading")
+        </h1>
 
         @govukInsetText(InsetText(
             content = Text(messages("businessActivityTwo.insetText", baCode1))

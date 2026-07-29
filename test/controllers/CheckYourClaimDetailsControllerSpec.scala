@@ -323,7 +323,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) must include(messages(application)("claimDetails.heading"))
+        contentAsString(result) must include(messages(application)("checkYourClaimDetails.claimDetails.heading"))
       }
     }
 
@@ -381,14 +381,30 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
         .thenReturn(Future.successful(ApplicationResponse(123, "GB123456789", 10)))
 
       val ua = emptyUserAnswers
-        .set(pages.ClaimDetailsCompletedPage, true).success.value
-        .set(pages.ClaimDetailsAmendedPage, true).success.value
-        .set(pages.RefundingCountryPage, "DE").success.value
-        .set(pages.RefundingCurrencyPage, "eur").success.value
-        .set(pages.RefundingLanguagePage, RefundingLanguage.English).success.value
-        .set(pages.RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10))).success.value
-        .set(pages.ContactDetailsPage, ContactDetails("test@email.com", Some("07123456789"))).success.value
-        .set(pages.BusinessActivityCodePage, "9999").success.value
+        .set(pages.ClaimDetailsCompletedPage, true)
+        .success
+        .value
+        .set(pages.ClaimDetailsAmendedPage, true)
+        .success
+        .value
+        .set(pages.RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(pages.RefundingCurrencyPage, "eur")
+        .success
+        .value
+        .set(pages.RefundingLanguagePage, RefundingLanguage.English)
+        .success
+        .value
+        .set(pages.RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10)))
+        .success
+        .value
+        .set(pages.ContactDetailsPage, ContactDetails("test@email.com", Some("07123456789")))
+        .success
+        .value
+        .set(pages.BusinessActivityCodePage, "9999")
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(ua))
         .overrides(

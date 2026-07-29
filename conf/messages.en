@@ -46,9 +46,9 @@ unauthorised.title = You can’t access this service with this account
 unauthorised.heading = You can’t access this service with this account
 unauthorised.guidance = You do not have access to this service.
 
-claim.caption.add = Claim details
+claim.caption = Claim details
 caption.hidden.text = This section is:
-purchase.caption.add = Purchase details
+purchase.caption = Purchase details
 
 taskListDashboard.title = Make a claim for an EU VAT refund
 taskListDashboard.heading = Make a claim for an EU VAT refund
@@ -62,7 +62,6 @@ taskListDashboard.status1 = Not yet started
 taskListDashboard.status2 = Cannot start yet
 taskListDashboard.status3 = Completed
 taskListDashboard.listItem1.completed = View claim details
-taskListDashboard.dashboardLink = Go to the claims dashboard
 taskListDashboard.dashboardLink = Return to Claim an EU VAT refund
 taskListDashboard.errorSummary1 = There is a problem
 taskListDashboard.errorSummary2 = Select add claim details to start a claim
@@ -172,8 +171,8 @@ businessActivity.error.required = Select yes if you want to add another SIC code
 
 businessActivityCodeTwo.title = What is the second SIC code?
 businessActivityCodeTwo.heading = What is the second SIC code?
-businessActivityCodeTwo.hint = Enter the SIC code
-businessActivityCodeTwo.hintHtml = <p class="govuk-body">You can find the SIC codes on the <a href="https://www.ons.gov.uk/methodology/classificationsandstandards/ukstandardindustrialclassificationofeconomicactivities/uksic2007" class="govuk-link" target="_blank" rel="noreferrer noopener">Office for National Statistics website (opens in a new tab)</a>.</p>
+businessActivityCodeTwo.textLabel = Enter the SIC code
+businessActivityCodeTwo.p = <p class="govuk-body">You can find the SIC codes on the <a href="https://www.ons.gov.uk/methodology/classificationsandstandards/ukstandardindustrialclassificationofeconomicactivities/uksic2007" class="govuk-link" target="_blank" rel="noreferrer noopener">Office for National Statistics website (opens in a new tab)</a>.</p>
 businessActivityCodeTwo.error.summary = Enter a SIC code
 businessActivityCodeTwo.error.required = Enter a SIC code
 businessActivityCodeTwo.error.invalid = Enter a SIC code in the correct format
@@ -194,8 +193,8 @@ removeSecond.error.required = Select yes if you want to remove the second SIC co
 
 businessActivityCodeThree.title = What is the third SIC code?
 businessActivityCodeThree.heading = What is the third SIC code?
-businessActivityCodeThree.hint = Enter the SIC code
-businessActivityCodeThree.hintHtml = <p class="govuk-body">You can find the SIC codes on the <a href="https://www.ons.gov.uk/methodology/classificationsandstandards/ukstandardindustrialclassificationofeconomicactivities/uksic2007" class="govuk-link" target="_blank" rel="noreferrer noopener">Office for National Statistics website (opens in a new tab)</a>.</p>
+businessActivityCodeThree.textLabel = Enter the SIC code
+businessActivityCodeThree.p = <p class="govuk-body">You can find the SIC codes on the <a href="https://www.ons.gov.uk/methodology/classificationsandstandards/ukstandardindustrialclassificationofeconomicactivities/uksic2007" class="govuk-link" target="_blank" rel="noreferrer noopener">Office for National Statistics website (opens in a new tab)</a>.</p>
 businessActivityCodeThree.error.summary = Enter a SIC code
 businessActivityCodeThree.error.required = Enter a SIC code
 businessActivityCodeThree.error.invalid = Enter a SIC code in the correct format
@@ -248,8 +247,8 @@ checkYourClaimDetails.businessActivity1.view.hidden = View first SIC code
 checkYourClaimDetails.businessActivity2.change.hidden = Change second SIC code
 checkYourClaimDetails.businessActivity3.change.hidden = Change third SIC code
 checkYourClaimDetails.paragraph = You cannot change the refunding EU member state after you save and continue.
-claimDetails.title = Claim details
-claimDetails.heading = Claim details
+checkYourClaimDetails.claimDetails.title = Claim details
+checkYourClaimDetails.claimDetails.heading = Claim details
 
 beforeYouStart.title = Before you start
 beforeYouStart.heading = Before you start
@@ -260,7 +259,6 @@ beforeYouStart.bullet3 = purchase type
 beforeYouStart.bullet4 = VAT amounts
 
 invoiceType.title = Invoice type
-invoiceType.caption = Purchase details
 invoiceType.heading = Invoice type
 invoiceType.lead = You will need a valid VAT invoice or receipt. You cannot use statements, orders, letters, emails or other general correspondence to claim VAT.
 invoiceType.h2 = What type of invoice do you have?
@@ -272,7 +270,7 @@ invoiceType.error.required = Select an invoice type
 
 suppliersName.title = What is the supplier’s name?
 suppliersName.heading = What is the supplier’s name?
-suppliersName.hint = Find the supplier’s name on the invoice or receipt.
+suppliersName.hint = Find the supplier’s name on the invoice or receipt
 suppliersName.error.required = Enter a supplier’s name
 suppliersName.error.length = The supplier’s name must be 35 characters or less
 suppliersName.checkYourAnswersLabel = Supplier’s name
@@ -330,9 +328,8 @@ totalVatClaim.p1 = This is the amount of VAT you are entitled to claim back. It 
 totalVatClaim.h2 = How much VAT are you claiming?
 totalVatClaim.hint = For example, {0}150 or {0}120.45
 totalVatClaim.error.required = Enter the total amount of VAT you’re claiming
-totalVatClaim.error.invalidNumeric = Total VAT claim must be 15 numbers or less
-totalVatClaim.error.nonNumeric =  Enter total VAT claim in the correct format
 totalVatClaim.error.invalidNumeric = Enter total VAT claim in the correct format
+totalVatClaim.error.nonNumeric =  Enter total VAT claim in the correct format
 totalVatClaim.error.aboveMaximum = Total VAT claim must be between -999,999,999.99 and 999,999,999.99
 
 supplierAddress.title = What is the supplier’s address?
@@ -341,9 +338,6 @@ supplierAddress.lead = Enter the supplier’s address as it appears on the invoi
 supplierAddress.line1.label = Address line 1
 supplierAddress.line2.label = Address line 2 (optional)
 supplierAddress.line3.label = Address line 3 (optional)
-supplierAddress.line1.label.short = Address line 1
-supplierAddress.line2.label.short = Address line 2
-supplierAddress.line3.label.short = Address line 3
 supplierAddress.error.line1.required = Enter address line 1, typically the building and street
 supplierAddress.error.maxLength = must be 35 characters or less
 supplierAddress.error.maxLength.withLabel = {0} {1}
@@ -402,9 +396,8 @@ checkYourStateDetails.yes = Yes, delete this claim
 checkYourStateDetails.no = No, return to claim
 checkYourStateDetails.error.required = Select yes if you want to delete this claim
 
-
 describeItemsOnInvoice.title = Describe the items on your invoice
 describeItemsOnInvoice.heading = Describe the items on your invoice
-describeItemsOnInvoice.p = List each item and the exact amount you paid for it. Include the currency shown on the invoice. For example, an invoice including €150 for fuel and €50 for transport costs.
+describeItemsOnInvoice.hint = List each item and the exact amount you paid for it. Include the currency shown on the invoice. For example, an invoice including €150 for fuel and €50 for transport costs.
 describeItemsOnInvoice.error.required = Enter a description of the items on your invoice
 describeItemsOnInvoice.error.length = Item description must be 255 characters or less
