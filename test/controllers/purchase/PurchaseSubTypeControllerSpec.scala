@@ -275,7 +275,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         status(result) mustEqual BAD_REQUEST
         contentAsString(result) must include ("There is a problem")
         // inline error summary should show the required message
-        contentAsString(result) must include (messages(application)("error.required"))
+        contentAsString(result) must include (messages(application)("purchase.sub.fuel.error.required"))
       }
     }
 
@@ -465,7 +465,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
 
         status(result) mustEqual BAD_REQUEST
         contentAsString(result) must include ("There is a problem")
-        contentAsString(result) must include (messages(application)("error.required"))
+        contentAsString(result) must include (messages(application)("purchase.sub.fuel.error.required"))
       }
     }
 
