@@ -65,52 +65,47 @@ class CheckYourClaimDetailsController @Inject() (
     val isAmended = request.userAnswers.get(pages.ClaimDetailsAmendedPage).contains(true)
 
     if (!isPostSubmission || isAmended) {
-      (
-        for {
-          flaggedAnswers <- Future.fromTry {
-            if (!isPostSubmission) {
-              request.userAnswers.set(ClaimDetailsCompletedPage, true)
-            } else {
-              request.userAnswers.remove(pages.ClaimDetailsAmendedPage)
-            }
+      (for {
+        flaggedAnswers <- Future.fromTry {
+          if (!isPostSubmission) {
+            request.userAnswers.set(ClaimDetailsCompletedPage, true)
+          } else {
+            request.userAnswers.remove(pages.ClaimDetailsAmendedPage)
           }
-          appRequest <- buildAppRequest(flaggedAnswers)
-          result <- service.retrieveTraderKnownFacts().flatMap { traderFacts =>
-                    implicit val hc = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
-                    val latestReq = LatestApplicationRequest(
-                      applicantVatRegNumber = traderFacts.vatRegNumber.toString,
-                      refundingCountry      = flaggedAnswers.get(pages.RefundingCountryPage),
-                      startDate             = None,
-                      endDate               = None,
-                      representativeId      = None,
-                      maxNumber             = 10000,
-                      orderBy               = Some(0),
-                      sortOrder             = Some("DESC"),
-                      startAt               = Some(0)
-                    )
-
-                    service.getLatestApplications(latestReq).flatMap { latestResp =>
-                      val isDuplicate = latestResp.applications.exists { app =>
-                        val statusIsD = app.applicationStatus.exists(_.equalsIgnoreCase("D"))
-                        val submissionIsNull = app.submissionStatus.isEmpty
-                        statusIsD || submissionIsNull
-                      }
-
-                              if (isDuplicate) Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
-                              else {
-                                for {claimResponse  <- service.createApplication(appRequest)
-          updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
-          _              <- sessionRepository.set(updatedAnswers)
-        } yield {
-          if (claimResponse.applicationId > 0)
-            Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
-           else
-            Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
-          }}
-                          }
-      } yield result
         }
-        ).recover { case ex: Exception =>
+        appRequest <- buildAppRequest(flaggedAnswers)
+        traderFacts <- service.retrieveTraderKnownFacts()
+        latestReq = LatestApplicationRequest(
+          applicantVatRegNumber = traderFacts.vatRegNumber.toString,
+          refundingCountry = flaggedAnswers.get(pages.RefundingCountryPage),
+          startDate = None,
+          endDate = None,
+          representativeId = None,
+          maxNumber = 10000,
+          orderBy = Some(0),
+          sortOrder = Some("DESC"),
+          startAt = Some(0)
+        )
+        latestResp <- service.getLatestApplications(latestReq)
+        result <- {
+          val isDuplicate = latestResp.applications.exists { app =>
+            val statusIsD = app.applicationStatus.exists(_.equalsIgnoreCase("D"))
+            val submissionIsNull = app.submissionStatus.isEmpty
+            statusIsD || submissionIsNull
+          }
+          if (isDuplicate) Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
+          else for {
+            claimResponse <- service.createApplication(appRequest)
+            updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
+            _ <- sessionRepository.set(updatedAnswers)
+          } yield {
+            if (claimResponse.applicationId > 0)
+              Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
+            else
+              Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
+          }
+        }
+      } yield result).recover { case ex: Exception =>
         logger.error("Error while saving the refund application", ex)
         Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
       }

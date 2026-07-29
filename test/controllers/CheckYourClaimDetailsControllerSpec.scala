@@ -378,14 +378,13 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
 
       val application = applicationBuilder(userAnswers = Some(ua))
         .overrides(
-          bind[SessionRepository].toInstance(mockSessionRepository),
-          bind[EuVatRefundsService].toInstance(mockService)
+          bind[SessionRepository].toInstance(mockSessionRepository)
         ).build()
 
       running(application) {
         val result = route(application, FakeRequest(POST, routes.CheckYourClaimDetailsController.onSubmit().url)).value
         status(result) mustEqual SEE_OTHER
-        verify(mockService, never()).createApplication(any())(any())
+        verify(mockEuVatRefundsService, never()).createApplication(any())(any())
         verify(mockSessionRepository, never()).set(any())
       }
     }
@@ -393,7 +392,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
     "must call createApplication when post-submission and amended" in {
       val mockSessionRepository = mock[SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
-      when(mockService.createApplication(any())(any()))
+      when(mockEuVatRefundsService.createApplication(any())(any()))
         .thenReturn(Future.successful(ApplicationResponse(123, "GB123456789", 10)))
 
       val ua = emptyUserAnswers
@@ -408,8 +407,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
 
       val application = applicationBuilder(userAnswers = Some(ua))
         .overrides(
-          bind[SessionRepository].toInstance(mockSessionRepository),
-          bind[EuVatRefundsService].toInstance(mockService)
+          bind[SessionRepository].toInstance(mockSessionRepository)
         )
         .build()
 
@@ -418,7 +416,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        verify(mockService, times(1)).createApplication(any())(any())
+        verify(mockEuVatRefundsService, times(1)).createApplication(any())(any())
       }
     }
 
