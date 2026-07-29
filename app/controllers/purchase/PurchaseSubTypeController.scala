@@ -50,7 +50,7 @@ class PurchaseSubTypeController @Inject() (
     with I18nSupport
     with play.api.Logging {
 
-  val form = formProvider()
+  // form provider is created per-request with an appropriate message key
 
   private def resolveParentAndCountry(purchaseTypeSlug: String, userAnswers: UserAnswers): Option[(String, String)] = {
     val maybeParent = PurchaseType.values.find(pt => PurchaseType.slugOf(pt) == purchaseTypeSlug).map(_.toString).orElse(userAnswers.get(PurchaseTypePage).map(_.toString))
@@ -66,7 +66,10 @@ class PurchaseSubTypeController @Inject() (
     val rawItems = config.buildRadioItems(options, messagesApi.preferred(request))
     val items = if (parentKey == "other") rawItems.filterNot(_.value.contains(ConfigPurchaseMapping.NoneValue)) else rawItems
     val parentHeading = parentHeadingFor(parentKey)
-    val preparedForm = userAnswers.get(PurchaseSubTypePage).fold(form)(form.fill)
+    val msgs = messagesApi.preferred(request)
+    val requiredKeyCandidates = Seq(s"purchase.sub.${parentKey}.error.required")
+    val requiredKey = requiredKeyCandidates.find(k => msgs.isDefinedAt(k)).getOrElse("error.required")
+    val preparedForm = userAnswers.get(PurchaseSubTypePage).fold(formProvider(requiredKey))(formProvider(requiredKey).fill)
     val resolvedSlug = resolvedSlugFor(parentKey, purchaseTypeSlug)
     val formAction = formActionFor(resolvedSlug)
 
@@ -182,12 +185,18 @@ class PurchaseSubTypeController @Inject() (
           } else {
             val parentHeadingVal = parentHeading
 
-            form.bindFromRequest().fold(
-              formWithErrors => {
-                val formAction = formActionFor(resolvedSlug)
-                val backUrl = backUrlFor(mode)
-                Future.successful(BadRequest(view(formWithErrors, items, parentHeadingVal, parentHeadingVal, formAction, backUrl)))
-              },
+              val msgs = messagesApi.preferred(request)
+              val requiredKeyCandidates = Seq(s"purchase.sub.${parentKey}.error.required")
+              println(s"requiredKeyCandidates: $requiredKeyCandidates")
+              val requiredKey = requiredKeyCandidates.find(k => msgs.isDefinedAt(k)).getOrElse("error.required")
+              println(s"requiredKey: $requiredKey")
+
+              formProvider(requiredKey).bindFromRequest().fold(
+                formWithErrors => {
+                  val formAction = formActionFor(resolvedSlug)
+                  val backUrl = backUrlFor(mode)
+                  Future.successful(BadRequest(view(formWithErrors, items, parentHeadingVal, parentHeadingVal, formAction, backUrl)))
+                },
               value => {
                 if (value == ConfigPurchaseMapping.NoneValue) {
                   val noneLabel = ConfigPurchaseMapping.NoneValue

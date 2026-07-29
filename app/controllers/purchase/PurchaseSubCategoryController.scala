@@ -132,7 +132,22 @@ class PurchaseSubCategoryController @Inject() (
     val heading = childTitleOpt.orElse(parentDerivedTitle(parentKey, resolvedParentCode, msgs)).getOrElse(parentHeading)
     val pageTitle = heading
 
-    val preparedForm = userAnswers.get(PurchaseSubCategoryPage).fold(form)(form.fill)
+    // resolve a context-specific error key for missing selection
+    // Prefer the fully-qualified code (e.g. "3.1"), then the last segment
+    // (e.g. "1"), then the head segment (e.g. "3"), then the parent-level
+    // fallback. This ensures codes like "3.1" map to keys such as
+    // "purchase.sub.transport.1.error.required" when those messages exist.
+    val lastSeg = resolvedParentCode.split("\\.").lastOption.getOrElse(resolvedParentCode)
+    val headSeg = resolvedParentCode.split("\\.").headOption.getOrElse(resolvedParentCode)
+    val candidateKeys = Seq(
+      s"purchase.sub.${parentKey}.${resolvedParentCode}.error.required",
+      s"purchase.sub.${parentKey}.${lastSeg}.error.required",
+      s"purchase.sub.${parentKey}.${headSeg}.error.required",
+      s"purchase.sub.${parentKey}.error.required"
+    )
+    val requiredKey = candidateKeys.find(k => msgs.isDefinedAt(k)).getOrElse("error.required")
+    println(s"candidateKeys=$candidateKeys, requiredKey=$requiredKey")
+    val preparedForm = userAnswers.get(PurchaseSubCategoryPage).fold(formProvider(requiredKey))(formProvider(requiredKey).fill)
 
     val head = resolvedParentCode.split("\\.").headOption.getOrElse(resolvedParentCode)
     val last = resolvedParentCode.split("\\.").lastOption.getOrElse(resolvedParentCode)
@@ -227,7 +242,7 @@ class PurchaseSubCategoryController @Inject() (
 
         if (options.isEmpty) Future.successful(Redirect(routes.InvoiceTypeController.onPageLoad(mode)))
         else {
-          form
+          preparedForm
             .bindFromRequest()
             .fold(
               formWithErrors => Future.successful(BadRequest(view(formWithErrors, items, pageTitle, heading, formAction, backUrl))),

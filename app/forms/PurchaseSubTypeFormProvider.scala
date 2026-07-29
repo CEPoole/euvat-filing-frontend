@@ -22,11 +22,23 @@ import play.api.data.Forms.*
 import play.api.data.validation.{Constraint, Invalid, Valid}
 
 class PurchaseSubTypeFormProvider @Inject() () {
-  private def nonEmpty: Constraint[String] = Constraint { s =>
-    if (s.trim.isEmpty) Invalid("error.required") else Valid
+  private def nonEmptyOpt(requiredKey: String): Constraint[Option[String]] = Constraint {
+    case Some(s) if s.trim.nonEmpty => Valid
+    case _                          => Invalid(requiredKey)
   }
 
-  def apply(): Form[String] = Form(
-    "value" -> text.verifying(nonEmpty)
-  )
+  /**
+   * Create a form for a radio selection where the caller supplies the message key
+   * to use when the value is missing. We bind as an optional `text` and apply a
+   * form-level constraint so the dynamic `requiredKey` is used even when the
+   * request omits the `value` parameter entirely (Play's default missing-field
+   * error would otherwise use the static `error.required`).
+   */
+  def apply(requiredKey: String = "error.required"): Form[String] = {
+    val mapping = optional(text)
+      .verifying(nonEmptyOpt(requiredKey))
+      .transform[String](opt => opt.getOrElse(""), s => Some(s))
+
+    Form("value" -> mapping)
+  }
 }
