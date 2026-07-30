@@ -298,9 +298,29 @@ class NavigatorSpec extends SpecBase {
       }
 
       "must go from SupplierTaxNumberPage to TotalPurchaseAmountBeforeVatController if neither is selected" in {
-        val ua = userAnswers.set(SupplierTaxNumberPage, SupplierTaxNumber.Neither).success.value
+        val ua = userAnswers
+          .set(SupplierTaxNumberPage, SupplierTaxNumber.Neither)
+          .success
+          .value
+          .set(pages.RefundingCountryPage, "AT")
+          .success
+          .value
+
         navigator.nextPage(SupplierTaxNumberPage, NormalMode, ua) mustBe
           routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode)
+      }
+
+      "must go from SupplierTaxNumberPage to RefundingCurrencyController if neither is selected and the country has more than one currency" in {
+        val ua = userAnswers
+          .set(SupplierTaxNumberPage, SupplierTaxNumber.Neither)
+          .success
+          .value
+          .set(pages.RefundingCountryPage, "EE")
+          .success
+          .value
+
+        navigator.nextPage(SupplierTaxNumberPage, NormalMode, ua) mustBe
+          routes.RefundingCurrencyController.onPageLoad(NormalMode)
       }
 
       "must go from SupplierTaxNumberPage to JourneyRecoveryController if no answer is present" in {
@@ -599,10 +619,6 @@ class NavigatorSpec extends SpecBase {
         navigator.nextPage(TotalPurchaseAmountBeforeVatPage, CheckMode, userAnswers) mustBe
           routes.TotalVatPaidController.onPageLoad(CheckMode)
       }
-    "must go from TotalPurchaseAmountBeforeVatPage to TotalVatPaidController in CheckMode" in {
-      navigator.nextPage(TotalPurchaseAmountBeforeVatPage, CheckMode, userAnswers) mustBe
-        routes.TotalVatPaidController.onPageLoad(CheckMode)
-    }
 
       "must go from TotalVatPaidPage to TotalVatClaimController in CheckMode" in {
         navigator.nextPage(TotalVatPaidPage, CheckMode, userAnswers) mustBe
