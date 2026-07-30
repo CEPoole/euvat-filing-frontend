@@ -93,14 +93,16 @@ class TotalVatClaimController @Inject() (
       .fold(
         formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode), currencySymbol))),
         value =>
-          val totalVatPaid = request.userAnswers.get(TotalVatPaidPage).getOrElse(BigDecimal(0))
-          if (value > totalVatPaid) {
-            Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad())) // TODO - redirect to warning page 4
-          } else {
-            for {
-              updatedAnswers <- Future.fromTry(request.userAnswers.set(TotalVatClaimPage, value))
-              _              <- sessionRepository.set(updatedAnswers)
-            } yield Redirect(navigator.nextPage(TotalVatClaimPage, mode, updatedAnswers))
+          for {
+            updatedAnswers <- Future.fromTry(request.userAnswers.set(TotalVatClaimPage, value))
+            _              <- sessionRepository.set(updatedAnswers)
+          } yield {
+            val totalVatPaid = request.userAnswers.get(TotalVatPaidPage).getOrElse(BigDecimal(0))
+            if (value > totalVatPaid) {
+              Redirect(routes.VatClaimWarningController.onPageLoad(mode))
+            } else {
+              Redirect(navigator.nextPage(TotalVatClaimPage, mode, updatedAnswers))
+            }
           }
       )
   }

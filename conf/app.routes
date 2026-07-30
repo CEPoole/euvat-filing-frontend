@@ -160,3 +160,14 @@ GET         /describe-items-on-invoice                      controllers.Describe
 POST        /describe-items-on-invoice                      controllers.DescribeItemsOnInvoiceController.onSubmit(mode: Mode = NormalMode)
 GET         /change-describe-items-on-invoice               controllers.DescribeItemsOnInvoiceController.onPageLoad(mode: Mode = CheckMode)
 POST        /change-describe-items-on-invoice               controllers.DescribeItemsOnInvoiceController.onSubmit(mode: Mode = CheckMode)
+
+#warning pages
+GET         /check-vat-amount                               controllers.VatPaidWarningController.onPageLoad(mode: Mode = NormalMode)
+POST        /check-vat-amount                               controllers.VatPaidWarningController.onSubmit(mode: Mode = NormalMode)
+GET         /change-check-vat-amount                        controllers.VatPaidWarningController.onPageLoad(mode: Mode = CheckMode)
+POST        /change-check-vat-amount                        controllers.VatPaidWarningController.onSubmit(mode: Mode = CheckMode)
+
+GET         /check-vat-claim                                controllers.VatClaimWarningController.onPageLoad(mode: Mode = NormalMode)
+POST        /check-vat-claim                                controllers.VatClaimWarningController.onSubmit(mode: Mode = NormalMode)
+GET         /change-check-vat-claim                         controllers.VatClaimWarningController.onPageLoad(mode: Mode = CheckMode)
+POST        /change-check-vat-claim                         controllers.VatClaimWarningController.onSubmit(mode: Mode = CheckMode)

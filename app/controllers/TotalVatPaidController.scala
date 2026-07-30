@@ -71,14 +71,16 @@ class TotalVatPaidController @Inject() (
           Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode), prefix, currencyName)))
         },
         value =>
-          val totalPurchaseAmt: BigDecimal = request.userAnswers.get(TotalPurchaseAmountBeforeVatPage).getOrElse(BigDecimal(0))
-          if (value >= totalPurchaseAmt) {
-            Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad())) // TODO - redirect to warning page 5
-          } else {
-            for {
-              updatedAnswers <- Future.fromTry(request.userAnswers.set(TotalVatPaidPage, value))
-              _              <- sessionRepository.set(updatedAnswers)
-            } yield Redirect(navigator.nextPage(TotalVatPaidPage, mode, updatedAnswers))
+          for {
+            updatedAnswers <- Future.fromTry(request.userAnswers.set(TotalVatPaidPage, value))
+            _              <- sessionRepository.set(updatedAnswers)
+          } yield {
+            val totalPurchaseAmt: BigDecimal = request.userAnswers.get(TotalPurchaseAmountBeforeVatPage).getOrElse(BigDecimal(0))
+            if (value >= totalPurchaseAmt) {
+              Redirect(routes.VatPaidWarningController.onPageLoad(mode))
+            } else {
+              Redirect(navigator.nextPage(TotalVatPaidPage, mode, updatedAnswers))
+            }
           }
       )
   }
