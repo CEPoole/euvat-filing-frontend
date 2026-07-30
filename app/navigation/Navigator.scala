@@ -48,7 +48,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
           case _ => routes.RefundingLanguageController.onPageLoad(NormalMode)
         }
     case RefundingLanguagePage             => userAnswers => navigateFromRefundingLanguagePage(NormalMode)(userAnswers)
-    case RefundingCurrencyPage             => userAnswers => navigateFromRefundingCurrencyPage(NormalMode)(userAnswers)
+    case RefundingCurrencyPage             => _ => routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode)
     case RefundPeriodPage                  => _ => routes.ContactDetailsController.onPageLoad(NormalMode)
     case ContactDetailsPage                => _ => routes.BusinessActivityController.onPageLoad(NormalMode)
     case BusinessActivityPage              => userAnswer => navigateFromBusinessActivityPage(NormalMode)(userAnswer)
@@ -88,7 +88,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
           case _ => routes.RefundingLanguageController.onPageLoad(CheckMode)
         }
     case RefundingLanguagePage             => userAnswers => navigateFromRefundingLanguagePage(CheckMode)(userAnswers)
-    case RefundingCurrencyPage             => userAnswers => navigateFromRefundingCurrencyPage(CheckMode)(userAnswers)
+    case RefundingCurrencyPage             => _ => routes.TotalPurchaseAmountBeforeVatController.onPageLoad(CheckMode)
     case RefundPeriodPage                  => _ => routes.CheckYourClaimDetailsController.onPageLoad()
     case ContactDetailsPage                => _ => routes.CheckYourClaimDetailsController.onPageLoad()
     case BusinessActivityPage              => userAnswer => navigateFromBusinessActivityPage(CheckMode)(userAnswer)
@@ -145,9 +145,6 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
       case _          => routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(mode)
     }
   }
-
-  private def navigateFromRefundingCurrencyPage(mode: Mode)(userAnswers: UserAnswers): Call =
-    routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
 
   private def navigateFromBusinessActivityPage(mode: Mode)(userAnswers: UserAnswers): Call =
     userAnswers.get(BusinessActivityPage) match {
