@@ -25,6 +25,7 @@ import navigation.Navigator
 import utils.ConfigCurrencyMapping
 import pages.RefundingCurrencyPage
 import pages.TotalPurchaseAmountBeforeVatPage
+import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import repositories.SessionRepository
@@ -48,7 +49,7 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
     extends FrontendBaseController
     with I18nSupport {
 
-  val form = formProvider()
+  val form: Form[BigDecimal] = formProvider()
 
   private def backLink(mode: Mode) = routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
 

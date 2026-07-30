@@ -19,11 +19,12 @@ package controllers
 import base.SpecBase
 import forms.TotalVatPaidFormProvider
 import models.{NormalMode, UserAnswers}
-import pages.TotalVatPaidPage
+import pages.{TotalPurchaseAmountBeforeVatPage, TotalVatPaidPage}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
+import play.api.data.Form
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
@@ -35,23 +36,22 @@ import scala.concurrent.Future
 
 class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
 
-  def onwardRoute = Call("GET", "/foo")
+  def onwardRoute: Call = Call("GET", "/foo")
 
   val formProvider = new TotalVatPaidFormProvider()
-  val form = formProvider()
+  val form: Form[BigDecimal] = formProvider()
 
-  lazy val url = routes.TotalVatPaidController.onPageLoad(NormalMode).url
+  lazy val url: String = routes.TotalVatPaidController.onPageLoad(NormalMode).url
 
   "TotalVatPaid Controller" - {
 
     "must return OK and the correct view for a GET" in {
-
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
       running(application) {
         val request = FakeRequest(GET, url)
 
-        val result = play.api.test.Helpers.route(application, request).value
+        val result = route(application, request).value
 
         val view = application.injector.instanceOf[TotalVatPaidView]
 
@@ -64,7 +64,6 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must pre-fill the form when saved answers exist" in {
-
       val answers = emptyUserAnswers.set(TotalVatPaidPage, BigDecimal("12.34")).success.value
 
       val application = applicationBuilder(userAnswers = Some(answers)).build()
@@ -72,7 +71,7 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
       running(application) {
         val request = FakeRequest(GET, url)
 
-        val result = play.api.test.Helpers.route(application, request).value
+        val result = route(application, request).value
 
         val view = application.injector.instanceOf[TotalVatPaidView]
 
@@ -87,13 +86,13 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must redirect to the next page when valid data is submitted" in {
-
+      val userAnswers = emptyUserAnswers.set(TotalPurchaseAmountBeforeVatPage, BigDecimal("150")).success.value
       val mockSessionRepository = mock[SessionRepository]
 
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
       val application =
-        applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        applicationBuilder(userAnswers = Some(userAnswers))
           .overrides(
             bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
             bind[SessionRepository].toInstance(mockSessionRepository)
@@ -101,19 +100,40 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
           .build()
 
       running(application) {
-        val request =
-          FakeRequest(POST, url)
-            .withFormUrlEncodedBody(("value", "123.45"))
+        val request = FakeRequest(POST, url).withFormUrlEncodedBody(("value", "123.45"))
 
-        val result = play.api.test.Helpers.route(application, request).value
+        val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual onwardRoute.url
       }
     }
 
-    "must return a Bad Request and errors when invalid data is submitted" in {
+    "must redirect to the warning page if Total paid amount is greater than Total purchase amount" in {
+      val userAnswers = emptyUserAnswers.set(TotalPurchaseAmountBeforeVatPage, BigDecimal("120")).success.value
+      val mockSessionRepository = mock[SessionRepository]
 
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request = FakeRequest(POST, url).withFormUrlEncodedBody(("value", "200.45"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
+      }
+    }
+
+    "must return a Bad Request and errors when invalid data is submitted" in {
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
       running(application) {
@@ -125,7 +145,7 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
 
         val view = application.injector.instanceOf[TotalVatPaidView]
 
-        val result = play.api.test.Helpers.route(application, request).value
+        val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
         contentAsString(result) mustEqual view(boundForm,
@@ -141,13 +161,12 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must redirect to Journey Recovery when no existing data is found on GET" in {
-
       val application = applicationBuilder(userAnswers = None).build()
 
       running(application) {
         val request = FakeRequest(GET, url)
 
-        val result = play.api.test.Helpers.route(application, request).value
+        val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
@@ -155,7 +174,6 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must redirect to Journey Recovery when no existing data is found on POST" in {
-
       val application = applicationBuilder(userAnswers = None).build()
 
       running(application) {
@@ -163,7 +181,7 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
           FakeRequest(POST, url)
             .withFormUrlEncodedBody(("value", "123.45"))
 
-        val result = play.api.test.Helpers.route(application, request).value
+        val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url

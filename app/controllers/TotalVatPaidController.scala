@@ -23,8 +23,8 @@ import javax.inject.Inject
 import models.Mode
 import navigation.Navigator
 import utils.ConfigCurrencyMapping
-import pages.RefundingCurrencyPage
-import pages.TotalVatPaidPage
+import pages.{RefundingCurrencyPage, TotalPurchaseAmountBeforeVatPage, TotalVatPaidPage}
+import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import repositories.SessionRepository
@@ -48,12 +48,11 @@ class TotalVatPaidController @Inject() (
     extends FrontendBaseController
     with I18nSupport {
 
-  val form = formProvider()
+  val form: Form[BigDecimal] = formProvider()
 
   private def backLink(mode: Mode) = routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-
     val preparedForm = request.userAnswers.get(TotalVatPaidPage) match {
       case None        => form
       case Some(value) => form.fill(value)
@@ -64,7 +63,6 @@ class TotalVatPaidController @Inject() (
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-
     form
       .bindFromRequest()
       .fold(
@@ -73,10 +71,15 @@ class TotalVatPaidController @Inject() (
           Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode), prefix, currencyName)))
         },
         value =>
-          for {
-            updatedAnswers <- Future.fromTry(request.userAnswers.set(TotalVatPaidPage, value))
-            _              <- sessionRepository.set(updatedAnswers)
-          } yield Redirect(navigator.nextPage(TotalVatPaidPage, mode, updatedAnswers))
+          val totalPurchaseAmt: BigDecimal = request.userAnswers.get(TotalPurchaseAmountBeforeVatPage).getOrElse(BigDecimal(0))
+          if (value >= totalPurchaseAmt) {
+            Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad())) // TODO - redirect to warning page 5
+          } else {
+            for {
+              updatedAnswers <- Future.fromTry(request.userAnswers.set(TotalVatPaidPage, value))
+              _              <- sessionRepository.set(updatedAnswers)
+            } yield Redirect(navigator.nextPage(TotalVatPaidPage, mode, updatedAnswers))
+          }
       )
   }
 
