@@ -34,9 +34,7 @@
 
 @layout(pageTitle = views.ViewUtils.title(form, pageTitle), backLinkUrl = Some(backUrl)) {
 
-        <span class="govuk-caption-l hmrc-caption-l">
-                        <span class="govuk-visually-hidden">This section is: </span>@messages("purchase.caption.add")
-        </span>
+        <<span class="govuk-caption-l">@messages("purchase.caption")</span>
 
         <h1 class="govuk-heading-l">@heading</h1>
 
