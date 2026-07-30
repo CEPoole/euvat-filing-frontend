@@ -161,9 +161,6 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
     }
   }
 
-  private def navigateFromRefundingCurrencyPage(mode: Mode)(userAnswers: UserAnswers): Call =
-    routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
-
   private def navigateFromBusinessActivityPage(mode: Mode)(userAnswers: UserAnswers): Call =
     userAnswers.get(BusinessActivityPage) match {
       case Some(true)  => routes.BusinessActivityCodeTwoController.onPageLoad(mode)
