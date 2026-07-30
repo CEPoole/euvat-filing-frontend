@@ -228,7 +228,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
       case Some(SupplierTaxNumber.Taxidentifiernumber) =>
         routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)
       case Some(SupplierTaxNumber.Neither) =>
-        routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
+        navigateToCurrencyOrPurchaseAmount(mode)(userAnswers)
       case _ => routes.JourneyRecoveryController.onPageLoad()
     }
 
