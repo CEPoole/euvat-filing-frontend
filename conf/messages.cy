@@ -6,6 +6,7 @@ site.change = Change
 site.view = View
 site.no = No
 site.yes = Yes
+site.or = or
 site.continue = Continue
 site.start = Start now
 site.startAgain = Start again
@@ -281,6 +282,7 @@ supplierTaxNumber.vatRegistrationNumber.hint = This is usually 11 characters and
 supplierTaxNumber.taxIdentifierNumber = Tax identifier number (also known as Steuernummer)
 supplierTaxNumber.taxIdentifierNumber.hint = This is 10 or 11 digits, for example 12/345/67890
 supplierTaxNumber.error.required = Select the supplier tax numbers shown on the invoice
+supplierTaxNumber.neither = I do not have any of these on the invoice
 
 supplierVatRegistrationNumber.title = What is the supplier’s VAT registration number?
 supplierVatRegistrationNumber.heading = What is the supplier’s VAT registration number?

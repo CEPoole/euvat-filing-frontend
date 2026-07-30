@@ -57,8 +57,8 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
 
         status(result) mustEqual OK
         contentAsString(result) mustEqual view(form, NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request,
-                                                                                                                 messages(application)
-                                                                                                                ).toString
+                                                                                                                       messages(application)
+                                                                                                                      ).toString
       }
     }
 
@@ -129,7 +129,7 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
+        redirectLocation(result).value mustEqual routes.InvoiceNumberController.onPageLoad(NormalMode).url
       }
     }
 
@@ -150,8 +150,8 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
 
         status(result) mustEqual BAD_REQUEST
         contentAsString(result) mustEqual view(boundForm, NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request,
-                                                                                                                      messages(application)
-                                                                                                                     ).toString
+                                                                                                                            messages(application)
+                                                                                                                           ).toString
       }
     }
 
