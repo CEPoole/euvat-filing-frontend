@@ -119,15 +119,6 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
       }
     }
     maybeCountryCode match {
-      case Some(countryCode) if configCurrencyMapping.requiresCurrencySelection(countryCode) =>
-        mode match {
-          case NormalMode => routes.RefundingCurrencyController.onPageLoad(mode)
-          case CheckMode =>
-            if (userAnswers.get(pages.CountryChangedPage).contains(true))
-              routes.RefundingCurrencyController.onPageLoad(mode)
-            else
-              routes.CheckYourClaimDetailsController.onPageLoad()
-        }
       case Some(_) =>
         mode match {
           case NormalMode => routes.RefundPeriodController.onPageLoad(mode)
