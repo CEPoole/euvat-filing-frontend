@@ -18,12 +18,12 @@ package controllers
 
 import base.SpecBase
 import forms.SupplierTaxNumberFormProvider
-import models.{NormalMode, SupplierTaxNumber, UserAnswers}
+import models.{InvoiceType, NormalMode, SupplierTaxNumber, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import pages.{RefundingCountryNamePage, RefundingCountryPage, SupplierTaxNumberPage}
+import pages.{InvoiceTypePage, RefundingCountryNamePage, RefundingCountryPage, SupplierTaxNumberPage}
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
@@ -59,7 +59,25 @@ class SupplierTaxNumberControllerSpec extends SpecBase with MockitoSugar {
         val view = application.injector.instanceOf[SupplierTaxNumberView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, backLink)(request, messages(application)).toString
+        contentAsString(result) mustEqual view(form, NormalMode, backLink, isSimplifiedInvoice = false)(request, messages(application)).toString
+      }
+    }
+
+    "must return OK and the correct view for a GET when invoice type is simplified" in {
+
+      val simplifiedUserAnswers = germanUserAnswers.set(InvoiceTypePage, InvoiceType.SimplifiedInvoice).success.value
+
+      val application = applicationBuilder(userAnswers = Some(simplifiedUserAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, supplierTaxNumberRoute)
+
+        val result = route(application, request).value
+
+        val view = application.injector.instanceOf[SupplierTaxNumberView]
+
+        status(result) mustEqual OK
+        contentAsString(result) mustEqual view(form, NormalMode, backLink, isSimplifiedInvoice = true)(request, messages(application)).toString
       }
     }
 
@@ -77,9 +95,10 @@ class SupplierTaxNumberControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form.fill(SupplierTaxNumber.values.head), NormalMode, backLink)(request,
-                                                                                                               messages(application)
-                                                                                                              ).toString
+        contentAsString(result) mustEqual view(form.fill(SupplierTaxNumber.values.head), NormalMode, backLink, isSimplifiedInvoice = false)(
+          request,
+          messages(application)
+        ).toString
       }
     }
 
@@ -109,6 +128,59 @@ class SupplierTaxNumberControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "must redirect to the next page when valid data is submitted and invoice type is simplified" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val simplifiedUserAnswers = germanUserAnswers.set(InvoiceTypePage, InvoiceType.SimplifiedInvoice).success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(simplifiedUserAnswers))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, supplierTaxNumberRoute)
+            .withFormUrlEncodedBody(("value", SupplierTaxNumber.values.head.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual onwardRoute.url
+      }
+    }
+
+    "must return a Bad Request and errors when invalid data is submitted and invoice type is simplified" in {
+
+      val simplifiedUserAnswers = germanUserAnswers.set(InvoiceTypePage, InvoiceType.SimplifiedInvoice).success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(simplifiedUserAnswers))
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, supplierTaxNumberRoute)
+            .withFormUrlEncodedBody(("value", "invalid value"))
+
+        val boundForm = form.bind(Map("value" -> "invalid value"))
+
+        val view = application.injector.instanceOf[SupplierTaxNumberView]
+
+        val result = route(application, request).value
+
+        status(result) mustEqual BAD_REQUEST
+        contentAsString(result) mustEqual
+          view(boundForm, NormalMode, backLink, isSimplifiedInvoice = true)(request, messages(application)).toString
+      }
+    }
+
     "must return a Bad Request and errors when invalid data is submitted" in {
 
       val application = applicationBuilder(userAnswers = Some(germanUserAnswers)).build()
@@ -125,7 +197,7 @@ class SupplierTaxNumberControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, NormalMode, backLink)(request, messages(application)).toString
+        contentAsString(result) mustEqual view(boundForm, NormalMode, backLink, isSimplifiedInvoice = false)(request, messages(application)).toString
       }
     }
 
