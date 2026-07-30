@@ -22,6 +22,7 @@
     layout: templates.Layout,
     formHelper: FormWithCSRF,
     govukErrorSummary: GovukErrorSummary,
+    mainErrorSummary: MainErrorSummary,
     govukRadios: GovukRadios,
     govukButton: GovukButton
 )
@@ -32,52 +33,50 @@
 
     @formHelper(action = routes.SupplierTaxNumberController.onSubmit(mode)) {
 
-        @if(form.errors.nonEmpty) {
-            @govukErrorSummary(ErrorSummaryViewModel(form))
-        }
+        @mainErrorSummary(form, Map("value" -> "value_0"))
 
-        <div class="@if(form.errors.nonEmpty){govuk-form-group--error}">
-        <span class="govuk-caption-l">@messages("purchase.caption.add")</span>
+        <div class="govuk-form-group @if(form.error("value").isDefined){govuk-form-group--error}">
+            <span class="govuk-caption-l">@messages("purchase.caption")</span>
 
-        @{
-            val baseItems = Seq(
-                RadioItem(
-                    id = Some("value_0"),
-                    value = Some("vatRegistrationNumber"),
-                    content = Text(messages("supplierTaxNumber.vatRegistrationNumber")),
-                    hint = Some(Hint(content = Text(messages("supplierTaxNumber.vatRegistrationNumber.hint"))))
-                ),
-                RadioItem(
-                    id = Some("value_1"),
-                    value = Some("taxIdentifierNumber"),
-                    content = Text(messages("supplierTaxNumber.taxIdentifierNumber")),
-                    hint = Some(Hint(content = Text(messages("supplierTaxNumber.taxIdentifierNumber.hint"))))
-                )
-            )
-
-            val items = if (isSimplifiedInvoice) {
-                baseItems ++ Seq(
-                    RadioItem(divider = Some(messages("site.or"))),
+            @{
+                val baseItems = Seq(
                     RadioItem(
-                        id = Some("value_2"),
-                        value = Some("neither"),
-                        content = Text(messages("supplierTaxNumber.neither"))
+                        id = Some("value_0"),
+                        value = Some("vatRegistrationNumber"),
+                        content = Text(messages("supplierTaxNumber.vatRegistrationNumber")),
+                        hint = Some(Hint(content = Text(messages("supplierTaxNumber.vatRegistrationNumber.hint"))))
+                    ),
+                    RadioItem(
+                        id = Some("value_1"),
+                        value = Some("taxIdentifierNumber"),
+                        content = Text(messages("supplierTaxNumber.taxIdentifierNumber")),
+                        hint = Some(Hint(content = Text(messages("supplierTaxNumber.taxIdentifierNumber.hint"))))
                     )
                 )
-            }   else baseItems
 
-            govukRadios(
-                RadiosViewModel(
-                    field = form("value"),
-                    legend = Legend(
-                        content = Text(messages("supplierTaxNumber.heading")),
-                        classes = "govuk-fieldset__legend--l",
-                        isPageHeading = true
-                    ),
-                    items = items
+                val items = if (isSimplifiedInvoice) {
+                    baseItems ++ Seq(
+                        RadioItem(divider = Some(messages("site.or"))),
+                        RadioItem(
+                            id = Some("value_2"),
+                            value = Some("neither"),
+                            content = Text(messages("supplierTaxNumber.neither"))
+                        )
+                    )
+                }   else baseItems
+
+                govukRadios(
+                    RadiosViewModel(
+                        field = form("value"),
+                        legend = Legend(
+                            content = Text(messages("supplierTaxNumber.heading")),
+                            classes = "govuk-fieldset__legend--l",
+                            isPageHeading = true
+                        ),
+                        items = items
+                    )
                 )
-            )
-        }
+            }
         </div>
 
         @govukButton(
