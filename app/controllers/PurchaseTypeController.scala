@@ -63,7 +63,7 @@ class PurchaseTypeController @Inject() (
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport
-    with Logging {
+      with Logging {
 
   val form: Form[PurchaseType] = formProvider()
 
@@ -313,6 +313,18 @@ class PurchaseTypeController @Inject() (
           handleNormalModeRedirect(persistedAnswers, mode)
       }
     }
+          val saved = request.userAnswers.get(PurchaseTypePage) match {
+            case Some(prev) if prev != value =>
+              (for {
+                afterRemovedSubType        <- request.userAnswers.remove(pages.PurchaseSubTypePage)
+                afterRemovedSubTypeLabel   <- afterRemovedSubType.remove(pages.PurchaseSubTypeLabelPage)
+                afterRemovedSubCategory    <- afterRemovedSubTypeLabel.remove(pages.PurchaseSubCategoryPage)
+                afterRemovedSubCategoryLbl <- afterRemovedSubCategory.remove(pages.PurchaseSubCategoryLabelPage)
+                afterRemovedDescribe       <- afterRemovedSubCategoryLbl.remove(pages.DescribeItemsOnInvoicePage)
+                afterSetPurchaseType       <- afterRemovedDescribe.set(PurchaseTypePage, value)
+              } yield afterSetPurchaseType
+            case _ => request.userAnswers.set(PurchaseTypePage, value)
+          }
 
   private def handleCheckModePostPersist(updatedAnswers: UserAnswers, value: PurchaseType)(implicit request: DataRequest[?]): Future[Result] = {
     // After persisting in CheckMode, either return to the Purchase CYA or
