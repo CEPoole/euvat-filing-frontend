@@ -18,14 +18,12 @@ package controllers
 
 import base.SpecBase
 import forms.TotalPurchaseAmountBeforeVatFormProvider
-import models.{CheckMode, NormalMode, UserAnswers}
+import models.{CheckMode, NormalMode, SupplierTaxNumber, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import pages.TotalPurchaseAmountBeforeVatPage
-import pages.RefundingCountryPage
-import pages.RefundingCurrencyPage
+import pages.{RefundingCountryPage, RefundingCurrencyPage, SupplierTaxNumberPage, TotalPurchaseAmountBeforeVatPage}
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
@@ -59,6 +57,27 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
 
         status(result) mustEqual OK
         contentAsString(result) mustEqual view(form, NormalMode, routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode), "€", "Euro")(
+          request,
+          messages(application)
+        ).toString
+      }
+    }
+
+    "must return OK and the correct back link when SupplierTaxNumber is Neither" in {
+
+      val userAnswers = UserAnswers(userAnswersId).set(SupplierTaxNumberPage, SupplierTaxNumber.Neither).success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, totalPurchaseAmountBeforeVatRoute)
+
+        val result = route(application, request).value
+
+        val view = application.injector.instanceOf[TotalPurchaseAmountBeforeVatView]
+
+        status(result) mustEqual OK
+        contentAsString(result) mustEqual view(form, NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode), "€", "Euro")(
           request,
           messages(application)
         ).toString
