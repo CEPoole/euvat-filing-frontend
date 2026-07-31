@@ -21,26 +21,25 @@ import play.api.libs.json.{Json, OFormat}
 import java.time.LocalDateTime
 
 case class AddPurchaseRequest(
-                               applicationId: Long,
-                               goodsDescriptionCategory: Option[String],
-                               goodsDescriptionText: Option[String],
-                               purchaseSubcategory: Option[String],
-                               simplifiedInvoiceIndicator: Option[String],
-                               supplierName: Option[String],
-                               supplierAddress1: Option[String],
-                               supplierAddress2: Option[String],
-                               supplierAddress3: Option[String],
-                               supplierVatRegNumber: Option[String],
-                               supplierTaxIdentifier: Option[String],
-                               invoiceDate: Option[LocalDateTime],
-                               invoiceNumber: Option[String],
-                               currencyCode: Option[String],
-                               taxableAmount: Option[BigDecimal],
-                               vatAmount: Option[BigDecimal],
-                               deductibleVatAmount: Option[BigDecimal],
-                               updateSequenceNumber: Option[Int]
-                             )
+  applicationId: Long,
+  goodsDescriptionCategory: Option[String],
+  goodsDescriptionText: Option[String],
+  purchaseSubcategory: Option[String],
+  simplifiedInvoiceIndicator: Option[String],
+  supplierName: Option[String],
+  supplierAddress1: Option[String],
+  supplierAddress2: Option[String],
+  supplierAddress3: Option[String],
+  supplierVatRegNumber: Option[String],
+  supplierTaxIdentifier: Option[String],
+  invoiceDate: Option[LocalDateTime],
+  invoiceNumber: Option[String],
+  currencyCode: Option[String],
+  taxableAmount: Option[BigDecimal],
+  vatAmount: Option[BigDecimal],
+  deductibleVatAmount: Option[BigDecimal],
+  updateSequenceNumber: Option[Int]
+)
 object AddPurchaseRequest {
   implicit val format: OFormat[AddPurchaseRequest] = Json.format[AddPurchaseRequest]
 }
-

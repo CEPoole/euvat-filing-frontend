@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 
-package models
+package pages
 
-import models.PurchaseType
+import base.SpecBase
+import models.responses.AddPurchaseResponse
 
-object PurchaseTypeCode {
-  private val codes: Map[PurchaseType, String] = Map(
-    PurchaseType.Fuel         -> "1",
-    PurchaseType.Transport    -> "3",
-    PurchaseType.FoodAndDrink -> "7",
-    PurchaseType.Luxuries     -> "9",
-    PurchaseType.Other        -> "10"
-  )
-  def codeFor(pt: PurchaseType): String = codes(pt)
+class AddPurchaseResponsePageSpec extends SpecBase {
+
+  "AddPurchaseResponsePage" - {
+
+    "must be able to be set and retrieved from UserAnswers" in {
+      val response = AddPurchaseResponse(itemNumber = 1, updateSequenceNumber = 2)
+      val answers = emptyUserAnswers.set(AddPurchaseResponsePage, response).success.value
+      answers.get(AddPurchaseResponsePage) mustBe Some(response)
+    }
+  }
 }

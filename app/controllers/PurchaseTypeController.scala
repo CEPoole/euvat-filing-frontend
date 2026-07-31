@@ -19,7 +19,7 @@ package controllers
 import controllers.actions.*
 import models.requests.{AddPurchaseRequest, DataRequest}
 import forms.PurchaseTypeFormProvider
-import models.{Mode, PurchaseType, UserAnswers, PurchaseTypeCode}
+import models.{Mode, PurchaseType, PurchaseTypeCode, UserAnswers}
 import navigation.Navigator
 import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, CountryChangedPage, PurchaseTypePage, SimplifiedInvoiceVatRegCheckPage, CountryChangedPage}
 import play.api.Logging
@@ -51,7 +51,7 @@ class PurchaseTypeController @Inject() (
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport
-      with Logging {
+    with Logging {
 
   val form: Form[PurchaseType] = formProvider()
 
@@ -110,6 +110,7 @@ class PurchaseTypeController @Inject() (
           for {
             updatedAnswers <- Future.fromTry(saved)
           (for {
+          for {
             updatedAnswers <- Future.fromTry(request.userAnswers.set(PurchaseTypePage, value))
             _              <- sessionRepository.set(updatedAnswers)
           } yield {
@@ -119,14 +120,14 @@ class PurchaseTypeController @Inject() (
             else Redirect(Call(call.method, s"$prefix${call.url}"))
           }
             result         <- addPurchaseAndPersist(updatedAnswers, value, mode)
-          } yield result)
+          } yield result
       )
   }
 
   // mount prefix is provided by utils.MountPrefix
 
   private def addPurchaseAndPersist(answers: UserAnswers, purchaseType: PurchaseType, mode: Mode)(implicit
-                                                                                                  request: DataRequest[_]
+    request: DataRequest[?]
   ): Future[Result] = {
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
 

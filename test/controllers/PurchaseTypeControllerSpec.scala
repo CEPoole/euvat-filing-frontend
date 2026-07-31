@@ -18,10 +18,11 @@ package controllers
 
 import base.SpecBase
 import forms.PurchaseTypeFormProvider
+import models.responses.{AddPurchaseResponse, ApplicationResponse}
 import models.{CheckMode, NormalMode, PurchaseType}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{times, verify, when}
+import org.mockito.Mockito.{never, times, verify, when}
 import org.scalatestplus.mockito.MockitoSugar
 import pages.PurchaseTypePage
 import play.api.inject.bind
@@ -29,6 +30,7 @@ import play.api.mvc.Call
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import repositories.SessionRepository
+import services.EuVatRefundsService
 import views.html.PurchaseTypeView
 
 import scala.concurrent.Future
@@ -364,6 +366,92 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       saved.get(pages.PurchaseSubCategoryPage) mustBe None
       saved.get(pages.PurchaseSubCategoryLabelPage) mustBe None
       saved.get(pages.CountryChangedPage) mustBe None
+    }
+  }
+}
+
+    "must add the purchase, persist the response, and redirect when valid data is submitted" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+      when(mockEuVatRefundsService.addPurchase(any())(any()))
+        .thenReturn(Future.successful(AddPurchaseResponse(itemNumber = 1, updateSequenceNumber = 2)))
+
+      val userAnswers = emptyUserAnswers
+        .set(pages.ClaimApplicationResponsePage, ApplicationResponse(134, "GB123134", 1))
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, purchaseTypeSubmitRoute)
+          .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual onwardRoute.url
+        verify(mockEuVatRefundsService, times(1)).addPurchase(any())(any())
+      }
+    }
+
+    "must redirect to Journey Recovery when the addPurchase call fails" in {
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+      when(mockEuVatRefundsService.addPurchase(any())(any()))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val userAnswers = emptyUserAnswers
+        .set(pages.ClaimApplicationResponsePage, ApplicationResponse(134, "GB123134", 1))
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, purchaseTypeSubmitRoute)
+          .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
+      }
+    }
+
+    "must redirect to Journey Recovery when applicationId is missing on submit" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+      val mockRefundsService = mock[EuVatRefundsService]
+
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        .overrides(
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, purchaseTypeSubmitRoute)
+          .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
+        verify(mockRefundsService, never).addPurchase(any())(any())
+      }
     }
   }
 }

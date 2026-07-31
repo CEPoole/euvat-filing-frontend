@@ -43,4 +43,3 @@ class AddPurchaseResponseSpec extends AnyWordSpec with Matchers {
     }
   }
 }
-

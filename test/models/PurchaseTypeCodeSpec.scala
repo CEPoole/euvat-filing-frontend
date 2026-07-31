@@ -16,15 +16,19 @@
 
 package models
 
-import models.PurchaseType
+import org.scalatest.freespec.AnyFreeSpec
+import org.scalatest.matchers.must.Matchers
 
-object PurchaseTypeCode {
-  private val codes: Map[PurchaseType, String] = Map(
-    PurchaseType.Fuel         -> "1",
-    PurchaseType.Transport    -> "3",
-    PurchaseType.FoodAndDrink -> "7",
-    PurchaseType.Luxuries     -> "9",
-    PurchaseType.Other        -> "10"
-  )
-  def codeFor(pt: PurchaseType): String = codes(pt)
+class PurchaseTypeCodeSpec extends AnyFreeSpec with Matchers {
+
+  "PurchaseTypeCode.codeFor" - {
+
+    "must return the correct code for each purchase type" in {
+      PurchaseTypeCode.codeFor(PurchaseType.Fuel) mustEqual "1"
+      PurchaseTypeCode.codeFor(PurchaseType.Transport) mustEqual "3"
+      PurchaseTypeCode.codeFor(PurchaseType.FoodAndDrink) mustEqual "7"
+      PurchaseTypeCode.codeFor(PurchaseType.Luxuries) mustEqual "9"
+      PurchaseTypeCode.codeFor(PurchaseType.Other) mustEqual "10"
+    }
+  }
 }
