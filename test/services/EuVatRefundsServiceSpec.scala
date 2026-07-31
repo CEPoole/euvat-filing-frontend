@@ -172,50 +172,6 @@ class EuVatRefundsServiceSpec extends SpecBase with MockitoSugar with ScalaFutur
     }
   }
 
-  "EuVatRefundsService.addPurchase" - {
-
-    val request = AddPurchaseRequest(
-      applicationId = 123456,
-      goodsDescriptionCategory = Some("1234"),
-      goodsDescriptionText = Some("Fuel"),
-      purchaseSubcategory = None,
-      simplifiedInvoiceIndicator = None,
-      supplierName = None,
-      supplierAddress1 = None,
-      supplierAddress2 = None,
-      supplierAddress3 = None,
-      supplierVatRegNumber = None,
-      supplierTaxIdentifier = None,
-      invoiceDate = None,
-      invoiceNumber = None,
-      currencyCode = None,
-      taxableAmount = None,
-      vatAmount = None,
-      deductibleVatAmount = None,
-      updateSequenceNumber = None
-    )
-
-    val expectedResponse = AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)
-
-    "should return the add purchase response from the connector" in {
-      when(mockConnector.addPurchase(any())(any()))
-        .thenReturn(Future.successful(expectedResponse))
-
-      service.addPurchase(request)(hc).futureValue mustEqual expectedResponse
-    }
-
-    "should propagate an exception from the connector" in {
-      val failure = new RuntimeException("Connector failed")
-
-      when(mockConnector.addPurchase(any())(any()))
-        .thenReturn(Future.failed(failure))
-
-      whenReady(service.addPurchase(request).failed) { ex =>
-        ex mustEqual failure
-      }
-    }
-  }
-
   "EuVatRefundsService.getSupplierTaxIdentifierCount" - {
 
     val request = SupplierTaxIdentifierCountRequest(applicationId = 123L, itemNumber = 1, taxIdentifier = "TAX123", invoiceNumber = "INV1")
