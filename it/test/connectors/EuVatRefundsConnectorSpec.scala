@@ -16,8 +16,8 @@
 
 package connectors
 
-import models.requests.LatestApplicationRequest
-import models.responses.{LatestApplicationResponse, TraderKnownFactsResponse}
+import models.requests.{AddPurchaseRequest, LatestApplicationRequest}
+import models.responses.{AddPurchaseResponse, LatestApplicationResponse, TraderKnownFactsResponse}
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.*
 import org.scalatest.concurrent.ScalaFutures
@@ -131,6 +131,59 @@ class EuVatRefundsConnectorSpec extends AnyWordSpec with Matchers with MockitoSu
 
       whenReady(result.failed) { ex =>
         ex shouldBe failure
+      }
+    }
+  }
+
+  "EuVatRefundsConnector.addPurchase" should {
+
+    val request = AddPurchaseRequest(
+      applicationId = 123456,
+      goodsDescriptionCategory = Some("1234"),
+      goodsDescriptionText = Some("Fuel"),
+      purchaseSubcategory = None,
+      simplifiedInvoiceIndicator = None,
+      supplierName = None,
+      supplierAddress1 = None,
+      supplierAddress2 = None,
+      supplierAddress3 = None,
+      supplierVatRegNumber = None,
+      supplierTaxIdentifier = None,
+      invoiceDate = None,
+      invoiceNumber = None,
+      currencyCode = None,
+      taxableAmount = None,
+      vatAmount = None,
+      deductibleVatAmount = None,
+      updateSequenceNumber = None
+    )
+
+    val expectedResponse = AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)
+
+    "call the correct URL and return the expected response" in {
+      reset(mockHttp, mockRequestBuilder)
+
+      when(mockHttp.post(any())(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.execute[AddPurchaseResponse](any(), any()))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result = connector.addPurchase(request).futureValue
+
+      result shouldBe expectedResponse
+
+      verify(mockHttp).post(url"$baseUrl/add-purchase")
+      verify(mockRequestBuilder).execute[AddPurchaseResponse](any(), any())
+    }
+
+    "propagate failures from the HTTP client" in {
+      when(mockHttp.post(any())(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.execute[AddPurchaseResponse](any(), any()))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      whenReady(connector.addPurchase(request).failed) { ex =>
+        ex shouldBe a[RuntimeException]
       }
     }
   }
