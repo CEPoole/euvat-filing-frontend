@@ -54,7 +54,7 @@ object PurchaseSubCategoryType {
     ),
     "other" -> Map(
       "10.5" -> "property-purchase-type",
-      "10.17" -> "property-purchase-type"
+      "10.17" -> "property-cost-type"
     )
   )
 

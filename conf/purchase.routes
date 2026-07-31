@@ -63,6 +63,11 @@ POST       /property-purchase-type                       controllers.purchase.Pu
 GET        /change-property-purchase-type                controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = CheckMode)
 POST       /change-property-purchase-type                controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = CheckMode)
 
+GET        /property-cost-type                           controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = NormalMode)
+POST       /property-cost-type                           controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = NormalMode)
+GET        /change-property-cost-type                    controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = CheckMode)
+POST       /change-property-cost-type                    controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = CheckMode)
+
 # Describe items (fallback for 'other' catch-all)
 GET        /describe-items                               controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = NormalMode)
 POST       /describe-items                               controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = NormalMode)
