@@ -77,7 +77,7 @@ class SupplierTaxNumberControllerSpec extends SpecBase with MockitoSugar {
         val view = application.injector.instanceOf[SupplierTaxNumberView]
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLink)(request, messages(application)).toString)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLink, isSimplifiedInvoice = true)(request, messages(application)).toString)
       }
     }
 
