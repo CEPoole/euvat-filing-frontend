@@ -126,23 +126,32 @@ class PurchaseSubCategoryController @Inject() (
 
     val items = config.buildRadioItems(options, msgs)
 
-    val childTitleOpt = options.to(LazyList).flatMap { case (_, labelKey) => titleForLabelKey(labelKey, msgs) }.headOption
+    val lastSeg = resolvedParentCode.split("\\.").lastOption.getOrElse(resolvedParentCode)
+    val headSeg = resolvedParentCode.split("\\.").headOption.getOrElse(resolvedParentCode)
+
+    // Prefer a child title specifically for the last-segment (e.g. "5" for "3.5"),
+    // then the fully-qualified resolvedParentCode, then the head segment. Fall back
+    // to any title discovered from the option label keys.
+    val specificTitleKeys = Seq(
+      s"purchase.sub.${parentKey}.${lastSeg}.title",
+      s"purchase.sub.${parentKey}.${resolvedParentCode}.title",
+      s"purchase.sub.${parentKey}.${headSeg}.title"
+    )
+
+    val childTitleOpt = specificTitleKeys.collectFirst { case k if msgs.isDefinedAt(k) => msgs(k) }
+      .orElse(options.to(LazyList).flatMap { case (_, labelKey) => titleForLabelKey(labelKey, msgs) }.headOption)
+
     val parentLabelKeyOpt = config.subcodesFor(country, parentKey).find(_._1 == resolvedParentCode).map(_._2)
     val parentHeading = msgs(s"purchase.sub.${parentKey}.heading")
     val heading = childTitleOpt.orElse(parentDerivedTitle(parentKey, resolvedParentCode, msgs)).getOrElse(parentHeading)
     val pageTitle = heading
 
-    // resolve a context-specific error key for missing selection
-    // Prefer the fully-qualified code (e.g. "3.1"), then the last segment
-    // (e.g. "1"), then the head segment (e.g. "3"), then the parent-level
-    // fallback. This ensures codes like "3.1" map to keys such as
-    // "purchase.sub.transport.1.error.required" when those messages exist.
-    val lastSeg = resolvedParentCode.split("\\.").lastOption.getOrElse(resolvedParentCode)
-    val headSeg = resolvedParentCode.split("\\.").headOption.getOrElse(resolvedParentCode)
+    // Resolve a context-specific error key for missing selection. Prefer an
+    // error keyed to the last-segment (e.g. "1" for "3.1") and then fall
+    // back to the parent-level key. Avoid using the head segment or the
+    // fully-qualified resolved code here to prevent mismatches.
     val candidateKeys = Seq(
-      s"purchase.sub.${parentKey}.${resolvedParentCode}.error.required",
       s"purchase.sub.${parentKey}.${lastSeg}.error.required",
-      s"purchase.sub.${parentKey}.${headSeg}.error.required",
       s"purchase.sub.${parentKey}.error.required"
     )
     val requiredKey = candidateKeys.find(k => msgs.isDefinedAt(k)).getOrElse("error.required")

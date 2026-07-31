@@ -67,9 +67,12 @@ class PurchaseSubTypeController @Inject() (
     val items = if (parentKey == "other") rawItems.filterNot(_.value.contains(ConfigPurchaseMapping.NoneValue)) else rawItems
     val parentHeading = parentHeadingFor(parentKey)
     val msgs = messagesApi.preferred(request)
+
+    // Use parent-scoped required key by default for PurchaseSubType pages.
     val requiredKeyCandidates = Seq(s"purchase.sub.${parentKey}.error.required")
     val requiredKey = requiredKeyCandidates.find(k => msgs.isDefinedAt(k)).getOrElse("error.required")
     val preparedForm = userAnswers.get(PurchaseSubTypePage).fold(formProvider(requiredKey))(formProvider(requiredKey).fill)
+
     val resolvedSlug = resolvedSlugFor(parentKey, purchaseTypeSlug)
     val formAction = formActionFor(resolvedSlug)
 
@@ -177,7 +180,7 @@ class PurchaseSubTypeController @Inject() (
 
       resolveParentAndCountry(purchaseTypeSlug, request.userAnswers) match {
         case Some((parentKey, country)) =>
-          val (options, items, parentHeading, _, resolvedSlug, _) =
+          val (options, items, parentHeading, preparedForm, resolvedSlug, _) =
             prepareViewData(parentKey, country, purchaseTypeSlug, request.userAnswers)(request)
 
           if (options.isEmpty) {
@@ -185,11 +188,7 @@ class PurchaseSubTypeController @Inject() (
           } else {
             val parentHeadingVal = parentHeading
 
-              val msgs = messagesApi.preferred(request)
-              val requiredKeyCandidates = Seq(s"purchase.sub.${parentKey}.error.required")
-              val requiredKey = requiredKeyCandidates.find(k => msgs.isDefinedAt(k)).getOrElse("error.required")
-
-              formProvider(requiredKey).bindFromRequest().fold(
+              preparedForm.bindFromRequest().fold(
                 formWithErrors => {
                   val formAction = formActionFor(resolvedSlug)
                   val backUrl = backUrlFor(mode)
