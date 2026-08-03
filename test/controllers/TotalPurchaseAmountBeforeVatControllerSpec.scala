@@ -18,14 +18,12 @@ package controllers
 
 import base.SpecBase
 import forms.TotalPurchaseAmountBeforeVatFormProvider
-import models.{CheckMode, NormalMode, UserAnswers}
+import models.{CheckMode, NormalMode, SupplierTaxNumber, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import pages.TotalPurchaseAmountBeforeVatPage
-import pages.RefundingCountryPage
-import pages.RefundingCurrencyPage
+import pages.{RefundingCountryPage, RefundingCurrencyPage, SupplierTaxNumberPage, TotalPurchaseAmountBeforeVatPage}
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
@@ -58,7 +56,70 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
         val view = application.injector.instanceOf[TotalPurchaseAmountBeforeVatView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode), "€", "Euro")(
+        contentAsString(result) mustEqual view(form, NormalMode, routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode), "€", "Euro")(
+          request,
+          messages(application)
+        ).toString
+      }
+    }
+
+    "must return OK and the correct back link when country is Germany" in {
+
+      val userAnswers = UserAnswers(userAnswersId).set(RefundingCountryPage, "DE").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, totalPurchaseAmountBeforeVatRoute)
+
+        val result = route(application, request).value
+
+        val view = application.injector.instanceOf[TotalPurchaseAmountBeforeVatView]
+
+        status(result) mustEqual OK
+        contentAsString(result) mustEqual view(form, NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode), "€", "Euro")(
+          request,
+          messages(application)
+        ).toString
+      }
+    }
+
+    "must return OK and the correct back link when country is not Germany and VAT registration number was entered" in {
+
+      val userAnswers = UserAnswers(userAnswersId).set(RefundingCountryPage, "FR").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, totalPurchaseAmountBeforeVatRoute)
+
+        val result = route(application, request).value
+
+        val view = application.injector.instanceOf[TotalPurchaseAmountBeforeVatView]
+
+        status(result) mustEqual OK
+        contentAsString(result) mustEqual view(form, NormalMode, routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode), "€", "Euro")(
+          request,
+          messages(application)
+        ).toString
+      }
+    }
+
+    "must return OK and the correct back link when country is not Germany and no VAT registration number was entered" in {
+
+      val userAnswers = UserAnswers(userAnswersId).set(RefundingCountryPage, "FR").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, totalPurchaseAmountBeforeVatRoute)
+
+        val result = route(application, request).value
+
+        val view = application.injector.instanceOf[TotalPurchaseAmountBeforeVatView]
+
+        status(result) mustEqual OK
+        contentAsString(result) mustEqual view(form, NormalMode, routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode), "€", "Euro")(
           request,
           messages(application)
         ).toString
@@ -81,7 +142,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
         status(result) mustEqual OK
         contentAsString(result) mustEqual view(form.fill(BigDecimal("12.34")),
                                                NormalMode,
-                                               routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode),
+                                               routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode),
                                                "€",
                                                "Euro"
                                               )(
@@ -135,7 +196,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
         status(result) mustEqual BAD_REQUEST
         contentAsString(result) mustEqual view(boundForm,
                                                NormalMode,
-                                               routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode),
+                                               routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode),
                                                "€",
                                                "Euro"
                                               )(
@@ -216,7 +277,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode), "€", "Euro")(
+        contentAsString(result) mustEqual view(form, NormalMode, routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode), "€", "Euro")(
           request,
           messages(application)
         ).toString
@@ -245,7 +306,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
         status(result) mustEqual OK
         contentAsString(result) mustEqual view(form,
                                                NormalMode,
-                                               routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode),
+                                               routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode),
                                                "лв",
                                                "Bulgarian Lev"
                                               )(request, messages(application)).toString
@@ -266,7 +327,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode), "€", "Euro")(
+        contentAsString(result) mustEqual view(form, NormalMode, routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode), "€", "Euro")(
           request,
           messages(application)
         ).toString

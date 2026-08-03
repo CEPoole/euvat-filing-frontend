@@ -46,7 +46,6 @@ unauthorised.heading = You can’t access this service with this account
 unauthorised.guidance = You do not have access to this service.
 
 claim.caption = Claim details
-caption.hidden.text = This section is:
 purchase.caption = Purchase details
 
 taskListDashboard.title = Make a claim for an EU VAT refund
