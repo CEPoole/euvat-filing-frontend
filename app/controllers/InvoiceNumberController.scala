@@ -20,8 +20,8 @@ import controllers.actions.*
 import forms.InvoiceNumberFormProvider
 import models.{CheckMode, Mode, NormalMode, UserAnswers}
 import navigation.Navigator
-import pages.InvoiceNumberPage
 import play.api.data.Form
+import pages.{InvoiceNumberPage, VrnWarningFlowPage}
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.*
 import repositories.SessionRepository
@@ -62,21 +62,27 @@ class InvoiceNumberController @Inject() (
   // This avoids duplicating the `utils.CheckModeShortCircuit` invocation in the
   // body of `onSubmit` and keeps the public method concise.
   private def handleInvoiceNumberSave(value: String, mode: Mode, userAnswers: UserAnswers)(implicit
-    request: Request[AnyContent]
+                                                                                           request: Request[AnyContent]
   ): Future[Result] = {
-    // Preserve the special SupplierTaxIdentifierWarning flow while
-    // adopting the new centralized CheckModeShortCircuit behaviour.
-    val wasShown = userAnswers.get(pages.SupplierTaxIdentifierWarningShownPage).contains(true)
-    val previousInvoice = userAnswers.get(InvoiceNumberPage)
+
+    val changed = !userAnswers.get(InvoiceNumberPage).contains(value)
+
+    val answersWithVrnFlag =
+      if (userAnswers.get(VrnWarningFlowPage).isDefined && changed)
+        userAnswers.set(VrnWarningFlowPage, false).getOrElse(userAnswers)
+      else
+        userAnswers
+
+    val wasShown = answersWithVrnFlag.get(pages.SupplierTaxIdentifierWarningShownPage).contains(true)
 
     if (wasShown) {
       // If the warning was shown previously and the invoice hasn't changed
       // keep showing the warning; otherwise persist the change, clear the
       // flag and route to the supplier tax id page.
-      if (previousInvoice.contains(value)) Future.successful(Redirect(routes.SupplierTaxIdentifierWarningController.onPageLoad(mode)))
+      if (!changed) Future.successful(Redirect(routes.SupplierTaxIdentifierWarningController.onPageLoad(mode)))
       else {
         val clearedTry = for {
-          setVal <- userAnswers.set(InvoiceNumberPage, value)
+          setVal  <- answersWithVrnFlag.set(InvoiceNumberPage, value)
           cleared <- setVal.remove(pages.SupplierTaxIdentifierWarningShownPage)
         } yield cleared
 
@@ -92,7 +98,7 @@ class InvoiceNumberController @Inject() (
           InvoiceNumberPage,
           value,
           mode,
-          userAnswers,
+          answersWithVrnFlag,
           controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
         ) match {
           // If unchanged in CheckMode, short-circuit result present
@@ -101,16 +107,16 @@ class InvoiceNumberController @Inject() (
             // Value has changed: persist and, if refunding country is Germany,
             // route to the supplier-tax-number page indicated in session so the
             // caller can amend the supplier tax details before returning to CYA.
-            val isGermany = userAnswers.get(pages.RefundingCountryPage).exists(_.equalsIgnoreCase("DE"))
+            val isGermany = answersWithVrnFlag.get(pages.RefundingCountryPage).exists(_.equalsIgnoreCase("DE"))
 
             val userAnswersTry = if (isGermany) {
               for {
-                setVal <- userAnswers.set(InvoiceNumberPage, value)
+                setVal  <- answersWithVrnFlag.set(InvoiceNumberPage, value)
                 marked1 <- setVal.set(pages.SupplierTaxIdentifierArrivedFromInvoicePage, true)
                 marked2 <- marked1.set(pages.SupplierVatRegistrationArrivedFromInvoicePage, true)
               } yield marked2
             } else {
-              userAnswers.set(InvoiceNumberPage, value)
+              answersWithVrnFlag.set(InvoiceNumberPage, value)
             }
 
             Future.fromTry(userAnswersTry).flatMap { updated =>
@@ -142,9 +148,9 @@ class InvoiceNumberController @Inject() (
           InvoiceNumberPage,
           value,
           mode,
-          userAnswers,
+          answersWithVrnFlag,
           sessionRepository,
-          navigator.nextPage(InvoiceNumberPage, mode, userAnswers),
+          navigator.nextPage(InvoiceNumberPage, mode, answersWithVrnFlag),
           updated => Future.successful(Redirect(navigator.nextPage(InvoiceNumberPage, mode, updated)))
         )
       }

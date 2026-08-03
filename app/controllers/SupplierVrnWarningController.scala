@@ -18,31 +18,36 @@ package controllers
 
 import controllers.actions.*
 import models.{CheckMode, Mode, NormalMode}
+import pages.VrnWarningFlowPage
 
 import javax.inject.Inject
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
+import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import views.html.SupplierVrnWarningView
 
+import scala.concurrent.{ExecutionContext, Future}
+
 class SupplierVrnWarningController @Inject() (
-                                                 override val messagesApi: MessagesApi,
-                                                 identify: IdentifierAction,
-                                                 getData: DataRetrievalAction,
-                                                 requireData: DataRequiredAction,
-                                                 val controllerComponents: MessagesControllerComponents,
-                                                 view: SupplierVrnWarningView
-                                               ) extends FrontendBaseController
+                                               override val messagesApi: MessagesApi,
+                                               sessionRepository: SessionRepository,
+                                               identify: IdentifierAction,
+                                               getData: DataRetrievalAction,
+                                               requireData: DataRequiredAction,
+                                               val controllerComponents: MessagesControllerComponents,
+                                               view: SupplierVrnWarningView
+                                             )(implicit ec: ExecutionContext) extends FrontendBaseController
   with I18nSupport {
 
-  def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    Ok(view(routes.RefundPeriodController.onPageLoad(mode), mode))
+  def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
+    for {
+      updated <- Future.fromTry(request.userAnswers.set(VrnWarningFlowPage, true))
+      _       <- sessionRepository.set(updated)
+    } yield Ok(view(routes.SupplierVatRegistrationNumberController.onPageLoad(mode), mode))
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    mode match {
-      case NormalMode => Redirect(routes.ContactDetailsController.onPageLoad(NormalMode))
-      case CheckMode  => Redirect(routes.CheckYourClaimDetailsController.onPageLoad())
-    }
+    Redirect(routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode))
   }
 }
