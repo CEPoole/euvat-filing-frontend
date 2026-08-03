@@ -460,10 +460,8 @@ class RefundPeriodMatrixSpec extends SpecBase with MockitoSugar with BeforeAndAf
 
         val result = route(application, request).value
 
-        status(result) mustEqual BAD_REQUEST
-        val body = contentAsString(result)
-        body must include("href=\"#start.month\"")
-        body must include("Refund period cannot overlap with another claim for the same EU member state.")
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.PeriodOverlapWarningController.onPageLoad(NormalMode).url
       }
     }
   }
