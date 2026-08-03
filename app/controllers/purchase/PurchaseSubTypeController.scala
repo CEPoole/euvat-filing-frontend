@@ -166,8 +166,29 @@ class PurchaseSubTypeController @Inject() (
 
           if (options.isEmpty) Future.successful(Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode)))
           else {
-            val backUrl = backUrlFor(mode)
-            Future.successful(Ok(view(preparedForm, items, parentHeading, parentHeading, formAction, backUrl)))
+            // If this parent is `other` and there is only a single sub-type option
+            // which represents "None of these" (sentinel `99`), then bypass the
+            // sub-type selection page and persist the single value, redirecting
+            // the user straight to DescribeItemsOnInvoice.
+            if (parentKey == "other" && options.size == 1) {
+              val singleCode = options.head._1
+              val lastSeg = singleCode.split("\\.").lastOption.getOrElse(singleCode)
+              if (lastSeg == "99") {
+                val labelKey = options.head._2
+                val label = if (labelKey != null && labelKey.nonEmpty) messagesApi.preferred(request)(labelKey) else singleCode
+                val savedTry = persistSelection(request.userAnswers, parentKey, singleCode, label)
+
+                Future.fromTry(savedTry).flatMap { updated =>
+                  sessionRepository.set(updated).map(_ => Redirect(controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(mode)))
+                }
+              } else {
+                val backUrl = backUrlFor(mode)
+                Future.successful(Ok(view(preparedForm, items, parentHeading, parentHeading, formAction, backUrl)))
+              }
+            } else {
+              val backUrl = backUrlFor(mode)
+              Future.successful(Ok(view(preparedForm, items, parentHeading, parentHeading, formAction, backUrl)))
+            }
           }
 
         case None => Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))

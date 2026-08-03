@@ -53,7 +53,17 @@ class DescribeItemsOnInvoiceController @Inject() (
   val form = formProvider()
 
   private def computeBackTarget(mode: Mode)(implicit request: DataRequest[?]): Call =
-    PurchaseBackLinkHelper.computeBackTarget(mode)
+    // If PurchaseType is Other and the chosen sub-type or sub-category indicates
+    // "None of these" (sentinel 99), route back to the purchase-type selection
+    // page instead of the default purchase back link. This handles the case
+    // where we auto-skipped the sub-type page and persisted the sentinel value.
+    val isOtherWithNoneSelected: Boolean = request.userAnswers.get(PurchaseTypePage).contains(models.PurchaseType.Other) && (
+      request.userAnswers.get(PurchaseSubTypePage).exists(v => v.split("\\.").lastOption.contains("99")) ||
+      request.userAnswers.get(PurchaseSubCategoryPage).exists(v => v.split("\\.").lastOption.contains("99"))
+    )
+
+    if (isOtherWithNoneSelected) controllers.routes.PurchaseTypeController.onPageLoad(mode)
+    else PurchaseBackLinkHelper.computeBackTarget(mode)
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     val preparedForm = request.userAnswers.get(DescribeItemsOnInvoicePage) match {

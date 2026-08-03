@@ -406,6 +406,38 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "must skip sub-type and go to describe page when Other has single None option" in {
+      val fakeConfig = new ConfigPurchaseMapping() {
+        override def subcodesFor(country: String, parentKey: String) = Seq(("10.99", "purchase.sub.other.99"))
+        override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
+      }
+
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+
+      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[ConfigPurchaseMapping].toInstance(fakeConfig),
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(GET, "/file-eu-vat/purchase-type-other")
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(models.NormalMode).url
+
+        val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        val saved = captor.getValue
+        saved.get(pages.PurchaseSubTypePage) mustBe Some("10.99")
+      }
+    }
+
     "must remove subtype and redirect to InvoiceType when None selected" in {
       val fakeConfig = new ConfigPurchaseMapping() {
         override def subcodesFor(country: String, parentKey: String) = Seq(("1", "purchase.sub.fuel.1"))
