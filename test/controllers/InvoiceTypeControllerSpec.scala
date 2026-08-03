@@ -26,6 +26,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import pages.{InvoiceTypePage, PurchaseTypePage, PurchaseSubTypePage, PurchaseSubCategoryPage, DescribeItemsOnInvoicePage}
 import models.PurchaseType
 import play.api.inject.bind
+import utils.ConfigPurchaseMapping
 import play.api.mvc.Call
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
@@ -238,6 +239,38 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
         ).toString)
       }
     }
+
+      "must show backlink to DescribeItemsOnInvoice when PurchaseType is Other, parent ends with 99, and country has multiple other options" in {
+
+        val fakeConfig = new ConfigPurchaseMapping() {
+          override def subcodesFor(country: String, parentKey: String) =
+            if (country == "BE" && parentKey == "other") Seq(("10.6", "purchase.sub.other.6"), ("10.99", "purchase.sub.other.99"))
+            else super.subcodesFor(country, parentKey)
+        }
+
+        val userAnswers = emptyUserAnswers
+          .set(PurchaseTypePage, PurchaseType.Other).success.value
+          .set(PurchaseSubTypePage, "10.99").success.value
+          .set(pages.RefundingCountryPage, "BE").success.value
+
+        val application = applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig))
+          .build()
+
+        running(application) {
+          val request = FakeRequest(GET, invoiceTypeRoute)
+
+          val view = application.injector.instanceOf[InvoiceTypeView]
+
+          val result = route(application, request).value
+
+          status(result) mustEqual OK
+          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.DescribeItemsOnInvoiceController.onPageLoad(NormalMode))(
+            request,
+            messages(application)
+          ).toString)
+        }
+      }
 
     "must redirect to the next page when standard invoice is submitted" in {
 

@@ -28,6 +28,7 @@ import models.requests.DataRequest
 import models.PurchaseSubCategoryType
 import models.PurchaseType
 import controllers.helpers.PurchaseBackLinkHelper
+import utils.ConfigPurchaseMapping
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import repositories.SessionRepository
@@ -39,6 +40,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class DescribeItemsOnInvoiceController @Inject() (
   override val messagesApi: MessagesApi,
   sessionRepository: SessionRepository,
+  configPurchaseMapping: ConfigPurchaseMapping,
   navigator: Navigator,
   identify: IdentifierAction,
   getData: DataRetrievalAction,
@@ -54,16 +56,37 @@ class DescribeItemsOnInvoiceController @Inject() (
 
   private def computeBackTarget(mode: Mode)(implicit request: DataRequest[?]): Call =
     // If PurchaseType is Other and the chosen sub-type or sub-category indicates
-    // "None of these" (sentinel 99), route back to the purchase-type selection
-    // page instead of the default purchase back link. This handles the case
-    // where we auto-skipped the sub-type page and persisted the sentinel value.
-    val isOtherWithNoneSelected: Boolean = request.userAnswers.get(PurchaseTypePage).contains(models.PurchaseType.Other) && (
-      request.userAnswers.get(PurchaseSubTypePage).exists(v => v.split("\\.").lastOption.contains("99")) ||
-      request.userAnswers.get(PurchaseSubCategoryPage).exists(v => v.split("\\.").lastOption.contains("99"))
-    )
+    // "None of these" (sentinel 99), decide whether to route back to the
+    // sub-type selection or the purchase-type selection. If the country's
+    // available `other` subcodes contained more than one option then we should
+    // return to the sub-type selection so the user can change that choice.
+    val isOther = request.userAnswers.get(PurchaseTypePage).contains(models.PurchaseType.Other)
 
-    if (isOtherWithNoneSelected) controllers.routes.PurchaseTypeController.onPageLoad(mode)
-    else PurchaseBackLinkHelper.computeBackTarget(mode)
+    if (isOther) {
+      // Prefer the saved parent (sub-type) when present
+      val parentIsNone = request.userAnswers.get(PurchaseSubTypePage).exists(v => v.split("\\.").lastOption.contains("99"))
+
+      if (parentIsNone) {
+        // Attempt to resolve the refunding country from stored answers
+        val countryOpt = request.userAnswers.get(pages.RefundingCountryPage)
+          .orElse(request.userAnswers.get(pages.RefundingCountryNamePage).map(_.split(",").last.trim))
+
+        val multipleOptions = countryOpt.flatMap { c =>
+          try {
+            val opts = configPurchaseMapping.subcodesFor(c, "other")
+            if (opts.nonEmpty) Some(opts.size > 1) else None
+          } catch { case _: Throwable => None }
+        }.getOrElse(false)
+
+        if (multipleOptions) controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Other), mode)
+        else controllers.routes.PurchaseTypeController.onPageLoad(mode)
+      } else {
+        // Fallback: if the child indicates None, route to purchase type as before
+        val childIsNone = request.userAnswers.get(PurchaseSubCategoryPage).exists(v => v.split("\\.").lastOption.contains("99"))
+        if (childIsNone) controllers.routes.PurchaseTypeController.onPageLoad(mode)
+        else PurchaseBackLinkHelper.computeBackTarget(mode)
+      }
+    } else PurchaseBackLinkHelper.computeBackTarget(mode)
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     val preparedForm = request.userAnswers.get(DescribeItemsOnInvoicePage) match {

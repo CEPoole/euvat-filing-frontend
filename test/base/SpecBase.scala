@@ -72,6 +72,7 @@ trait SpecBase
         bind[DataRetrievalAction].toInstance(new FakeDataRetrievalAction(userAnswers)),
         bind[EuVatRefundsService].toInstance(mockEuVatRefundsService)
       )
+      
 
   // Normalize dynamic values in rendered HTML to make string comparisons deterministic in tests.
   // - strips any `nonce="..."` attributes
