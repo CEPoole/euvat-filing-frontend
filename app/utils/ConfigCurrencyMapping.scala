@@ -36,6 +36,8 @@ class ConfigCurrencyMapping @Inject() (config: Configuration) {
   def currenciesFor(code: String): Seq[(String, String, String)] =
     mapping.getOrElse(code, Seq(("euro", "EUR", "€")))
 
+  def hasMapping(code: String): Boolean = mapping.contains(code)
+
   def requiresCurrencySelection(code: String): Boolean =
     currenciesFor(code).size > 1
 

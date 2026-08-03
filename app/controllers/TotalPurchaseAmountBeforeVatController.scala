@@ -18,7 +18,7 @@ package controllers
 
 import controllers.actions.*
 import forms.TotalPurchaseAmountBeforeVatFormProvider
-import models.{Mode, UserAnswers}
+import models.{InvoiceType, Mode, SupplierTaxNumber, UserAnswers}
 import navigation.Navigator
 import pages.*
 import play.api.data.Form
@@ -48,22 +48,31 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
     with I18nSupport {
 
   val form: Form[BigDecimal] = formProvider()
-
   private def backLink(mode: Mode)(userAnswers: UserAnswers): Call = {
-    // if this country requires currency selection, the currency was shown right before this page
-    // so Back should return there, matching the forward navigation built for DTR-6982
+    // If this country requires currency selection, the currency page was shown right before this one.
     userAnswers.get(RefundingCountryPage) match {
       case Some(countryCode) if configCurrencyMapping.requiresCurrencySelection(countryCode) =>
         routes.RefundingCurrencyController.onPageLoad(mode)
 
       case Some("DE") =>
-        if (userAnswers.get(SupplierVatRegistrationNumberPage).isDefined) {
-          routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
-        } else if (userAnswers.get(SupplierTaxIdentifierNumberPage).isDefined) {
-          routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)
-        } else {
-          routes.SupplierTaxNumberController.onPageLoad(mode)
+        // Prefer explicit answers about which supplier tax path was chosen (the
+        // SupplierTaxNumberPage), falling back to presence of the specific pages
+        // if required.
+        userAnswers.get(SupplierVatRegistrationNumberPage) match {
+          case Some(_) => routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
+          case None =>
+            userAnswers.get(SupplierTaxNumberPage) match {
+              case Some(SupplierTaxNumber.Vatregistrationnumber) => routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
+              case Some(SupplierTaxNumber.Taxidentifiernumber)  => routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)
+              case _ =>
+                if (userAnswers.get(SupplierTaxIdentifierNumberPage).isDefined) {
+                  routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)
+                } else {
+                  routes.SupplierTaxNumberController.onPageLoad(mode)
+                }
+            }
         }
+
       case _ =>
         userAnswers.get(SupplierVatRegistrationNumberPage) match {
           case Some(_) => routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
@@ -77,7 +86,6 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
       case None        => form
       case Some(value) => form.fill(value)
     }
-
     val (currencyName, prefix) = resolveCurrency(request.userAnswers)
     Ok(view(preparedForm, mode, backLink(mode)(request.userAnswers), prefix, currencyName))
   }

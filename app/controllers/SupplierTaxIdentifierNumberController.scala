@@ -21,6 +21,11 @@ import forms.SupplierTaxIdentifierNumberFormProvider
 
 import javax.inject.Inject
 import models.Mode
+import models.requests.SupplierTaxIdentifierCountRequest
+import models.responses.SupplierTaxIdentifierCountResponse
+import models.responses.AddPurchaseResponse
+import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, InvoiceNumberPage}
+import services.EuVatRefundsService
 import navigation.Navigator
 import pages.{SupplierTaxIdentifierNumberPage, SupplierVatRegistrationNumberPage}
 import play.api.data.Form
@@ -35,6 +40,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class SupplierTaxIdentifierNumberController @Inject() (
   override val messagesApi: MessagesApi,
   sessionRepository: SessionRepository,
+  euVatRefundsService: EuVatRefundsService,
   navigator: Navigator,
   identify: IdentifierAction,
   getData: DataRetrievalAction,
@@ -68,7 +74,25 @@ class SupplierTaxIdentifierNumberController @Inject() (
           for {
             updatedAnswers <- Future.fromTry(request.userAnswers.set(SupplierTaxIdentifierNumberPage, value))
             _              <- sessionRepository.set(updatedAnswers)
-          } yield Redirect(navigator.nextPage(SupplierTaxIdentifierNumberPage, mode, updatedAnswers))
+            result <- {
+              val maybeAppId = updatedAnswers.get(ClaimApplicationResponsePage).map(_.applicationId.toLong)
+              val maybeItem  = updatedAnswers.get(AddPurchaseResponsePage).map(_.itemNumber)
+              val invoiceNum  = updatedAnswers.get(InvoiceNumberPage).getOrElse("")
+
+              (maybeAppId, maybeItem) match {
+                case (Some(appId), Some(itemNumber)) =>
+                  euVatRefundsService
+                    .getSupplierTaxIdentifierCount(SupplierTaxIdentifierCountRequest(appId, itemNumber, value, invoiceNum))
+                    .map {
+                      case SupplierTaxIdentifierCountResponse(count) if count > 0 => Redirect(routes.JourneyRecoveryController.onPageLoad())
+                      case _                                                      => Redirect(navigator.nextPage(SupplierTaxIdentifierNumberPage, mode, updatedAnswers))
+                    }
+                    .recover { case _ => Redirect(routes.JourneyRecoveryController.onPageLoad()) }
+
+                case _ => Future.successful(Redirect(navigator.nextPage(SupplierTaxIdentifierNumberPage, mode, updatedAnswers)))
+              }
+            }
+          } yield result
       )
   }
 
