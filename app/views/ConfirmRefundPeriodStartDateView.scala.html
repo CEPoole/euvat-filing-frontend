@@ -1,0 +1,31 @@
+@import uk.gov.hmrc.govukfrontend.views.viewmodels.warningtext.WarningText
+@import uk.gov.hmrc.govukfrontend.views.viewmodels.content.Text
+@import uk.gov.hmrc.govukfrontend.views.viewmodels.button.Button
+
+@this(
+        layout: templates.Layout,
+        govukWarningText: GovukWarningText,
+        govukButton: GovukButton
+)
+
+@(startDate: string, minDate: String, call: Call)(implicit request: Request[_], messages: Messages)
+
+@layout(pageTitle = titleNoForm(messages("confirmRefundPeriodStartDate.title")), backLinkUrl = Some(call.url)) {
+
+    <h1 class="govuk-heading-xl">@messages("confirmRefundPeriodStartDate.heading")</h1>
+
+    <p class="govuk-body">@messages("confirmRefundPeriodStartDate.paragraph", startDate, minDate)</p>
+
+    @ghovukWarningText(WarningText(
+        iconFallbackText = Some(messages("site.warning")),
+        content = Text(messages("confirmRefundPeriodStartDate.warning"))
+    ))
+
+    <div class="govuk-button-group">
+        @govukButton(Button(
+            href = Some(routes.ConfirmRefundPeriodStartDateController.onSubmit().url),
+            content = Text(messages("confirmRefundPeriodStartDate.button"))
+        ))
+        <a class="govuk-link" href="@call.url">@messages("confirmRefundPeriodStartDate.link") </a>
+    </div>
+}

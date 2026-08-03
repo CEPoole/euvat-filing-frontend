@@ -13,7 +13,7 @@ site.startAgain = Start again
 site.signIn = Sign in
 site.govuk = GOV.UK
 site.save.continue = Save and continue
-
+site.warning = Warning
 
 date.day = Day
 date.month = Month
@@ -307,14 +307,6 @@ supplierTaxIdentifierNumber.error.length = Supplier’s tax identifier number ca
 supplierTaxIdentifierNumber.checkYourAnswersLabel = Supplier’s tax identifier number
 supplierTaxIdentifierNumber.change.hidden = Change supplier’s tax identifier number
 
-supplierTaxIdentifierWarning.title = Are you sure the supplier’s tax identifier number is correct?
-supplierTaxIdentifierWarning.heading = Are you sure the supplier’s tax identifier number is correct?
-supplierTaxIdentifierWarning.p = You’ve already made a claim with the same supplier’s tax identifier and invoice number. Use a different supplier’s tax identifier or invoice number for this claim.
-supplierTaxIdentifierWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
-supplierTaxIdentifierWarning.changeTax = Change supplier’s tax identifier number
-supplierTaxIdentifierWarning.changeInvoice = Change invoice number
-supplierTaxIdentifierWarning.confirm = Yes, this is correct
-
 totalPurchaseAmountBeforeVat.title = Total purchase amount before VAT
 totalPurchaseAmountBeforeVat.heading = Total purchase amount before VAT
 totalPurchaseAmountBeforeVat.h2 = How much did the purchase cost before VAT?
@@ -418,6 +410,21 @@ describeItemsOnInvoice.error.required = Enter a description of the items on your
 describeItemsOnInvoice.error.length = Item description must be 255 characters or less
 
 # Warning messages
+
+confirmRefundPeriodStartDate.title = Are you sure the refund period start date is correct?
+confirmRefundPeriodStartDate.heading = Are you sure the refund period start date is correct?
+confirmRefundPeriodStartDate.paragraph = You’ve told us the refund period start date is {0}. The refund period start date cannot be before {1}.
+confirmRefundPeriodStartDate.warning = If you submit a claim with inaccurate information, it may be rejected.
+confirmRefundPeriodStartDate.button = Yes, this is correct
+confirmRefundPeriodStartDate.link = No, change the start date
+
+supplierTaxIdentifierWarning.title = Are you sure the supplier’s tax identifier number is correct?
+supplierTaxIdentifierWarning.heading = Are you sure the supplier’s tax identifier number is correct?
+supplierTaxIdentifierWarning.p = You’ve already made a claim with the same supplier’s tax identifier and invoice number. Use a different supplier’s tax identifier or invoice number for this claim.
+supplierTaxIdentifierWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
+supplierTaxIdentifierWarning.changeTax = Change supplier’s tax identifier number
+supplierTaxIdentifierWarning.changeInvoice = Change invoice number
+supplierTaxIdentifierWarning.confirm = Yes, this is correct
 
 periodOverlapWarning.title = Are you sure the refund period is correct?
 periodOverlapWarning.heading = Are you sure the refund period is correct?
