@@ -33,7 +33,7 @@
 
 @layout(pageTitle = views.ViewUtils.title(form, pageTitle), backLinkUrl = Some(backUrl)) {
 
-    <span class="govuk-caption-l">@messages("purchase.caption")</span>
+        <span class="govuk-caption-l">@messages("purchase.caption")</span>
 
         @formHelper(action = formAction) {
             @mainErrorSummary(form, Map("value" -> "value_0"))
