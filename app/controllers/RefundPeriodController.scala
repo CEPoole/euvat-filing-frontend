@@ -36,7 +36,7 @@ import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, CountryCode}
 import views.html.RefundPeriodView
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDateTime, YearMonth}
+import java.time.{LocalDateTime, YearMonth, LocalDate, MonthDay}
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -165,6 +165,36 @@ class RefundPeriodController @Inject() (
       updatedUserAnswers <- updateUserAnswers(traderResponse, refundPeriod)
       _                  <- sessionRepository.set(updatedUserAnswers)
     } yield Redirect(navigator.nextPage(RefundPeriodPage, mode, updatedUserAnswers))
+  }
+
+  private def earliestPermittedStartDate(today: LocalDate = LocalDate.now()): YearMonth = {
+    val cutoff = MonthDay.of(9, 30).atYear(today.getYear)
+    if (!today.isAfter(cutoff)) {
+      YearMonth.of(today.getYear - 1, 1)
+    } else {
+      YearMonth.of(today.getYear, 1)
+    }
+  }
+
+  private def checkEarliestStartDate(
+    traderResponse: TraderKnownFactsResponse,
+    startDate: LocalDateTime,
+    endDate: LocalDateTime,
+    mode: Mode
+  )(using request: DataRequest[?], ec: ExecutionContext): Future[Result] = {
+    val startYearMonth = YearMonth.from(startDate)
+    val minAllowed = earliestPermittedStartDate()
+
+    if (startYearMonth.isBefore(minAllowed)) {
+      val refundPeriod = RefundPeriod(startDate, endDate)
+      for {
+        updatedAnswer1 <- Future.fromTry(request.userAnswers.set(TraderKnownFactsQuery, traderResponse))
+        updatedAnswer2 <- Future.fromTry(updatedAnswer1.set(RefundPeriodPage, refundPeriod))
+        _              <- sessionRepository.set(updatedAnswer2)
+      } yield Redirect(controllers.routes.ConfirmRefundPeriodStartDateController.onPageLoad())
+    } else {
+      checkOverlappingPeriod(traderResponse, startDate, endDate, mode)
+    }
   }
 
   private def checkOverlappingPeriod(

@@ -43,42 +43,12 @@ class ConfirmRefundPeriodStartDateController @Inject() (
 ) extends FrontendBaseController
     with I18nSupport {
 
-    private def earliestPermittedStartDate(today: LocalDate = LocalDate.now()): YearMonth = {
-      val cutoff = MonthDay.of(9, 30).atYear(today.getYear)
-      if (!today.isAfter(cutoff)) {
-        YearMonth.of(today.getYear - 1, 1)
-      } else {
-        YearMonth.of(today.getYear, 1)
-      }
-
-    private def checkEarliestStartDate(
-      traderResponse: TraderKnownFactsResponse
-      startDate: LocalDateTime,
-      endDate: LocalDateTime,
-      mode: Mode
-    )(using request: DataRequest[?], ec: ExecutionContext): Future[Result] = {
-        val startYearMonth = YearMonth.from(startDate)
-        val minAllowed     = earliestPermittedStartDate()
-
-        if(startYearMonth.isBefore(minAllowed)) {
-          val refundPeriod = RefundPeriod(startDate, endDate)
-          for {
-            updatedAnswer1 <- Future.fromTry(request.userAnswers.set(TraderKnownFactsQuery, traderResponse))
-            updatedAnswer2 <- Future.fromTry(updatedAnswer1.set(RefundPeriodPage, refundPeriod))
-                           <- sessionRepository.set(updatedAnswer2)
-          } yield Redirect(controllers.routes.ConfirmRefundPeriodStartDateController.onPageLoad(mode))
-        } else {
-          checkOverlappingPeriod(traderResponse, startDate, endDate, mode)
-        }
-      }
-    }
-
-    def onPageLoad: Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
+  def onPageLoad: Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     request.userAnswers.get(RefundPeriodPage) match {
       case None => Redirect(routes.JourneyRecoveryController.onPageLoad())
       case Some(refundPeriod) =>
         val startDate = refundPeriod.startDate.format(java.time.format.DateTimeFormatter.ofPattern("MM/yyyy"))
-        val minDate = computeEarliest(request).map(_.format(DateTimeFormatter.ofPattern("MM/yyyy"))).getOrElse("01/2021")
+        val minDate = earliestPermittedStartDate().format(DateTimeFormatter.ofPattern("MM/yyyy"))
         val call = routes.RefundPeriodController.onPageLoad(CheckMode)
         Ok(view(startDate, minDate, call))
     }
