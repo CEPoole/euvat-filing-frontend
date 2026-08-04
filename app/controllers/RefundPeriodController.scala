@@ -167,9 +167,7 @@ class RefundPeriodController @Inject() (
     } yield Redirect(navigator.nextPage(RefundPeriodPage, mode, updatedUserAnswers))
   }
 
-  protected def today: LocalDate = LocalDate.now()
-
-  private[controllers] def earliestPermittedStartDate(): YearMonth = {
+  private def earliestPermittedStartDate(today: LocalDate = LocalDate.now()): YearMonth = {
     val cutoff = MonthDay.of(9, 30).atYear(today.getYear)
     if (!today.isAfter(cutoff)) {
       YearMonth.of(today.getYear - 1, 1)
@@ -179,7 +177,6 @@ class RefundPeriodController @Inject() (
   }
 
   private def checkEarliestStartDate(
-    vrn: String,
     traderResponse: TraderKnownFactsResponse,
     startDate: LocalDateTime,
     endDate: LocalDateTime,
@@ -194,9 +191,9 @@ class RefundPeriodController @Inject() (
         updatedAnswer1 <- Future.fromTry(request.userAnswers.set(TraderKnownFactsQuery, traderResponse))
         updatedAnswer2 <- Future.fromTry(updatedAnswer1.set(RefundPeriodPage, refundPeriod))
         _              <- sessionRepository.set(updatedAnswer2)
-      } yield Redirect(controllers.routes.ConfirmRefundPeriodStartDateController.onPageLoad(mode))
+      } yield Redirect(controllers.routes.ConfirmRefundPeriodStartDateController.onPageLoad())
     } else {
-      checkOverlappingPeriod(vrn, traderResponse, startDate, endDate, mode)
+      checkOverlappingPeriod(traderResponse, startDate, endDate, mode)
     }
   }
 
@@ -348,8 +345,8 @@ class RefundPeriodController @Inject() (
                   .orElse(vatDateValidation(value, startDate, endDate, traderResponse, baseForm))
 
                 validationResult match {
-                  case None                => checkEarliestStartDate(vrn, traderResponse, startDate, endDate, mode)
-                  case Some(formWithError) => renderError(formWithError, mode, isExemptForTrader)
+                  case Some(formWithError)                => renderError(formWithError, mode, isExemptForTrader)
+                  case None                               => checkEarliestStartDate(vrn,traderResponse, startDate, endDate, mode)
                 }
             )
         }
