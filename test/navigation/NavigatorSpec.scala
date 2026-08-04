@@ -105,16 +105,22 @@ class NavigatorSpec extends SpecBase {
           routes.BusinessActivityCodeThreeController.onPageLoad(NormalMode)
       }
 
-      "must go from InvoiceTypePage to InvoiceNumberController if standard invoice is selected" in {
-        val ua = userAnswers.set(InvoiceTypePage, InvoiceType.StandardInvoice).success.value
-        navigator.nextPage(InvoiceTypePage, NormalMode, ua) mustBe
-          routes.InvoiceNumberController.onPageLoad(NormalMode)
+      "must go from InvoiceNumberPage to InvoiceDateController in normal flow (no warning marker)" in {
+        val ua = userAnswers.remove(VrnWarningFlowPage).success.value
+        navigator.nextPage(InvoiceNumberPage, NormalMode, ua) mustBe
+          routes.InvoiceDateController.onPageLoad(NormalMode)
       }
 
-      "must go from InvoiceTypePage to InvoiceNumberController if simplified invoice is selected" in {
-        val ua = userAnswers.set(InvoiceTypePage, InvoiceType.SimplifiedInvoice).success.value
-        navigator.nextPage(InvoiceTypePage, NormalMode, ua) mustBe
-          routes.InvoiceNumberController.onPageLoad(NormalMode)
+      "must go from InvoiceNumberPage back to the warning page when marker is true (came from warning, unchanged)" in {
+        val ua = userAnswers.set(VrnWarningFlowPage, true).success.value
+        navigator.nextPage(InvoiceNumberPage, NormalMode, ua) mustBe
+          routes.SupplierVrnWarningController.onPageLoad(NormalMode)
+      }
+
+      "must go from InvoiceNumberPage to SupplierVatRegistrationNumberController when marker is false (came from warning, changed)" in {
+        val ua = userAnswers.set(VrnWarningFlowPage, false).success.value
+        navigator.nextPage(InvoiceNumberPage, NormalMode, ua) mustBe
+          routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode)
       }
 
       "must go from BusinessActivityTwoPage to CheckYourClaimDetailsPage if no selected" in {
@@ -530,16 +536,22 @@ class NavigatorSpec extends SpecBase {
           routes.BusinessActivityThreeController.onPageLoad()
       }
 
-      "must go from InvoiceTypePage to InvoiceNumberController if standard invoice is selected" in {
-        val ua = userAnswers.set(InvoiceTypePage, InvoiceType.StandardInvoice).success.value
-        navigator.nextPage(InvoiceTypePage, CheckMode, ua) mustBe
-          routes.InvoiceNumberController.onPageLoad(CheckMode)
+      "must go from InvoiceNumberPage to InvoiceDateController in CheckMode normal flow (no marker)" in {
+        val ua = userAnswers.remove(VrnWarningFlowPage).success.value
+        navigator.nextPage(InvoiceNumberPage, CheckMode, ua) mustBe
+          routes.InvoiceDateController.onPageLoad(CheckMode)
       }
 
-      "must go from InvoiceTypePage to InvoiceNumberController if simplified invoice is selected" in {
-        val ua = userAnswers.set(InvoiceTypePage, InvoiceType.SimplifiedInvoice).success.value
-        navigator.nextPage(InvoiceTypePage, CheckMode, ua) mustBe
-          routes.InvoiceNumberController.onPageLoad(CheckMode)
+      "must go from InvoiceNumberPage back to the warning page in CheckMode when marker is true" in {
+        val ua = userAnswers.set(VrnWarningFlowPage, true).success.value
+        navigator.nextPage(InvoiceNumberPage, CheckMode, ua) mustBe
+          routes.SupplierVrnWarningController.onPageLoad(CheckMode)
+      }
+
+      "must go from InvoiceNumberPage to SupplierVatRegistrationNumberController in CheckMode when marker is false" in {
+        val ua = userAnswers.set(VrnWarningFlowPage, false).success.value
+        navigator.nextPage(InvoiceNumberPage, CheckMode, ua) mustBe
+          routes.SupplierVatRegistrationNumberController.onPageLoad(CheckMode)
       }
 
       "must go from PurchaseTypePage to DescribeItemsOnInvoiceController" in {

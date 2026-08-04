@@ -23,7 +23,7 @@ import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, when}
 import org.scalatestplus.mockito.MockitoSugar
-import pages.InvoiceNumberPage
+import pages.{InvoiceNumberPage, VrnWarningFlowPage}
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
@@ -347,6 +347,52 @@ class InvoiceNumberControllerSpec extends SpecBase with MockitoSugar {
         verify(mockSessionRepository).set(captor.capture())
         val saved = captor.getValue
         saved.get(InvoiceNumberPage) mustBe Some("INV-2")
+      }
+    }
+
+    "must route to the warning page when the invoice is unchanged and came from the warning" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val userAnswers = emptyUserAnswers
+        .set(InvoiceNumberPage, "SAME-INV").success.value
+        .set(VrnWarningFlowPage, true).success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
+          .build()
+
+      running(application) {
+        val request = FakeRequest(POST, invoiceNumberRoute).withFormUrlEncodedBody(("value", "SAME-INV"))
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.SupplierVrnWarningController.onPageLoad(NormalMode).url
+      }
+    }
+
+    "must route to RA8.2 when the invoice is changed and came from the warning" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val userAnswers = emptyUserAnswers
+        .set(InvoiceNumberPage, "OLD-INV").success.value
+        .set(VrnWarningFlowPage, true).success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
+          .build()
+
+      running(application) {
+        val request = FakeRequest(POST, invoiceNumberRoute).withFormUrlEncodedBody(("value", "NEW-INV"))
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode).url
       }
     }
   }

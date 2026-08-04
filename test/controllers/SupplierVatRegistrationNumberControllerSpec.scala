@@ -18,13 +18,14 @@ package controllers
 
 import base.SpecBase
 import forms.SupplierVatRegistrationNumberFormProvider
+import models.responses.{AddPurchaseResponse, ApplicationResponse, SupplierVrnCountResponse}
 import models.{CheckMode, NormalMode, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import pages.{PurchaseTypePage, RefundingCountryPage, SupplierVatRegistrationNumberPage}
 import models.PurchaseType
+import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, InvoiceNumberPage, PurchaseTypePage, RefundingCountryPage, RefundingCountryPage, SupplierVatRegistrationNumberPage}
 import play.api.data.Form
 import play.api.inject.bind
 import play.api.mvc.Call
@@ -43,6 +44,11 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
   val form: Form[String] = formProvider()
 
   lazy val supplierVatRegistrationNumberRoute: String = routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode).url
+
+  val seededAnswers = emptyUserAnswers
+    .set(ClaimApplicationResponsePage, ApplicationResponse(134, "GB123134", 1)).success.value
+    .set(AddPurchaseResponsePage, AddPurchaseResponse(1, 2)).success.value
+    .set(InvoiceNumberPage, "INV123").success.value
 
   "SupplierVatRegistrationNumber Controller" - {
     "must return OK and the correct view for a GET" in {
@@ -134,12 +140,14 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
       }
     }
 
-    "must redirect to the next page when valid data is submitted" in {
+    "must redirect to the next page when no duplicate is found" in {
       val mockSessionRepository = mock[SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+      when(mockEuVatRefundsService.getSupplierVrnCount(any())(any()))
+        .thenReturn(Future.successful(SupplierVrnCountResponse(0)))
 
       val application =
-        applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        applicationBuilder(userAnswers = Some(seededAnswers))
           .overrides(
             bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
             bind[SessionRepository].toInstance(mockSessionRepository)
@@ -155,6 +163,76 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual onwardRoute.url
+      }
+    }
+
+    "must redirect to the warning page when a duplicate is found" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+      when(mockEuVatRefundsService.getSupplierVrnCount(any())(any()))
+        .thenReturn(Future.successful(SupplierVrnCountResponse(1)))
+
+      val application =
+        applicationBuilder(userAnswers = Some(seededAnswers))
+          .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, supplierVatRegistrationNumberRoute)
+            .withFormUrlEncodedBody(("value", "FR123456789"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.SupplierVrnWarningController.onPageLoad(NormalMode).url
+      }
+    }
+
+    "must redirect to Journey Recovery when the duplicate check fails" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+      when(mockEuVatRefundsService.getSupplierVrnCount(any())(any()))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val application =
+        applicationBuilder(userAnswers = Some(seededAnswers))
+          .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, supplierVatRegistrationNumberRoute)
+            .withFormUrlEncodedBody(("value", "FR123456789"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
+      }
+    }
+
+    "must redirect to Journey Recovery when required cache data is missing" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(emptyUserAnswers))
+          .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, supplierVatRegistrationNumberRoute)
+            .withFormUrlEncodedBody(("value", "FR123456789"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
       }
     }
 
@@ -218,13 +296,14 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
       }
     }
 
-    "must redirect to the next page when valid data is submitted in CheckMode" in {
+    "must redirect to the next page when no duplicate is found in CheckMode" in {
       val mockSessionRepository = mock[SessionRepository]
-
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+      when(mockEuVatRefundsService.getSupplierVrnCount(any())(any()))
+        .thenReturn(Future.successful(SupplierVrnCountResponse(0)))
 
       val application =
-        applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        applicationBuilder(userAnswers = Some(seededAnswers))
           .overrides(
             bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
             bind[SessionRepository].toInstance(mockSessionRepository)
