@@ -20,9 +20,9 @@ import play.api.libs.functional.syntax.*
 import play.api.libs.json.{Format, Json, OFormat, __}
 
 case class LatestApplicationResponse(
-                                      applications: List[LatestApplication],
-                                      totalApplication: Int
-                                    )
+  applications: List[LatestApplication],
+  totalApplication: Int
+)
 object LatestApplicationResponse {
   implicit val format: OFormat[LatestApplicationResponse] = Json.format[LatestApplicationResponse]
 }

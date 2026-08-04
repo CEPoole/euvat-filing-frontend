@@ -155,6 +155,13 @@ refundPeriod.error.startAndEndInSameYear = Refund period start date and end date
 refundPeriod.error.overlap = Refund period cannot overlap with another claim for the same EU member state.
 refundPeriod.error.periodNotLessThan3Months = Refund period must be at least 3 months long unless the period ends in December
 
+periodOverlapWarning.title = Are you sure the refund period is correct?
+periodOverlapWarning.heading = Are you sure the refund period is correct?
+periodOverlapWarning.p = You’ve told us the refund period is the same used for another claim. The refund period must not overlap with another claim for the same EU member state.
+periodOverlapWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
+periodOverlapWarning.correct = Yes, this is correct
+periodOverlapWarning.backLink = No, change the refund period
+
 contactDetails.title = How should we contact you about this claim?
 contactDetails.heading = How should we contact you about this claim?
 contactDetails.contactEmail.label = Email address
@@ -400,6 +407,7 @@ checkYourStateDetails.legend = Do you want to delete this claim and start a new 
 checkYourStateDetails.yes = Yes, delete this claim
 checkYourStateDetails.no = No, return to claim
 checkYourStateDetails.error.required = Select yes if you want to delete this claim
+
 
 describeItemsOnInvoice.title = Describe the items on your invoice
 describeItemsOnInvoice.heading = Describe the items on your invoice
