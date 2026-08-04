@@ -18,20 +18,18 @@ package controllers
 
 import controllers.actions.*
 import forms.TotalPurchaseAmountBeforeVatFormProvider
-
-import javax.inject.Inject
-import models.Mode
+import models.{Mode, UserAnswers}
 import navigation.Navigator
-import utils.ConfigCurrencyMapping
-import pages.RefundingCurrencyPage
-import pages.TotalPurchaseAmountBeforeVatPage
+import pages.*
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import utils.ConfigCurrencyMapping
 import views.html.TotalPurchaseAmountBeforeVatView
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class TotalPurchaseAmountBeforeVatController @Inject() (
@@ -51,7 +49,14 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
 
   val form: Form[BigDecimal] = formProvider()
 
-  private def backLink(mode: Mode) = routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
+  private def backLink(mode: Mode)(userAnswers: UserAnswers) = userAnswers.get(RefundingCountryPage) match {
+    case Some("DE") => routes.SupplierTaxNumberController.onPageLoad(mode)
+    case _ =>
+      userAnswers.get(SupplierVatRegistrationNumberPage) match {
+        case Some(_) => routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
+        case None    => routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(mode)
+      }
+  }
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
 
@@ -61,7 +66,7 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
     }
 
     val (currencyName, prefix) = resolveCurrency(request.userAnswers)
-    Ok(view(preparedForm, mode, backLink(mode), prefix, currencyName))
+    Ok(view(preparedForm, mode, backLink(mode)(request.userAnswers), prefix, currencyName))
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
@@ -71,7 +76,7 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
       .fold(
         formWithErrors => {
           val (currencyName, prefix) = resolveCurrency(request.userAnswers)
-          Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode), prefix, currencyName)))
+          Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode)(request.userAnswers), prefix, currencyName)))
         },
         value =>
           for {

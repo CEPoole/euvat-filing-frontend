@@ -205,45 +205,45 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
       }
     }
 
-      "must return OK and the correct view for a GET in CheckMode" in {
+    "must return OK and the correct view for a GET in CheckMode" in {
 
-        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
-        running(application) {
-          val request = FakeRequest(GET, routes.SupplierTaxIdentifierNumberController.onPageLoad(CheckMode).url)
+      running(application) {
+        val request = FakeRequest(GET, routes.SupplierTaxIdentifierNumberController.onPageLoad(CheckMode).url)
 
-          val result = route(application, request).value
+        val result = route(application, request).value
 
-          val view = application.injector.instanceOf[SupplierTaxIdentifierNumberView]
+        val view = application.injector.instanceOf[SupplierTaxIdentifierNumberView]
 
-          status(result) mustEqual OK
-          contentAsString(result) mustEqual view(form, CheckMode, routes.SupplierTaxNumberController.onPageLoad(CheckMode))(
-            request,
-            messages(application)
-          ).toString
-        }
+        status(result) mustEqual OK
+        contentAsString(result) mustEqual view(form, CheckMode, routes.SupplierTaxNumberController.onPageLoad(CheckMode))(
+          request,
+          messages(application)
+        ).toString
       }
+    }
 
-      "must populate the view correctly on a GET in CheckMode when the question has previously been answered" in {
+    "must populate the view correctly on a GET in CheckMode when the question has previously been answered" in {
 
-        val userAnswers = UserAnswers(userAnswersId).set(SupplierTaxIdentifierNumberPage, "answer").success.value
+      val userAnswers = UserAnswers(userAnswersId).set(SupplierTaxIdentifierNumberPage, "answer").success.value
 
-        val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
-        running(application) {
-          val request = FakeRequest(GET, routes.SupplierTaxIdentifierNumberController.onPageLoad(CheckMode).url)
+      running(application) {
+        val request = FakeRequest(GET, routes.SupplierTaxIdentifierNumberController.onPageLoad(CheckMode).url)
 
-          val view = application.injector.instanceOf[SupplierTaxIdentifierNumberView]
+        val view = application.injector.instanceOf[SupplierTaxIdentifierNumberView]
 
-          val result = route(application, request).value
+        val result = route(application, request).value
 
-          status(result) mustEqual OK
-          contentAsString(result) mustEqual view(form.fill("answer"), CheckMode, routes.SupplierTaxNumberController.onPageLoad(CheckMode))(
-            request,
-            messages(application)
-          ).toString
-        }
+        status(result) mustEqual OK
+        contentAsString(result) mustEqual view(form.fill("answer"), CheckMode, routes.SupplierTaxNumberController.onPageLoad(CheckMode))(
+          request,
+          messages(application)
+        ).toString
       }
+    }
 
     "must redirect to Journey Recovery for a GET if no existing data is found" in {
 

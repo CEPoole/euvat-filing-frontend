@@ -125,59 +125,59 @@ class RefundingCountryController @Inject() (
 
             val latestReq = LatestApplicationRequest(
               applicantVatRegNumber = traderFacts.vatRegNumber.toString,
-              refundingCountry = Some(value),
-              startDate = None,
-              endDate = None,
-              representativeId = None,
-              maxNumber = 10000,
-              orderBy = Some(0),
-              sortOrder = Some("DESC"),
-              startAt = Some(0)
+              refundingCountry      = Some(value),
+              startDate             = None,
+              endDate               = None,
+              representativeId      = None,
+              maxNumber             = 10000,
+              orderBy               = Some(0),
+              sortOrder             = Some("DESC"),
+              startAt               = Some(0)
             )
 
-              euVatRefundsService.getLatestApplications(latestReq).flatMap { response =>
+            euVatRefundsService.getLatestApplications(latestReq).flatMap { response =>
 
-                // Validation applies when applicationStatus == "D" OR submissionStatus is null
-                val isDuplicate = response.applications.exists { app =>
-                  val statusIsD = app.applicationStatus.exists(_.equalsIgnoreCase("D"))
-                  val submissionIsNull = app.submissionStatus.isEmpty
-                  statusIsD || submissionIsNull
-                }
-
-                if (isDuplicate) {
-                  // duplicate application - show error on the form
-                  val formWithError = form.fill(value).withError("value", "refundingCountry.error.duplicate")
-                  Future.successful(BadRequest(view(formWithError, countries, routes.TaskListDashboardController.onPageLoad(), mode)))
-                } else {
-                  // no duplicates - proceed with previous save flow
-                  for {
-                    updatedAnswers0 <- Future.fromTry(baseAnswers.set(RefundingCountryPage, value))
-                    updatedAnswers1 <- Future.fromTry(updatedAnswers0.set(RefundingCountryNamePage, name))
-                    updatedAnswers2 <- maybePrevCode match {
-                                         case Some(prev) if !prev.equalsIgnoreCase(value) =>
-                                           for {
-                                             a <- Future.fromTry(updatedAnswers1.remove(pages.RefundingLanguagePage))
-                                             b <- Future.fromTry(a.remove(pages.RefundingCurrencyPage))
-                                             c <- Future.fromTry(b.set(pages.CountryChangedPage, true))
-                                           } yield c
-                                         case _ => Future.successful(updatedAnswers1)
-                                       }
-                    updatedAnswers3 <- if (langs.size == 1) {
-                                         val langStr = langs.head
-                                         val langModel = RefundingLanguage.values.find(_.toString == langStr).getOrElse(RefundingLanguage.English)
-                                         Future.fromTry(updatedAnswers2.set(pages.RefundingLanguagePage, langModel))
-                                       } else Future.successful(updatedAnswers2)
-                    updatedAnswers4 <- {
-                      val currencies = configCurrencyMapping.currenciesFor(value)
-                      if (currencies.size == 1 && langs.size == 1)
-                        Future.fromTry(updatedAnswers3.set(pages.RefundingCurrencyPage, currencies.head._2))
-                      else
-                        Future.successful(updatedAnswers3)
-                    }
-                    res <- continueWithSave(updatedAnswers4)
-                  } yield res
-                }
+              // Validation applies when applicationStatus == "D" OR submissionStatus is null
+              val isDuplicate = response.applications.exists { app =>
+                val statusIsD = app.applicationStatus.exists(_.equalsIgnoreCase("D"))
+                val submissionIsNull = app.submissionStatus.isEmpty
+                statusIsD || submissionIsNull
               }
+
+              if (isDuplicate) {
+                // duplicate application - show error on the form
+                val formWithError = form.fill(value).withError("value", "refundingCountry.error.duplicate")
+                Future.successful(BadRequest(view(formWithError, countries, routes.TaskListDashboardController.onPageLoad(), mode)))
+              } else {
+                // no duplicates - proceed with previous save flow
+                for {
+                  updatedAnswers0 <- Future.fromTry(baseAnswers.set(RefundingCountryPage, value))
+                  updatedAnswers1 <- Future.fromTry(updatedAnswers0.set(RefundingCountryNamePage, name))
+                  updatedAnswers2 <- maybePrevCode match {
+                                       case Some(prev) if !prev.equalsIgnoreCase(value) =>
+                                         for {
+                                           a <- Future.fromTry(updatedAnswers1.remove(pages.RefundingLanguagePage))
+                                           b <- Future.fromTry(a.remove(pages.RefundingCurrencyPage))
+                                           c <- Future.fromTry(b.set(pages.CountryChangedPage, true))
+                                         } yield c
+                                       case _ => Future.successful(updatedAnswers1)
+                                     }
+                  updatedAnswers3 <- if (langs.size == 1) {
+                                       val langStr = langs.head
+                                       val langModel = RefundingLanguage.values.find(_.toString == langStr).getOrElse(RefundingLanguage.English)
+                                       Future.fromTry(updatedAnswers2.set(pages.RefundingLanguagePage, langModel))
+                                     } else Future.successful(updatedAnswers2)
+                  updatedAnswers4 <- {
+                    val currencies = configCurrencyMapping.currenciesFor(value)
+                    if (currencies.size == 1 && langs.size == 1)
+                      Future.fromTry(updatedAnswers3.set(pages.RefundingCurrencyPage, currencies.head._2))
+                    else
+                      Future.successful(updatedAnswers3)
+                  }
+                  res <- continueWithSave(updatedAnswers4)
+                } yield res
+              }
+            }
           }
 
           result
