@@ -56,7 +56,7 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val view = application.injector.instanceOf[SupplierVatRegistrationNumberView]
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode))(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode))(
           request,
           messages(application)
         ).toString)
@@ -77,7 +77,7 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form.fill("answer"), NormalMode, routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode))(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form.fill("answer"), NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode))(
           request,
           messages(application)
         ).toString)
@@ -126,7 +126,7 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(boundForm, NormalMode, routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode))(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(boundForm, NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode))(
           request,
           messages(application)
         ).toString)
@@ -172,7 +172,7 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(boundForm, CheckMode, routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(CheckMode))(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(boundForm, CheckMode, routes.SupplierTaxNumberController.onPageLoad(CheckMode))(
           request,
           messages(application)
         ).toString)

@@ -56,7 +56,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
         val view = application.injector.instanceOf[TotalPurchaseAmountBeforeVatView]
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode), "€", "Euro")(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode), "€", "Euro")(
           request,
           messages(application)
         ).toString)
@@ -119,7 +119,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
         val view = application.injector.instanceOf[TotalPurchaseAmountBeforeVatView]
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode), "€", "Euro")(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode), "€", "Euro")(
           request,
           messages(application)
         ).toString)
@@ -277,7 +277,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode), "€", "Euro")(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode), "€", "Euro")(
           request,
           messages(application)
         ).toString
@@ -306,11 +306,11 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
 
         status(result) mustEqual OK
         normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form,
-                       NormalMode,
-                       routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode),
-                       "лв",
-                       "Bulgarian Lev"
-                      )(request, messages(application)).toString)
+                 NormalMode,
+                 routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode),
+                 "лв",
+                 "Bulgarian Lev"
+                )(request, messages(application)).toString)
       }
     }
 
@@ -328,7 +328,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode), "€", "Euro")(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode), "€", "Euro")(
           request,
           messages(application)
         ).toString)
