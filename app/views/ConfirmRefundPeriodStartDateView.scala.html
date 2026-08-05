@@ -20,6 +20,7 @@
 
 @this(
         layout: templates.Layout,
+        formHelper: FormWithCSRF,
         govukWarningText: GovukWarningText,
         govukButton: GovukButton
 )
@@ -27,21 +28,19 @@
 @(startDate: String, minDate: String, call: Call)(implicit request: Request[_], messages: Messages)
 
 @layout(pageTitle = titleNoForm(messages("confirmRefundPeriodStartDate.title")), backLinkUrl = Some(call.url)) {
+    @formHelper(action = routes.ConfirmRefundPeriodStartDateController.onSubmit()) {
 
-    <h1 class="govuk-heading-l">@messages("confirmRefundPeriodStartDate.heading")</h1>
+        <h1 class="govuk-heading-l">@messages("confirmRefundPeriodStartDate.heading")</h1>
+        <p class="govuk-body">@messages("confirmRefundPeriodStartDate.paragraph", startDate, minDate)</p>
 
-    <p class="govuk-body">@messages("confirmRefundPeriodStartDate.paragraph", startDate, minDate)</p>
-
-    @govukWarningText(WarningText(
-        iconFallbackText = Some(messages("site.warning")),
-        content = Text(messages("confirmRefundPeriodStartDate.warning"))
-    ))
-
-    <div class="govuk-button-group">
-        @govukButton(Button(
-            href = Some(routes.ConfirmRefundPeriodStartDateController.onSubmit().url),
-            content = Text(messages("confirmRefundPeriodStartDate.button"))
+        @govukWarningText(WarningText(
+            iconFallbackText = Some(messages("site.warning")),
+            content = Text(messages("confirmRefundPeriodStartDate.warning"))
         ))
-        <a class="govuk-link" href="@call.url">@messages("confirmRefundPeriodStartDate.link") </a>
-    </div>
+
+        <div class="govuk-button-group">
+            @govukButton(ButtonViewModel(messages(confirmRefundPeriodStartDate.button)))
+            <a class="govuk-link" href="@call.url">@messages("confirmRefundPeriodStartDate.link") </a>
+        </div>
+    }
 }
