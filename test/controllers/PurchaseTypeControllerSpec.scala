@@ -194,11 +194,15 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must redirect to the next page and persist the answer when valid data is submitted" in {
-
       val mockSessionRepository = mock[SessionRepository]
       when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+      when(mockEuVatRefundsService.addPurchase(any())(any()))
+        .thenReturn(Future.successful(AddPurchaseResponse(1, 2)))
 
-      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+      val userAnswers = emptyUserAnswers
+        .set(pages.ClaimApplicationResponsePage, ApplicationResponse(134, "GB123134", 1)).success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
           bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
           bind[SessionRepository].toInstance(mockSessionRepository)
@@ -208,12 +212,10 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       running(application) {
         val request = FakeRequest(POST, purchaseTypeSubmitRoute)
           .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
-
         val result = route(application, request).value
-
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual ("/file-eu-vat" + onwardRoute.url)
-        verify(mockSessionRepository, times(1)).set(any())
+        verify(mockSessionRepository, times(2)).set(any())
       }
     }
 
@@ -221,9 +223,13 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       val mockSessionRepository = mock[SessionRepository]
       when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+      when(mockEuVatRefundsService.addPurchase(any())(any()))
+        .thenReturn(Future.successful(AddPurchaseResponse(1, 2)))
 
       // set country to LT which has no 'fuel' mapping in purchase-mapping.conf
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "LT").success.value
+      val userAnswers = emptyUserAnswers
+        .set(pages.RefundingCountryPage, "LT").success.value
+        .set(pages.ClaimApplicationResponsePage, ApplicationResponse(134, "GB123134", 1)).success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -239,7 +245,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual "/file-eu-vat/invoice-type"
-        verify(mockSessionRepository, times(1)).set(any())
+        verify(mockSessionRepository, times(2)).set(any())
       }
     }
 
@@ -395,7 +401,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual onwardRoute.url
+        redirectLocation(result).value mustEqual ("/file-eu-vat" + onwardRoute.url)
         verify(mockEuVatRefundsService, times(1)).addPurchase(any())(any())
       }
     }

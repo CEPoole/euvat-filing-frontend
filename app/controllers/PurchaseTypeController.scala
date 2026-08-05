@@ -93,20 +93,24 @@ class PurchaseTypeController @Inject() (
       .bindFromRequest()
       .fold(
         formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode)))),
-        value =>
+        value => {
           val saved = request.userAnswers.get(PurchaseTypePage) match {
             case Some(prev) if prev != value =>
               for {
-                afterRemovedSubType        <- request.userAnswers.remove(pages.PurchaseSubTypePage)
-                afterRemovedSubTypeLabel   <- afterRemovedSubType.remove(pages.PurchaseSubTypeLabelPage)
-                afterRemovedSubCategory    <- afterRemovedSubTypeLabel.remove(pages.PurchaseSubCategoryPage)
+                afterRemovedSubType <- request.userAnswers.remove(pages.PurchaseSubTypePage)
+                afterRemovedSubTypeLabel <- afterRemovedSubType.remove(pages.PurchaseSubTypeLabelPage)
+                afterRemovedSubCategory <- afterRemovedSubTypeLabel.remove(pages.PurchaseSubCategoryPage)
                 afterRemovedSubCategoryLbl <- afterRemovedSubCategory.remove(pages.PurchaseSubCategoryLabelPage)
-                afterRemovedDescribe       <- afterRemovedSubCategoryLbl.remove(pages.DescribeItemsOnInvoicePage)
-                afterSetPurchaseType       <- afterRemovedDescribe.set(PurchaseTypePage, value)
+                afterRemovedDescribe <- afterRemovedSubCategoryLbl.remove(pages.DescribeItemsOnInvoicePage)
+                afterSetPurchaseType <- afterRemovedDescribe.set(PurchaseTypePage, value)
               } yield afterSetPurchaseType
             case _ => request.userAnswers.set(PurchaseTypePage, value)
           }
 
+          for {
+            updatedAnswers <- Future.fromTry(saved)
+            _ <- sessionRepository.set(updatedAnswers)
+            result <- addPurchaseAndPersist(updatedAnswers, value, mode)
           for {
             updatedAnswers <- Future.fromTry(saved)
           (for {
@@ -121,6 +125,7 @@ class PurchaseTypeController @Inject() (
           }
             result         <- addPurchaseAndPersist(updatedAnswers, value, mode)
           } yield result
+        }
       )
   }
 
@@ -153,7 +158,6 @@ class PurchaseTypeController @Inject() (
           deductibleVatAmount        = None,
           updateSequenceNumber       = answers.get(ClaimApplicationResponsePage).map(_.updateSeqNumber)
         )
-
         euVatRefundsService
           .addPurchase(purchaseRequest)
           .flatMap { response =>
