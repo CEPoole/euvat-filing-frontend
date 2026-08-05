@@ -18,23 +18,19 @@ package controllers
 
 import base.SpecBase
 import models.{CheckMode, NormalMode}
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
-import pages.TotalVatPaidPage
-import play.api.inject.bind
+import pages.{TotalPurchaseAmountBeforeVatPage, TotalVatPaidPage}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import repositories.SessionRepository
 import views.html.VatPaidWarningView
-
-import scala.concurrent.Future
 
 class VatPaidWarningControllerSpec extends SpecBase {
 
   "VatPaidWarningController Controller" - {
 
     "must return OK and the correct view for a GET in NormalMode" in {
-      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+      val answers = emptyUserAnswers.set(TotalPurchaseAmountBeforeVatPage, BigDecimal("1000")).success.value
+      val userAnswers = answers.set(TotalVatPaidPage, BigDecimal("999")).success.value
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
       running(application) {
         val request = FakeRequest(GET, routes.VatPaidWarningController.onPageLoad(NormalMode).url)
@@ -48,19 +44,25 @@ class VatPaidWarningControllerSpec extends SpecBase {
     }
 
     "must return OK and the correct view for a GET in NormalMode with pre-populate form" in {
-      val answers = emptyUserAnswers.set(TotalVatPaidPage, BigDecimal(25.50)).success.value
-      val mockSessionRepository = mock[SessionRepository]
-
-      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
-      val application =
-        applicationBuilder(userAnswers = Some(answers))
-          .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
-          .build()
+      val answers = emptyUserAnswers.set(TotalPurchaseAmountBeforeVatPage, BigDecimal("120.99")).success.value
+      val userAnswers = answers.set(TotalVatPaidPage, BigDecimal("120")).success.value
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
       running(application) {
         val request = FakeRequest(GET, routes.VatPaidWarningController.onPageLoad(NormalMode).url)
         val result = route(application, request).value
         status(result) mustEqual OK
+      }
+    }
+
+    "redirect to error page if url hopping without the required session data" in {
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, routes.VatPaidWarningController.onPageLoad(NormalMode).url)
+        val result = route(application, request).value
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
       }
     }
 

@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import models.{CheckMode, NormalMode}
-import pages.TotalVatClaimPage
+import pages.{TotalVatClaimPage, TotalVatPaidPage}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import views.html.VatClaimWarningView
@@ -28,7 +28,8 @@ class VatClaimWarningControllerSpec extends SpecBase {
   "VatClaimWarningController Controller" - {
 
     "must return OK and the correct view for a GET in NormalMode" in {
-      val userAnswers = emptyUserAnswers.set(TotalVatClaimPage, BigDecimal("100")).success.value
+      val answers = emptyUserAnswers.set(TotalVatClaimPage, BigDecimal("100")).success.value
+      val userAnswers = answers.set(TotalVatPaidPage, BigDecimal("99")).success.value
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
       running(application) {
@@ -40,6 +41,17 @@ class VatClaimWarningControllerSpec extends SpecBase {
           request,
           messages(application)
         ).toString
+      }
+    }
+
+    "redirect to error page if url hopping without the required session data" in {
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, routes.VatClaimWarningController.onPageLoad(NormalMode).url)
+        val result = route(application, request).value
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
       }
     }
 

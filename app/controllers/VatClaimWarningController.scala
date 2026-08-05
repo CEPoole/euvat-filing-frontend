@@ -18,7 +18,8 @@ package controllers
 
 import controllers.actions.*
 import models.{CheckMode, Mode, NormalMode, UserAnswers}
-import pages.{RefundingCountryNamePage, RefundingCountryPage, RefundingCurrencyPage, TotalVatClaimPage}
+import pages.*
+import play.api.Logging
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
@@ -36,12 +37,18 @@ class VatClaimWarningController @Inject() (
   val controllerComponents: MessagesControllerComponents,
   view: VatClaimWarningView
 ) extends FrontendBaseController
-    with I18nSupport {
+    with I18nSupport
+    with Logging {
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    val totalVatClaiming = request.userAnswers.get(TotalVatClaimPage).getOrElse(BigDecimal(0))
-    val currencySymbol = resolveCurrencyPrefix(request.userAnswers)
-    Ok(view(routes.TotalVatClaimController.onPageLoad(mode), mode, currencySymbol, totalVatClaiming))
+    (request.userAnswers.get(TotalVatPaidPage), request.userAnswers.get(TotalVatClaimPage)) match {
+      case (Some(_), Some(totalVatClaiming)) =>
+        val currencySymbol = resolveCurrencyPrefix(request.userAnswers)
+        Ok(view(routes.TotalVatClaimController.onPageLoad(mode), mode, currencySymbol, totalVatClaiming))
+      case _ =>
+        logger.warn("Missing session data")
+        Redirect(routes.JourneyRecoveryController.onPageLoad())
+    }
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>

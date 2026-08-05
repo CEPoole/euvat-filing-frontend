@@ -18,6 +18,8 @@ package controllers
 
 import controllers.actions.*
 import models.{CheckMode, Mode, NormalMode}
+import pages.{TotalPurchaseAmountBeforeVatPage, TotalVatPaidPage}
+import play.api.Logging
 
 import javax.inject.Inject
 import play.api.i18n.{I18nSupport, MessagesApi}
@@ -33,10 +35,16 @@ class VatPaidWarningController @Inject() (
   val controllerComponents: MessagesControllerComponents,
   view: VatPaidWarningView
 ) extends FrontendBaseController
-    with I18nSupport {
+    with I18nSupport
+    with Logging {
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    Ok(view(routes.TotalVatPaidController.onPageLoad(mode), mode))
+    (request.userAnswers.get(TotalVatPaidPage), request.userAnswers.get(TotalPurchaseAmountBeforeVatPage)) match {
+      case (Some(_), Some(_)) => Ok(view(routes.TotalVatPaidController.onPageLoad(mode), mode))
+      case _ =>
+        logger.warn("Missing session data")
+        Redirect(routes.JourneyRecoveryController.onPageLoad())
+    }
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
