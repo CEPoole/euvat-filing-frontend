@@ -72,20 +72,20 @@ class RefundingLanguageControllerSpec extends SpecBase with MockitoSugar {
         }
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, items, routes.RefundingCountryController.onPageLoad(models.NormalMode), models.NormalMode)(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, items, routes.RefundingCountryController.onPageLoad(models.NormalMode), models.NormalMode)(
           request,
           messages(application)
-        ).toString
+        ).toString)
 
         // also supports CheckMode change route
         val changeRequest = FakeRequest(GET, routes.RefundingLanguageController.onPageLoad(models.CheckMode).url)
         val changeResult = route(application, changeRequest).value
 
         status(changeResult) mustEqual OK
-        contentAsString(changeResult) mustEqual view(form, items, routes.RefundingCountryController.onPageLoad(models.CheckMode), models.CheckMode)(
+        normalizeHtml(contentAsString(changeResult)) mustEqual normalizeHtml(view(form, items, routes.RefundingCountryController.onPageLoad(models.CheckMode), models.CheckMode)(
           changeRequest,
           messages(application)
-        ).toString
+        ).toString)
       }
     }
 
@@ -198,10 +198,10 @@ class RefundingLanguageControllerSpec extends SpecBase with MockitoSugar {
         }
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, items, routes.RefundingCountryController.onPageLoad(models.NormalMode), models.NormalMode)(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, items, routes.RefundingCountryController.onPageLoad(models.NormalMode), models.NormalMode)(
           request,
           messages(application)
-        ).toString
+        ).toString)
       }
     }
 

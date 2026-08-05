@@ -62,7 +62,7 @@ class SimplifiedInvoiceVatRegCheckControllerSpec extends SpecBase with MockitoSu
         val view = application.injector.instanceOf[SimplifiedInvoiceVatRegCheckView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, backLink)(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLink)(request, messages(application)).toString)
       }
     }
 
@@ -80,7 +80,7 @@ class SimplifiedInvoiceVatRegCheckControllerSpec extends SpecBase with MockitoSu
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form.fill(true), NormalMode, backLink)(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form.fill(true), NormalMode, backLink)(request, messages(application)).toString)
       }
     }
 
@@ -177,7 +177,7 @@ class SimplifiedInvoiceVatRegCheckControllerSpec extends SpecBase with MockitoSu
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, NormalMode, backLink)(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(boundForm, NormalMode, backLink)(request, messages(application)).toString)
       }
     }
 

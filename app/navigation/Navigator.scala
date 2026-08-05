@@ -22,10 +22,10 @@ import play.api.mvc.Call
 import controllers.routes
 import pages.*
 import models.*
-import utils.{ConfigCurrencyMapping, ConfigLanguageMapping}
+import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, ConfigPurchaseMapping}
 
 @Singleton
-class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configLanguageMapping: ConfigLanguageMapping) {
+class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configLanguageMapping: ConfigLanguageMapping, configPurchaseMapping: ConfigPurchaseMapping) {
 
   def nextPage(page: Page, mode: Mode, userAnswers: UserAnswers): Call = mode match {
     case NormalMode => normalRoutes(page)(userAnswers)
@@ -55,6 +55,11 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
     case BusinessActivityTwoPage           => userAnswer => navigateFromBusinessActivity2Page(NormalMode)(userAnswer)
     case BusinessActivityCodeThreePage     => _ => routes.BusinessActivityThreeController.onPageLoad()
     case PurchaseTypePage                  => userAnswer => navigateFromPurchaseTypePage(NormalMode)(userAnswer)
+    case PurchaseSubCategoryPage           => userAnswers =>
+      userAnswers.get(PurchaseTypePage) match {
+        case Some(_) => routes.InvoiceTypeController.onPageLoad(NormalMode)
+        case _       => routes.JourneyRecoveryController.onPageLoad()
+      }
     case DescribeItemsOnInvoicePage        => _ => routes.InvoiceTypeController.onPageLoad(NormalMode)
     case InvoiceTypePage                   => userAnswer => navigateFromInvoiceTypePage(NormalMode)(userAnswer)
     case InvoiceNumberPage                 => _ => routes.InvoiceDateController.onPageLoad(NormalMode)
@@ -95,6 +100,11 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
     case BusinessActivityTwoPage           => userAnswer => navigateFromBusinessActivity2Page(CheckMode)(userAnswer)
     case BusinessActivityCodeThreePage     => _ => routes.BusinessActivityThreeController.onPageLoad()
     case PurchaseTypePage                  => userAnswer => navigateFromPurchaseTypePage(CheckMode)(userAnswer)
+    case PurchaseSubCategoryPage           => userAnswers =>
+      userAnswers.get(PurchaseTypePage) match {
+        case Some(_) => routes.InvoiceTypeController.onPageLoad(CheckMode)
+        case _       => routes.JourneyRecoveryController.onPageLoad()
+      }
     case DescribeItemsOnInvoicePage        => _ => routes.InvoiceTypeController.onPageLoad(CheckMode)
     case InvoiceTypePage                   => userAnswer => navigateFromInvoiceTypePage(CheckMode)(userAnswer)
     case InvoiceNumberPage                 => _ => routes.InvoiceDateController.onPageLoad(CheckMode)
@@ -201,8 +211,24 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
 
   private def navigateFromPurchaseTypePage(mode: Mode)(userAnswers: UserAnswers): Call =
     userAnswers.get(PurchaseTypePage) match {
-      case Some(_) =>
-        routes.DescribeItemsOnInvoiceController.onPageLoad(mode) // TODO - route to RA6.0 PurchaseSubCode once built, keyed by Country + Category
+      case Some(parent) =>
+        val maybeCountryCode = userAnswers.get(pages.RefundingCountryPage).orElse {
+          userAnswers.get(pages.RefundingCountryNamePage).map { stored =>
+            stored.split(",", 2).headOption.getOrElse(stored)
+          }
+        }
+
+        maybeCountryCode match {
+          case Some(country) =>
+            val subs = configPurchaseMapping.subcodesFor(country, parent.toString)
+            if (subs.nonEmpty) play.api.mvc.Call("GET", s"/${models.PurchaseType.slugOf(parent)}")
+            else routes.InvoiceTypeController.onPageLoad(mode)
+          case _ =>
+            // No country present: gracefully route to the Describe Items page so the
+            // flow remains usable in tests and UI scenarios where country is set later.
+            routes.DescribeItemsOnInvoiceController.onPageLoad(mode)
+        }
+
       case _ => routes.JourneyRecoveryController.onPageLoad()
     }
 

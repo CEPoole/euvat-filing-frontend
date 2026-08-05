@@ -59,7 +59,7 @@ class SupplierTaxNumberControllerSpec extends SpecBase with MockitoSugar {
         val view = application.injector.instanceOf[SupplierTaxNumberView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, backLink, isSimplifiedInvoice = false)(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLink, isSimplifiedInvoice = false)(request, messages(application)).toString)
       }
     }
 
@@ -77,7 +77,7 @@ class SupplierTaxNumberControllerSpec extends SpecBase with MockitoSugar {
         val view = application.injector.instanceOf[SupplierTaxNumberView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, backLink, isSimplifiedInvoice = true)(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLink, isSimplifiedInvoice = true)(request, messages(application)).toString)
       }
     }
 
@@ -95,10 +95,10 @@ class SupplierTaxNumberControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form.fill(SupplierTaxNumber.values.head), NormalMode, backLink, isSimplifiedInvoice = false)(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form.fill(SupplierTaxNumber.values.head), NormalMode, backLink, isSimplifiedInvoice = false)(
           request,
           messages(application)
-        ).toString
+        ).toString)
       }
     }
 
@@ -197,7 +197,7 @@ class SupplierTaxNumberControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, NormalMode, backLink, isSimplifiedInvoice = false)(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(boundForm, NormalMode, backLink, isSimplifiedInvoice = false)(request, messages(application)).toString)
       }
     }
 

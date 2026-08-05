@@ -18,6 +18,8 @@
 
     <logger name="uk.gov" level="INFO"/>
 
+    <logger name="utils" level="DEBUG"/>
+
     <logger name="application" level="INFO"/>
 
     <logger name="connector" level="INFO"/>

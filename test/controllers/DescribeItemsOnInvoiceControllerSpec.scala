@@ -29,6 +29,8 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import repositories.SessionRepository
 import views.html.DescribeItemsOnInvoiceView
+import utils.ConfigPurchaseMapping
+import play.api.inject.bind
 
 import scala.concurrent.Future
 
@@ -44,8 +46,12 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
   "DescribeItemsOnInvoice Controller" - {
 
     "must return OK and the correct view for a GET" in {
+      val fakeConfig = new ConfigPurchaseMapping() {
+        override def subcodesFor(country: String, parentKey: String) = Seq(("10.6", "purchase.sub.other.6"), ("10.99", "purchase.sub.other.99"))
+        override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
+      }
 
-      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig)).build()
 
       running(application) {
         val request = FakeRequest(GET, describeItemsOnInvoiceRoute)
@@ -55,7 +61,7 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
         val view = application.injector.instanceOf[DescribeItemsOnInvoiceView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode)(request, messages(application)).toString
+        contentAsString(result) mustEqual view(form, NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request, messages(application)).toString
       }
     }
 
@@ -73,9 +79,30 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form.fill("Fuel and transport costs"), NormalMode)(request, messages(application)).toString
+        contentAsString(result) mustEqual view(form.fill("Fuel and transport costs"), NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request, messages(application)).toString
       }
     }
+
+      "must show backlink to PurchaseSubCategory when PurchaseSubCategoryPage present but PurchaseSubTypePage missing" in {
+
+        val child = "1.2"
+        val userAnswers = emptyUserAnswers
+          .set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
+          .set(pages.PurchaseSubCategoryPage, child).success.value
+
+        val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+        running(application) {
+          val request = FakeRequest(GET, describeItemsOnInvoiceRoute)
+
+          val view = application.injector.instanceOf[DescribeItemsOnInvoiceView]
+
+          val result = route(application, request).value
+
+          status(result) mustEqual OK
+          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, Call("GET", "/file-eu-vat/fuel-type-or-vehicle"))(request, messages(application)).toString)
+        }
+      }
 
     "must redirect to the next page when valid data is submitted" in {
 
@@ -118,7 +145,7 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, NormalMode)(request, messages(application)).toString
+        contentAsString(result) mustEqual view(boundForm, NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request, messages(application)).toString
       }
     }
 
@@ -133,6 +160,30 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
+      }
+    }
+
+    "must show backlink to PurchaseSubType when Other + subtype .99 and country has multiple other options" in {
+      val fakeConfig = new ConfigPurchaseMapping() {
+        override def subcodesFor(country: String, parentKey: String) = Seq(("10.6", "purchase.sub.other.6"), ("10.99", "purchase.sub.other.99"))
+        override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
+      }
+
+      val userAnswers = emptyUserAnswers
+        .set(pages.RefundingCountryPage, "BE").success.value
+        .set(pages.PurchaseTypePage, models.PurchaseType.Other).success.value
+        .set(pages.PurchaseSubTypePage, "10.99").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig)).build()
+
+      running(application) {
+        val request = FakeRequest(GET, describeItemsOnInvoiceRoute)
+        val view = application.injector.instanceOf[DescribeItemsOnInvoiceView]
+
+        val result = route(application, request).value
+
+        status(result) mustEqual OK
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Other), NormalMode))(request, messages(application)).toString)
       }
     }
 

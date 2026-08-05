@@ -51,6 +51,7 @@ class NavigatorSpec extends SpecBase {
         """)
       )
     )
+    , new utils.ConfigPurchaseMapping()
   )
   val userAnswers: UserAnswers = UserAnswers("id")
 
@@ -149,6 +150,106 @@ class NavigatorSpec extends SpecBase {
       "must go from PurchaseTypePage to JourneyRecoveryController if no answer is present" in {
         navigator.nextPage(PurchaseTypePage, NormalMode, userAnswers) mustBe
           routes.JourneyRecoveryController.onPageLoad()
+      }
+
+      "must go from PurchaseTypePage to PurchaseSubTypeController when mapping exists for country" in {
+        // fake ConfigPurchaseMapping that returns a subcode for AT and parent PurchaseType.Fuel
+        val fakePurchaseConfig = new utils.ConfigPurchaseMapping() {
+          override def subcodesFor(country: String, parentKey: String) = if (country == "AT" && parentKey == PurchaseType.Fuel.toString) Seq(("1", "purchase.sub.fuel.1")) else Seq.empty
+        }
+
+        val nav = new Navigator(
+          new ConfigCurrencyMapping(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
+          new ConfigLanguageMapping(Configuration(ConfigFactory.parseString("""language.mapping = {}"""))),
+          fakePurchaseConfig
+        )
+
+        val ua = userAnswers.set(pages.RefundingCountryPage, "AT").success.value.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+
+        nav.nextPage(PurchaseTypePage, NormalMode, ua) mustBe
+          play.api.mvc.Call("GET", s"/${PurchaseType.slugOf(PurchaseType.Fuel)}")
+      }
+
+      "must go from PurchaseTypePage to InvoiceTypeController when mapping is empty for country" in {
+        val fakePurchaseConfig = new utils.ConfigPurchaseMapping() {
+          override def subcodesFor(country: String, parentKey: String) = Seq.empty
+        }
+
+        val nav = new Navigator(
+          new ConfigCurrencyMapping(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
+          new ConfigLanguageMapping(Configuration(ConfigFactory.parseString("""language.mapping = {}"""))),
+          fakePurchaseConfig
+        )
+
+        val ua = userAnswers.set(pages.RefundingCountryPage, "AT").success.value.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+
+        nav.nextPage(PurchaseTypePage, NormalMode, ua) mustBe
+          routes.InvoiceTypeController.onPageLoad(NormalMode)
+      }
+
+      "must go from PurchaseTypePage to JourneyRecoveryController when country code stored as name+code string is used" in {
+        val fakePurchaseConfig = new utils.ConfigPurchaseMapping() {
+          override def subcodesFor(country: String, parentKey: String) = Seq(("1", "purchase.sub.fuel.1"))
+        }
+
+        val nav = new Navigator(
+          new ConfigCurrencyMapping(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
+          new ConfigLanguageMapping(Configuration(ConfigFactory.parseString("""language.mapping = {}"""))),
+          fakePurchaseConfig
+        )
+
+        // store country as "Austria,AT" style value
+        val ua = userAnswers.set(pages.RefundingCountryNamePage, "Austria,AT").success.value.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+
+        nav.nextPage(PurchaseTypePage, NormalMode, ua) mustBe
+          play.api.mvc.Call("GET", s"/${PurchaseType.slugOf(PurchaseType.Fuel)}")
+      }
+
+      "must go from PurchaseTypePage to PurchaseSubTypeController when country stored as name-only string is used" in {
+        val fakePurchaseConfig = new utils.ConfigPurchaseMapping() {
+          override def subcodesFor(country: String, parentKey: String) = if (country == "Austria" && parentKey == PurchaseType.Fuel.toString) Seq(("1", "purchase.sub.fuel.1")) else Seq.empty
+        }
+
+        val nav = new Navigator(
+          new ConfigCurrencyMapping(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
+          new ConfigLanguageMapping(Configuration(ConfigFactory.parseString("""language.mapping = {}"""))),
+          fakePurchaseConfig
+        )
+
+        // store country as name-only value
+        val ua = userAnswers.set(pages.RefundingCountryNamePage, "Austria").success.value.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+
+        nav.nextPage(PurchaseTypePage, NormalMode, ua) mustBe
+          play.api.mvc.Call("GET", s"/${PurchaseType.slugOf(PurchaseType.Fuel)}")
+      }
+
+      "must go from PurchaseTypePage to InvoiceTypeController when country stored as name-only and mapping empty" in {
+        val fakePurchaseConfig = new utils.ConfigPurchaseMapping() {
+          override def subcodesFor(country: String, parentKey: String) = Seq.empty
+        }
+
+        val nav = new Navigator(
+          new ConfigCurrencyMapping(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
+          new ConfigLanguageMapping(Configuration(ConfigFactory.parseString("""language.mapping = {}"""))),
+          fakePurchaseConfig
+        )
+
+        val ua = userAnswers.set(pages.RefundingCountryNamePage, "Austria").success.value.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+
+        nav.nextPage(PurchaseTypePage, NormalMode, ua) mustBe
+          routes.InvoiceTypeController.onPageLoad(NormalMode)
+      }
+
+      "must go from PurchaseSubCategoryPage to InvoiceTypeController when PurchaseType is Other and subcategory ends with 99" in {
+        val ua = userAnswers.set(PurchaseTypePage, PurchaseType.Other).success.value.set(PurchaseSubCategoryPage, "1.99").success.value
+        navigator.nextPage(PurchaseSubCategoryPage, NormalMode, ua) mustBe
+          routes.InvoiceTypeController.onPageLoad(NormalMode)
+      }
+
+      "must go from PurchaseSubCategoryPage to InvoiceTypeController when PurchaseType is not Other" in {
+        val ua = userAnswers.set(PurchaseTypePage, PurchaseType.Fuel).success.value.set(PurchaseSubCategoryPage, "1").success.value
+        navigator.nextPage(PurchaseSubCategoryPage, NormalMode, ua) mustBe
+          routes.InvoiceTypeController.onPageLoad(NormalMode)
       }
 
       "must go from DescribeItemsOnInvoicePage to InvoiceTypeController" in {

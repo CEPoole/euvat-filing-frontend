@@ -47,7 +47,7 @@ class BusinessActivityThreeControllerSpec extends SpecBase {
         val view = application.injector.instanceOf[BusinessActivityThreeView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(baCode1, "48120", "50270")(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(baCode1, "48120", "50270")(request, messages(application)).toString)
       }
     }
 

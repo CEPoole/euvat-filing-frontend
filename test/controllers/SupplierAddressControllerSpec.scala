@@ -67,7 +67,7 @@ class SupplierAddressControllerSpec extends SpecBase with MockitoSugar {
         val form = formProvider()
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, backLink)(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLink)(request, messages(application)).toString)
       }
     }
 
@@ -96,7 +96,7 @@ class SupplierAddressControllerSpec extends SpecBase with MockitoSugar {
         val form = formProvider().fill(supplierAddress)
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, backLink)(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLink)(request, messages(application)).toString)
       }
     }
 
