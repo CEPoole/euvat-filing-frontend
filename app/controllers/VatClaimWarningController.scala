@@ -17,11 +17,12 @@
 package controllers
 
 import controllers.actions.*
-import models.{CheckMode, Mode, NormalMode}
-import pages.{TotalVatClaimPage, TotalVatPaidPage}
+import models.{CheckMode, Mode, NormalMode, UserAnswers}
+import pages.{RefundingCountryNamePage, RefundingCountryPage, RefundingCurrencyPage, TotalVatClaimPage}
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import utils.ConfigCurrencyMapping
 import views.html.VatClaimWarningView
 
 import javax.inject.Inject
@@ -31,6 +32,7 @@ class VatClaimWarningController @Inject() (
   identify: IdentifierAction,
   getData: DataRetrievalAction,
   requireData: DataRequiredAction,
+  configCurrencyMapping: ConfigCurrencyMapping,
   val controllerComponents: MessagesControllerComponents,
   view: VatClaimWarningView
 ) extends FrontendBaseController
@@ -38,7 +40,8 @@ class VatClaimWarningController @Inject() (
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     val totalVatClaiming = request.userAnswers.get(TotalVatClaimPage).getOrElse(BigDecimal(0))
-    Ok(view(routes.TotalVatClaimController.onPageLoad(mode), mode, totalVatClaiming))
+    val currencySymbol = resolveCurrencyPrefix(request.userAnswers)
+    Ok(view(routes.TotalVatClaimController.onPageLoad(mode), mode, currencySymbol, totalVatClaiming))
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
@@ -47,4 +50,27 @@ class VatClaimWarningController @Inject() (
       case CheckMode  => Redirect(routes.JourneyRecoveryController.onPageLoad()) // TODO - redirect to Check your purchase details
     }
   }
+
+  private def resolveCountry(userAnswers: UserAnswers): Option[String] =
+    userAnswers
+      .get(RefundingCountryPage)
+      .orElse(
+        userAnswers
+          .get(RefundingCountryNamePage)
+          .flatMap(_.split(",", 2).headOption)
+      )
+
+  private def resolveCurrencyPrefix(userAnswers: UserAnswers): String =
+    resolveCountry(userAnswers)
+      .flatMap { countryCode =>
+        val currencies = configCurrencyMapping.currenciesFor(countryCode)
+
+        userAnswers
+          .get(RefundingCurrencyPage)
+          .flatMap(currencyCode => currencies.find(_._2 == currencyCode))
+          .orElse(currencies.headOption)
+          .map(_._3)
+      }
+      .getOrElse("€")
+
 }

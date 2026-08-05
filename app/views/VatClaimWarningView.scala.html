@@ -21,13 +21,13 @@
     govukWarningText: GovukWarningText
 )
 
-@(backLink: Call, mode: Mode, vatClaiming: BigDecimal)(implicit request: Request[_], messages: Messages)
+@(backLink: Call, mode: Mode, currencySymbol: String, vatClaiming: BigDecimal)(implicit request: Request[_], messages: Messages)
 
 @layout(pageTitle = titleNoForm(messages("vatClaimWarning.title"))) {
     @formHelper(action = routes.VatClaimWarningController.onSubmit(mode)) {
 
         <h1 class="govuk-heading-l">@messages("vatClaimWarning.heading")</h1>
-        <p class="govuk-body">@messages("vatClaimWarning.p", vatClaiming)</p>
+        <p class="govuk-body">@messages("vatClaimWarning.p", currencySymbol+vatClaiming)</p>
 
         @govukWarningText(WarningText(
             iconFallbackText = Some("Warning"),

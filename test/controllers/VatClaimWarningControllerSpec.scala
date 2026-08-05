@@ -18,17 +18,10 @@ package controllers
 
 import base.SpecBase
 import models.{CheckMode, NormalMode}
-import navigation.{FakeNavigator, Navigator}
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
-import pages.{TotalVatClaimPage, TotalVatPaidPage}
-import play.api.inject.bind
+import pages.TotalVatClaimPage
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import repositories.SessionRepository
 import views.html.VatClaimWarningView
-
-import scala.concurrent.Future
 
 class VatClaimWarningControllerSpec extends SpecBase {
 
@@ -43,7 +36,7 @@ class VatClaimWarningControllerSpec extends SpecBase {
         val result = route(application, request).value
         val view = application.injector.instanceOf[VatClaimWarningView]
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(routes.TotalVatClaimController.onPageLoad(NormalMode), NormalMode, BigDecimal(100))(
+        contentAsString(result) mustEqual view(routes.TotalVatClaimController.onPageLoad(NormalMode), NormalMode, "€", BigDecimal(100))(
           request,
           messages(application)
         ).toString
