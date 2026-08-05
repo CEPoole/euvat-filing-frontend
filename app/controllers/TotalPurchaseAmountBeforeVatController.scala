@@ -18,18 +18,18 @@ package controllers
 
 import controllers.actions.*
 import forms.TotalPurchaseAmountBeforeVatFormProvider
-
-import javax.inject.Inject
-import models.{Mode, SupplierTaxNumber, UserAnswers}
+import models.{Mode, UserAnswers}
 import navigation.Navigator
-import utils.ConfigCurrencyMapping
-import pages.{RefundingCountryPage, RefundingCurrencyPage, SupplierTaxNumberPage, SupplierVatRegistrationNumberPage, TotalPurchaseAmountBeforeVatPage}
+import pages.*
+import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import utils.ConfigCurrencyMapping
 import views.html.TotalPurchaseAmountBeforeVatView
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class TotalPurchaseAmountBeforeVatController @Inject() (
@@ -47,7 +47,7 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
     extends FrontendBaseController
     with I18nSupport {
 
-  val form = formProvider()
+  val form: Form[BigDecimal] = formProvider()
 
   private def backLink(mode: Mode)(userAnswers: UserAnswers) = userAnswers.get(RefundingCountryPage) match {
     case Some("DE") => routes.SupplierTaxNumberController.onPageLoad(mode)

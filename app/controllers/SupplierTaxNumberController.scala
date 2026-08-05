@@ -18,18 +18,18 @@ package controllers
 
 import controllers.actions.*
 import forms.SupplierTaxNumberFormProvider
-
-import javax.inject.Inject
-import models.{InvoiceType, Mode, NormalMode, UserAnswers}
+import models.{InvoiceType, Mode, NormalMode, SupplierTaxNumber, UserAnswers}
 import navigation.Navigator
 import pages.{InvoiceTypePage, RefundingCountryPage, SupplierTaxNumberPage}
 import play.api.Logger
+import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents, Result}
+import play.api.mvc.*
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import views.html.SupplierTaxNumberView
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class SupplierTaxNumberController @Inject() (
@@ -46,7 +46,7 @@ class SupplierTaxNumberController @Inject() (
     extends FrontendBaseController
     with I18nSupport {
 
-  val form = formProvider()
+  val form: Form[SupplierTaxNumber] = formProvider()
   private val logger = Logger(getClass)
 
   private def backLink: Call = routes.SupplierAddressController.onPageLoad(NormalMode)
