@@ -18,28 +18,35 @@ package controllers
 
 import base.SpecBase
 import models.{CheckMode, NormalMode}
+import navigation.{FakeNavigator, Navigator}
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
+import pages.{TotalVatClaimPage, TotalVatPaidPage}
+import play.api.inject.bind
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import repositories.SessionRepository
 import views.html.VatClaimWarningView
+
+import scala.concurrent.Future
 
 class VatClaimWarningControllerSpec extends SpecBase {
 
   "VatClaimWarningController Controller" - {
 
     "must return OK and the correct view for a GET in NormalMode" in {
-      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+      val userAnswers = emptyUserAnswers.set(TotalVatClaimPage, BigDecimal("100")).success.value
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
       running(application) {
         val request = FakeRequest(GET, routes.VatClaimWarningController.onPageLoad(NormalMode).url)
-
         val result = route(application, request).value
-
         val view = application.injector.instanceOf[VatClaimWarningView]
-
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(routes.TotalVatClaimController.onPageLoad(NormalMode), NormalMode)(request,
-                                                                                                                  messages(application)
-                                                                                                                 ).toString
+        contentAsString(result) mustEqual view(routes.TotalVatClaimController.onPageLoad(NormalMode), NormalMode, BigDecimal(100))(
+          request,
+          messages(application)
+        ).toString
       }
     }
 
@@ -48,9 +55,7 @@ class VatClaimWarningControllerSpec extends SpecBase {
 
       running(application) {
         val request = FakeRequest(POST, routes.VatClaimWarningController.onSubmit(NormalMode).url)
-
         val result = route(application, request).value
-
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url // TODO - Next page
       }
@@ -61,9 +66,7 @@ class VatClaimWarningControllerSpec extends SpecBase {
 
       running(application) {
         val request = FakeRequest(POST, routes.VatClaimWarningController.onSubmit(CheckMode).url)
-
         val result = route(application, request).value
-
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url // TODO - Check your purchase details
       }

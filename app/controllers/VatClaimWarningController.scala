@@ -18,6 +18,7 @@ package controllers
 
 import controllers.actions.*
 import models.{CheckMode, Mode, NormalMode}
+import pages.{TotalVatClaimPage, TotalVatPaidPage}
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
@@ -36,7 +37,8 @@ class VatClaimWarningController @Inject() (
     with I18nSupport {
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    Ok(view(routes.TotalVatClaimController.onPageLoad(mode), mode))
+    val totalVatClaiming = request.userAnswers.get(TotalVatClaimPage).getOrElse(BigDecimal(0))
+    Ok(view(routes.TotalVatClaimController.onPageLoad(mode), mode, totalVatClaiming))
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>

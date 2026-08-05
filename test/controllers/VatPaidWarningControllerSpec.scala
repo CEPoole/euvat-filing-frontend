@@ -18,9 +18,16 @@ package controllers
 
 import base.SpecBase
 import models.{CheckMode, NormalMode}
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
+import pages.TotalVatPaidPage
+import play.api.inject.bind
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import repositories.SessionRepository
 import views.html.VatPaidWarningView
+
+import scala.concurrent.Future
 
 class VatPaidWarningControllerSpec extends SpecBase {
 
@@ -31,15 +38,29 @@ class VatPaidWarningControllerSpec extends SpecBase {
 
       running(application) {
         val request = FakeRequest(GET, routes.VatPaidWarningController.onPageLoad(NormalMode).url)
-
         val result = route(application, request).value
-
         val view = application.injector.instanceOf[VatPaidWarningView]
-
         status(result) mustEqual OK
         contentAsString(result) mustEqual view(routes.TotalVatPaidController.onPageLoad(NormalMode), NormalMode)(request,
                                                                                                                  messages(application)
                                                                                                                 ).toString
+      }
+    }
+
+    "must return OK and the correct view for a GET in NormalMode with pre-populate form" in {
+      val answers = emptyUserAnswers.set(TotalVatPaidPage, BigDecimal(25.50)).success.value
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+      val application =
+        applicationBuilder(userAnswers = Some(answers))
+          .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
+          .build()
+
+      running(application) {
+        val request = FakeRequest(GET, routes.VatPaidWarningController.onPageLoad(NormalMode).url)
+        val result = route(application, request).value
+        status(result) mustEqual OK
       }
     }
 
@@ -48,9 +69,7 @@ class VatPaidWarningControllerSpec extends SpecBase {
 
       running(application) {
         val request = FakeRequest(POST, routes.VatPaidWarningController.onSubmit(NormalMode).url)
-
         val result = route(application, request).value
-
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.TotalVatClaimController.onPageLoad(NormalMode).url
       }
@@ -61,9 +80,7 @@ class VatPaidWarningControllerSpec extends SpecBase {
 
       running(application) {
         val request = FakeRequest(POST, routes.VatPaidWarningController.onSubmit(CheckMode).url)
-
         val result = route(application, request).value
-
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url // TODO - Check your purchase details
       }

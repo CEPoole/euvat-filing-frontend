@@ -14,6 +14,7 @@ site.signIn = Sign in
 site.govuk = GOV.UK
 site.save.continue = Save and continue
 
+
 date.day = Day
 date.month = Month
 date.year = Year
@@ -408,7 +409,6 @@ checkYourStateDetails.yes = Yes, delete this claim
 checkYourStateDetails.no = No, return to claim
 checkYourStateDetails.error.required = Select yes if you want to delete this claim
 
-
 describeItemsOnInvoice.title = Describe the items on your invoice
 describeItemsOnInvoice.heading = Describe the items on your invoice
 describeItemsOnInvoice.hint = List each item and the exact amount you paid for it. Include the currency shown on the invoice. For example, an invoice including €150 for fuel and €50 for transport costs.
@@ -418,14 +418,14 @@ describeItemsOnInvoice.error.length = Item description must be 255 characters or
 # Warning messages
 vatPaidWarning.title = Are you sure the amount of VAT you paid is correct?
 vatPaidWarning.heading = Are you sure the amount of VAT you paid is correct?
-vatPaidWarning.p = The amount of VAT you paid must be the same or less than the purchase amount before VAT.
+vatPaidWarning.p = The amount of VAT you paid must be less than the purchase amount before VAT.
 vatPaidWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
 vatPaidWarning.yes = Yes, this is correct
 vatPaidWarning.no = No, change the VAT amount
 
 vatClaimWarning.title = Are you sure the amount of VAT you''re claiming is correct?
 vatClaimWarning.heading = Are you sure the amount of VAT you''re claiming is correct?
-vatClaimWarning.p = You''ve told us the amount of VAT you''re claiming is [£150]. The amount you''re claiming cannot be more than the amount of VAT you paid.
+vatClaimWarning.p = You''ve told us the amount of VAT you''re claiming is £{0}. The amount you''re claiming cannot be more than the amount of VAT you paid.
 vatClaimWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
 vatClaimWarning.yes = Yes, this is correct
 vatClaimWarning.no = No, change the VAT claim amount
