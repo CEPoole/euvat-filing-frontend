@@ -291,6 +291,14 @@ supplierTaxNumber.taxIdentifierNumber.hint = This is 10 or 11 digits, for exampl
 supplierTaxNumber.error.required = Select the supplier tax numbers shown on the invoice
 supplierTaxNumber.neither = I do not have any of these on the invoice
 
+supplierTaxIdentifierWarning.title = Are you sure the supplier’s tax identifier number is correct?
+supplierTaxIdentifierWarning.heading = Are you sure the supplier’s tax identifier number is correct?
+supplierTaxIdentifierWarning.p = You’ve already made a claim with the same supplier’s tax identifier and invoice number. Use a different supplier’s tax identifier or invoice number for this claim.
+supplierTaxIdentifierWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
+supplierTaxIdentifierWarning.changeTax = Change supplier’s tax identifier number
+supplierTaxIdentifierWarning.changeInvoice = Change invoice number
+supplierTaxIdentifierWarning.confirm = Yes, this is correct
+
 supplierVatRegistrationNumber.title = What is the supplier’s VAT registration number?
 supplierVatRegistrationNumber.heading = What is the supplier’s VAT registration number?
 supplierVatRegistrationNumber.hint = This can be up to 12 characters and may start with a 2-letter EU country code. For example, FR123456789

@@ -124,6 +124,11 @@ POST        /supplier-tax-identifier-number               controllers.SupplierTa
 GET         /change-supplier-tax-identifier-number        controllers.SupplierTaxIdentifierNumberController.onPageLoad(mode: Mode = CheckMode)
 POST        /change-supplier-tax-identifier-number        controllers.SupplierTaxIdentifierNumberController.onSubmit(mode: Mode = CheckMode)
 
+GET         /check-supplier-tax-identifier-number        controllers.SupplierTaxIdentifierWarningController.onPageLoad(mode: Mode = NormalMode)
+POST        /check-supplier-tax-identifier-number        controllers.SupplierTaxIdentifierWarningController.onSubmit(mode: Mode = NormalMode)
+GET         /change-check-supplier-tax-identifier-number controllers.SupplierTaxIdentifierWarningController.onPageLoad(mode: Mode = CheckMode)
+POST        /change-check-supplier-tax-identifier-number controllers.SupplierTaxIdentifierWarningController.onSubmit(mode: Mode = CheckMode)
+
 GET         /total-purchase-amount-before-vat             controllers.TotalPurchaseAmountBeforeVatController.onPageLoad(mode: Mode = NormalMode)
 POST        /total-purchase-amount-before-vat             controllers.TotalPurchaseAmountBeforeVatController.onSubmit(mode: Mode = NormalMode)
 GET         /change-total-purchase-amount-before-vat      controllers.TotalPurchaseAmountBeforeVatController.onPageLoad(mode: Mode = CheckMode)

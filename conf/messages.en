@@ -307,6 +307,14 @@ supplierTaxIdentifierNumber.error.length = Supplier’s tax identifier number ca
 supplierTaxIdentifierNumber.checkYourAnswersLabel = Supplier’s tax identifier number
 supplierTaxIdentifierNumber.change.hidden = Change supplier’s tax identifier number
 
+supplierTaxIdentifierWarning.title = Are you sure the supplier’s tax identifier number is correct?
+supplierTaxIdentifierWarning.heading = Are you sure the supplier’s tax identifier number is correct?
+supplierTaxIdentifierWarning.p = You’ve already made a claim with the same supplier’s tax identifier and invoice number. Use a different supplier’s tax identifier or invoice number for this claim.
+supplierTaxIdentifierWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
+supplierTaxIdentifierWarning.changeTax = Change supplier’s tax identifier number
+supplierTaxIdentifierWarning.changeInvoice = Change invoice number
+supplierTaxIdentifierWarning.confirm = Yes, this is correct
+
 totalPurchaseAmountBeforeVat.title = Total purchase amount before VAT
 totalPurchaseAmountBeforeVat.heading = Total purchase amount before VAT
 totalPurchaseAmountBeforeVat.h2 = How much did the purchase cost before VAT?

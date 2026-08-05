@@ -21,7 +21,8 @@ import forms.SupplierTaxIdentifierNumberFormProvider
 import models.{CheckMode, NormalMode, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
+import org.mockito.Mockito.{when, verify}
+import org.mockito.ArgumentCaptor
 import org.scalatestplus.mockito.MockitoSugar
 import models.responses.SupplierTaxIdentifierCountResponse
 import models.responses.{AddPurchaseResponse, ApplicationResponse}
@@ -150,7 +151,12 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
+        redirectLocation(result).value mustEqual routes.SupplierTaxIdentifierWarningController.onPageLoad(NormalMode).url
+        // verify the sessionRepository was saved with the warning flag set
+        val captor: ArgumentCaptor[UserAnswers] = ArgumentCaptor.forClass(classOf[UserAnswers])
+        verify(mockSessionRepository, org.mockito.Mockito.times(2)).set(captor.capture())
+        // second save should contain the warning flag
+        captor.getAllValues.get(1).get(pages.SupplierTaxIdentifierWarningShownPage) mustBe Some(true)
       }
     }
 
@@ -192,6 +198,10 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
 
           status(result) mustEqual SEE_OTHER
           redirectLocation(result).value mustEqual routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode).url
+          val captor: ArgumentCaptor[UserAnswers] = ArgumentCaptor.forClass(classOf[UserAnswers])
+          verify(mockSessionRepository, org.mockito.Mockito.times(2)).set(captor.capture())
+          // second save should have cleared the flag
+          captor.getAllValues.get(1).get(pages.SupplierTaxIdentifierWarningShownPage) mustBe None
         }
       }
 

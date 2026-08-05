@@ -293,6 +293,14 @@ class NavigatorSpec extends SpecBase {
           routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode)
       }
 
+      "must go from SupplierTaxIdentifierNumberPage to TotalPurchaseAmountBeforeVatController when RefundingCountryNamePage contains a code and name (DE, Germany)" in {
+        val ua = userAnswers
+          .set(pages.RefundingCountryNamePage, "DE, Germany").success.value
+          .set(SupplierTaxNumberPage, SupplierTaxNumber.Taxidentifiernumber).success.value
+        navigator.nextPage(SupplierTaxIdentifierNumberPage, NormalMode, ua) mustBe
+          routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode)
+      }
+
       "must go from SupplierTaxIdentifierNumberPage to JourneyRecoveryController for non-implemented cases" in {
         val ua = userAnswers
           .set(RefundingCountryPage, "FR").success.value
@@ -301,7 +309,23 @@ class NavigatorSpec extends SpecBase {
           routes.JourneyRecoveryController.onPageLoad()
       }
 
-      
+      "must go from SupplierTaxIdentifierNumberPage to TotalPurchaseAmountBeforeVatController when warning flag is present and country is Germany" in {
+        val ua = userAnswers
+          .set(RefundingCountryPage, "DE").success.value
+          .set(SupplierTaxNumberPage, SupplierTaxNumber.Taxidentifiernumber).success.value
+          .set(pages.SupplierTaxIdentifierWarningShownPage, true).success.value
+        navigator.nextPage(SupplierTaxIdentifierNumberPage, NormalMode, ua) mustBe
+          routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode)
+      }
+
+      "must go from SupplierTaxIdentifierNumberPage to JourneyRecoveryController when warning flag is present but country is not Germany" in {
+        val ua = userAnswers
+          .set(RefundingCountryPage, "FR").success.value
+          .set(SupplierTaxNumberPage, SupplierTaxNumber.Taxidentifiernumber).success.value
+          .set(pages.SupplierTaxIdentifierWarningShownPage, true).success.value
+        navigator.nextPage(SupplierTaxIdentifierNumberPage, NormalMode, ua) mustBe
+          routes.JourneyRecoveryController.onPageLoad()
+      }
 
       "must go from SupplierTaxNumberPage to TotalPurchaseAmountBeforeVatController if neither is selected" in {
         val ua = userAnswers

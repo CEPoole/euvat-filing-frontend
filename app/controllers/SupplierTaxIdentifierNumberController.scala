@@ -25,6 +25,7 @@ import models.requests.SupplierTaxIdentifierCountRequest
 import models.responses.SupplierTaxIdentifierCountResponse
 import models.responses.AddPurchaseResponse
 import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, InvoiceNumberPage}
+import pages.SupplierTaxIdentifierWarningShownPage
 import services.EuVatRefundsService
 import navigation.Navigator
 import pages.{SupplierTaxIdentifierNumberPage, SupplierVatRegistrationNumberPage}
@@ -81,13 +82,17 @@ class SupplierTaxIdentifierNumberController @Inject() (
 
               (maybeAppId, maybeItem) match {
                 case (Some(appId), Some(itemNumber)) =>
-                  euVatRefundsService
-                    .getSupplierTaxIdentifierCount(SupplierTaxIdentifierCountRequest(appId, itemNumber, value, invoiceNum))
-                    .map {
-                      case SupplierTaxIdentifierCountResponse(count) if count > 0 => Redirect(routes.JourneyRecoveryController.onPageLoad())
-                      case _                                                      => Redirect(navigator.nextPage(SupplierTaxIdentifierNumberPage, mode, updatedAnswers))
-                    }
-                    .recover { case _ => Redirect(routes.JourneyRecoveryController.onPageLoad()) }
+                  euVatRefundsService.getSupplierTaxIdentifierCount(SupplierTaxIdentifierCountRequest(appId, itemNumber, value, invoiceNum)).flatMap {
+                    case SupplierTaxIdentifierCountResponse(count) if count > 0 =>
+                      // mark that the warning was shown
+                      val flagged = updatedAnswers.set(SupplierTaxIdentifierWarningShownPage, true)
+                      Future.fromTry(flagged).flatMap(ua => sessionRepository.set(ua).map(_ => Redirect(routes.SupplierTaxIdentifierWarningController.onPageLoad(mode))))
+
+                    case _ =>
+                      // clear any existing warning flag and continue
+                      val cleared = updatedAnswers.remove(SupplierTaxIdentifierWarningShownPage)
+                      Future.fromTry(cleared).flatMap(ua => sessionRepository.set(ua).map(_ => Redirect(navigator.nextPage(SupplierTaxIdentifierNumberPage, mode, ua))))
+                  }.recover { case _ => Redirect(routes.JourneyRecoveryController.onPageLoad()) }
 
                 case _ => Future.successful(Redirect(navigator.nextPage(SupplierTaxIdentifierNumberPage, mode, updatedAnswers)))
               }
