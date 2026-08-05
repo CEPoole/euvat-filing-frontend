@@ -24,8 +24,6 @@ import pages.RefundPeriodPage
 import javax.inject.Inject
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
-import play.api.Configuration
-import queries.TraderKnownFactsQuery
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import views.html.ConfirmRefundPeriodStartDateView
 
@@ -38,10 +36,18 @@ class ConfirmRefundPeriodStartDateController @Inject() (
   getData: DataRetrievalAction,
   requireData: DataRequiredAction,
   val controllerComponents: MessagesControllerComponents,
-  configuration: Configuration,
   view: ConfirmRefundPeriodStartDateView
 ) extends FrontendBaseController
     with I18nSupport {
+
+  private def earliestPermittedStartDate(today: LocalDate = LocalDate.now()): YearMonth = {
+    val cutoff = MonthDay.of(9, 30).atYear(today.getYear)
+    if (!today.isAfter(cutoff)) {
+      YearMonth.of(today.getYear - 1, 1)
+    } else {
+      YearMonth.of(today.getYear, 1)
+    }
+  }
 
   def onPageLoad: Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     request.userAnswers.get(RefundPeriodPage) match {
