@@ -56,10 +56,10 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val view = application.injector.instanceOf[SupplierVatRegistrationNumberView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode))(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode))(
           request,
           messages(application)
-        ).toString
+        ).toString)
       }
     }
 
@@ -77,10 +77,10 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form.fill("answer"), NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode))(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form.fill("answer"), NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode))(
           request,
           messages(application)
-        ).toString
+        ).toString)
       }
     }
 
@@ -126,10 +126,10 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode))(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(boundForm, NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode))(
           request,
           messages(application)
-        ).toString
+        ).toString)
       }
     }
 
@@ -172,10 +172,10 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, CheckMode, routes.SupplierTaxNumberController.onPageLoad(CheckMode))(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(boundForm, CheckMode, routes.SupplierTaxNumberController.onPageLoad(CheckMode))(
           request,
           messages(application)
-        ).toString
+        ).toString)
       }
     }
 

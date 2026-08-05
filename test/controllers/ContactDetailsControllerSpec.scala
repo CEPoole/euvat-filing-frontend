@@ -83,7 +83,7 @@ class ContactDetailsControllerSpec extends SpecBase with MockitoSugar with Befor
           val view = application.injector.instanceOf[ContactDetailsView]
 
           status(result) mustEqual OK
-          contentAsString(result) mustEqual view(form, NormalMode, backUrl)(request, messages(application)).toString
+          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backUrl)(request, messages(application)).toString)
         }
       }
 
@@ -97,7 +97,7 @@ class ContactDetailsControllerSpec extends SpecBase with MockitoSugar with Befor
           val view = application.injector.instanceOf[ContactDetailsView]
 
           status(result) mustEqual OK
-          contentAsString(result) mustEqual view(form.fill(contactDetails), NormalMode, backUrl)(request, messages(application)).toString
+          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form.fill(contactDetails), NormalMode, backUrl)(request, messages(application)).toString)
         }
       }
 
@@ -160,11 +160,11 @@ class ContactDetailsControllerSpec extends SpecBase with MockitoSugar with Befor
           val view = application.injector.instanceOf[ContactDetailsView]
 
           status(result) mustEqual BAD_REQUEST
-          contentAsString(result) mustEqual view(
+          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(
             form.bind(Map("contactEmail" -> "")),
             NormalMode,
             backUrl
-          )(request, messages(application)).toString
+          )(request, messages(application)).toString)
           verify(mockSessionRepository, never).set(any())
         }
       }

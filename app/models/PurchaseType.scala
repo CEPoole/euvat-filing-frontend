@@ -32,6 +32,15 @@ object PurchaseType extends Enumerable.Implicits {
 
   val values: Seq[PurchaseType] = Seq(Fuel, Transport, FoodAndDrink, Luxuries, Other)
 
+  def slugOf(value: PurchaseType): String = value match {
+    case Fuel         => "fuel-use"
+    case Transport    => "transport-cost"
+    case FoodAndDrink => "food-drink-restaurant-cost"
+    case Luxuries     => "luxury-entertainment-hospitality-cost"
+    case Other        => "purchase-type-other"
+  }
+
+
   def options(implicit messages: Messages): Seq[RadioItem] = values.zipWithIndex.map { case (value, index) =>
     RadioItem(
       content = Text(messages(s"purchaseType.${value.toString}")),

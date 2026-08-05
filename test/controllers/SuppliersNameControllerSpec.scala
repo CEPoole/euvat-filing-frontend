@@ -56,9 +56,9 @@ class SuppliersNameControllerSpec extends SpecBase with MockitoSugar {
         val view = application.injector.instanceOf[SuppliersNameView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, routes.InvoiceDateController.onPageLoad(NormalMode))(request,
-                                                                                                                      messages(application)
-                                                                                                                     ).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.InvoiceDateController.onPageLoad(NormalMode))(request,
+                                        messages(application)
+                                       ).toString)
       }
     }
 
@@ -76,10 +76,10 @@ class SuppliersNameControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form.fill("answer"), NormalMode, routes.InvoiceDateController.onPageLoad(NormalMode))(
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form.fill("answer"), NormalMode, routes.InvoiceDateController.onPageLoad(NormalMode))(
           request,
           messages(application)
-        ).toString
+        ).toString)
       }
     }
 
@@ -125,9 +125,9 @@ class SuppliersNameControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, NormalMode, routes.InvoiceDateController.onPageLoad(NormalMode))(request,
-                                                                                                                           messages(application)
-                                                                                                                          ).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(boundForm, NormalMode, routes.InvoiceDateController.onPageLoad(NormalMode))(request,
+                                       messages(application)
+                                      ).toString)
       }
     }
 
@@ -147,9 +147,9 @@ class SuppliersNameControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, NormalMode, routes.InvoiceDateController.onPageLoad(NormalMode))(request,
-                                                                                                                           messages(application)
-                                                                                                                          ).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(boundForm, NormalMode, routes.InvoiceDateController.onPageLoad(NormalMode))(request,
+                                       messages(application)
+                                      ).toString)
       }
     }
 

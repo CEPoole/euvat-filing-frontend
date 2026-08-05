@@ -25,6 +25,7 @@ import play.api.test.FakeRequest
 import models.responses.{LatestApplication, LatestApplicationResponse, TraderKnownFactsResponse}
 import java.time.LocalDateTime
 import org.mockito.ArgumentMatchers.any
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.Helpers.*
 import play.api.inject.bind
 import utils.CountryList
@@ -32,6 +33,9 @@ import pages.RefundingCountryNamePage
 import play.api.mvc.Call
 
 class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
+
+  // Use `normalizeHtml` from SpecBase to normalize CSRF and nonce differences
+
 
   val onwardRoute: Call = Call("GET", "/foo")
 
@@ -56,9 +60,10 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val body = contentAsString(result)
         val backUrl = application.configuration.get[String]("urls.loginContinue") + controllers.routes.TaskListDashboardController.onPageLoad().url
         body must not include s"href=\"$backUrl\""
-        body mustEqual view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(request,
-                                                                                                                             messages(application)
-                                                                                                                            ).toString
+        val viewRequest = request.withCSRFToken
+        normalizeHtml(body) mustEqual normalizeHtml(view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
+           messages(application)
+          ).toString)
       }
     }
 
@@ -96,9 +101,10 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val body = contentAsString(result)
         val backUrl = application.configuration.get[String]("urls.loginContinue") + controllers.routes.TaskListDashboardController.onPageLoad().url
         body must not include s"href=\"$backUrl\""
-        body mustEqual view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(request,
-                                                                                                                             messages(application)
-                                                                                                                            ).toString
+        val viewRequest = request.withCSRFToken
+        normalizeHtml(body) mustEqual normalizeHtml(view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
+           messages(application)
+          ).toString)
       }
     }
 
@@ -316,6 +322,46 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "must clear purchase selections when country is changed" in {
+
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+
+      // Start with a saved country and various purchase selections
+      val starting = emptyUserAnswers
+        .set(pages.RefundingCountryPage, "BG").success.value
+        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
+        .set(pages.PurchaseSubTypePage, "1.1").success.value
+        .set(pages.PurchaseSubTypeLabelPage, "Fuel label").success.value
+        .set(pages.PurchaseSubCategoryPage, "1.1.1").success.value
+        .set(pages.PurchaseSubCategoryLabelPage, "Fuel sub label").success.value
+
+      val application = applicationBuilder(userAnswers = Some(starting))
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        // Submit a different country
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "DE"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+
+        import org.mockito.ArgumentCaptor
+        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        val saved = captor.getValue
+
+        saved.get(pages.PurchaseTypePage).isDefined mustBe false
+        saved.get(pages.PurchaseSubTypePage).isDefined mustBe false
+        saved.get(pages.PurchaseSubTypeLabelPage).isDefined mustBe false
+        saved.get(pages.PurchaseSubCategoryPage).isDefined mustBe false
+        saved.get(pages.PurchaseSubCategoryLabelPage).isDefined mustBe false
+      }
+    }
+
     "must pre-fill the form when arriving from the task list and a saved value exists" in {
 
       val userAnswers = emptyUserAnswers.set(RefundingCountryNamePage, "DE").success.value
@@ -338,9 +384,10 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val body = contentAsString(result)
         val backUrl = application.configuration.get[String]("urls.loginContinue") + controllers.routes.TaskListDashboardController.onPageLoad().url
         body must not include s"href=\"$backUrl\""
-        body mustEqual view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(request,
-                                                                                                                             messages(application)
-                                                                                                                            ).toString
+        val viewRequest = request.withCSRFToken
+        normalizeHtml(body) mustEqual normalizeHtml(view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
+           messages(application)
+          ).toString)
       }
 
     }
@@ -367,9 +414,10 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val body = contentAsString(result)
         val backUrl = application.configuration.get[String]("urls.loginContinue") + controllers.routes.TaskListDashboardController.onPageLoad().url
         body must not include s"href=\"$backUrl\""
-        body mustEqual view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(request,
-                                                                                                                             messages(application)
-                                                                                                                            ).toString
+        val viewRequest = request.withCSRFToken
+        normalizeHtml(body) mustEqual normalizeHtml(view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
+           messages(application)
+          ).toString)
       }
     }
 
@@ -493,6 +541,52 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val rawInvalidBody = contentAsString(rawInvalidResult)
         rawInvalidBody must include(messages(application)("refundingCountry.error.invalid"))
         rawInvalidBody must include(messages(application)("refundingCountry.error.invalid.summary"))
+      }
+    }
+
+    "must save both code and name when a code is submitted" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        .overrides(
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "AT"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+
+        import org.mockito.ArgumentCaptor
+        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        val saved = captor.getValue
+
+        saved.get(pages.RefundingCountryPage) mustBe Some("AT")
+        saved.get(pages.RefundingCountryNamePage) mustBe Some("Austria")
+      }
+    }
+
+    "must recover and return Bad Request when session save fails" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.failed(new RuntimeException("boom"))
+
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "DE"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual BAD_REQUEST
       }
     }
   }
