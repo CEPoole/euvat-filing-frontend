@@ -22,7 +22,7 @@ import java.time.LocalDateTime
 
 case class AddPurchaseRequest(
   applicationId: Long,
-  goodsDescriptionCategory: Option[String],
+  goodsDescriptionCategory: String,
   goodsDescriptionText: Option[String],
   purchaseSubcategory: Option[String],
   simplifiedInvoiceIndicator: Option[String],

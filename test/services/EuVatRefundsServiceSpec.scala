@@ -99,7 +99,7 @@ class EuVatRefundsServiceSpec extends SpecBase with MockitoSugar with ScalaFutur
 
     val request = AddPurchaseRequest(
       applicationId              = 123456,
-      goodsDescriptionCategory   = Some("1234"),
+      goodsDescriptionCategory   = "1",
       goodsDescriptionText       = Some("Fuel"),
       purchaseSubcategory        = None,
       simplifiedInvoiceIndicator = None,

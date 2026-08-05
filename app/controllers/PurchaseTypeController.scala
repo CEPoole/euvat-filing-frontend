@@ -140,7 +140,7 @@ class PurchaseTypeController @Inject() (
       case Some(applicationId) =>
         val purchaseRequest = AddPurchaseRequest(
           applicationId              = applicationId.toLong,
-          goodsDescriptionCategory   = Some(PurchaseTypeCode.codeFor(purchaseType)),
+          goodsDescriptionCategory   = PurchaseTypeCode.codeFor(purchaseType),
           goodsDescriptionText       = None,
           purchaseSubcategory        = None,
           simplifiedInvoiceIndicator = None,
