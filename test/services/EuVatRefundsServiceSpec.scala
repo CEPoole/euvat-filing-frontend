@@ -115,7 +115,7 @@ class EuVatRefundsServiceSpec extends SpecBase with MockitoSugar with ScalaFutur
       taxableAmount              = None,
       vatAmount                  = None,
       deductibleVatAmount        = None,
-      updateSequenceNumber       = None
+      updateSequenceNumber       = 1
     )
 
     val expectedResponse = AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)

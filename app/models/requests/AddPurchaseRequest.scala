@@ -38,7 +38,7 @@ case class AddPurchaseRequest(
   taxableAmount: Option[BigDecimal],
   vatAmount: Option[BigDecimal],
   deductibleVatAmount: Option[BigDecimal],
-  updateSequenceNumber: Option[Int]
+  updateSequenceNumber: Int
 )
 object AddPurchaseRequest {
   implicit val format: OFormat[AddPurchaseRequest] = Json.format[AddPurchaseRequest]

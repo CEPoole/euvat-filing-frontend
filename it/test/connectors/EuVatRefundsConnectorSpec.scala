@@ -155,7 +155,7 @@ class EuVatRefundsConnectorSpec extends AnyWordSpec with Matchers with MockitoSu
       taxableAmount = None,
       vatAmount = None,
       deductibleVatAmount = None,
-      updateSequenceNumber = None
+      updateSequenceNumber = 1
     )
 
     val expectedResponse = AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)

@@ -38,18 +38,18 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class PurchaseTypeController @Inject() (
-                                         override val messagesApi: MessagesApi,
-                                         sessionRepository: SessionRepository,
-                                         navigator: Navigator,
-                                         identify: IdentifierAction,
-                                         getData: DataRetrievalAction,
-                                         requireData: DataRequiredAction,
-                                         formProvider: PurchaseTypeFormProvider,
-                                         val controllerComponents: MessagesControllerComponents,
-                                         euVatRefundsService: EuVatRefundsService,
-                                         view: PurchaseTypeView
-                                       )(implicit ec: ExecutionContext)
-  extends FrontendBaseController
+  override val messagesApi: MessagesApi,
+  sessionRepository: SessionRepository,
+  navigator: Navigator,
+  identify: IdentifierAction,
+  getData: DataRetrievalAction,
+  requireData: DataRequiredAction,
+  formProvider: PurchaseTypeFormProvider,
+  val controllerComponents: MessagesControllerComponents,
+  euVatRefundsService: EuVatRefundsService,
+  view: PurchaseTypeView
+)(implicit ec: ExecutionContext)
+    extends FrontendBaseController
     with I18nSupport
     with Logging {
 
@@ -97,33 +97,43 @@ class PurchaseTypeController @Inject() (
           val saved = request.userAnswers.get(PurchaseTypePage) match {
             case Some(prev) if prev != value =>
               for {
-                afterRemovedSubType <- request.userAnswers.remove(pages.PurchaseSubTypePage)
-                afterRemovedSubTypeLabel <- afterRemovedSubType.remove(pages.PurchaseSubTypeLabelPage)
-                afterRemovedSubCategory <- afterRemovedSubTypeLabel.remove(pages.PurchaseSubCategoryPage)
+                afterRemovedSubType        <- request.userAnswers.remove(pages.PurchaseSubTypePage)
+                afterRemovedSubTypeLabel   <- afterRemovedSubType.remove(pages.PurchaseSubTypeLabelPage)
+                afterRemovedSubCategory    <- afterRemovedSubTypeLabel.remove(pages.PurchaseSubCategoryPage)
                 afterRemovedSubCategoryLbl <- afterRemovedSubCategory.remove(pages.PurchaseSubCategoryLabelPage)
-                afterRemovedDescribe <- afterRemovedSubCategoryLbl.remove(pages.DescribeItemsOnInvoicePage)
-                afterSetPurchaseType <- afterRemovedDescribe.set(PurchaseTypePage, value)
+                afterRemovedDescribe       <- afterRemovedSubCategoryLbl.remove(pages.DescribeItemsOnInvoicePage)
+                afterSetPurchaseType       <- afterRemovedDescribe.set(PurchaseTypePage, value)
               } yield afterSetPurchaseType
             case _ => request.userAnswers.set(PurchaseTypePage, value)
           }
 
           for {
             updatedAnswers <- Future.fromTry(saved)
-            _ <- sessionRepository.set(updatedAnswers)
-            result <- addPurchaseAndPersist(updatedAnswers, value, mode)
+            _              <- sessionRepository.set(updatedAnswers)
+            result         <- addPurchaseAndPersist(updatedAnswers, value, mode)
           } yield result
         }
       )
   }
 
-  private def addPurchaseAndPersist(answers: UserAnswers, purchaseType: PurchaseType, mode: Mode)(implicit
-                                                                                                  request: DataRequest[?]
-  ): Future[Result] = {
-    implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
-    answers.get(ClaimApplicationResponsePage).map(_.applicationId) match {
-      case Some(applicationId) =>
+  private def addPurchaseAndPersist(
+    answers: UserAnswers,
+    purchaseType: PurchaseType,
+    mode: Mode
+  )(implicit request: DataRequest[?]): Future[Result] = {
+
+    implicit val hc: HeaderCarrier =
+      HeaderCarrierConverter.fromRequestAndSession(request, request.session)
+
+    answers
+      .get(ClaimApplicationResponsePage)
+      .fold {
+        logger.warn("Missing applicationId for addPurchase")
+        Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
+      } { claimResponse =>
+
         val purchaseRequest = AddPurchaseRequest(
-          applicationId              = applicationId.toLong,
+          applicationId              = claimResponse.applicationId.toLong,
           goodsDescriptionCategory   = PurchaseTypeCode.codeFor(purchaseType),
           goodsDescriptionText       = None,
           purchaseSubcategory        = None,
@@ -140,29 +150,33 @@ class PurchaseTypeController @Inject() (
           taxableAmount              = None,
           vatAmount                  = None,
           deductibleVatAmount        = None,
-          updateSequenceNumber       = answers.get(ClaimApplicationResponsePage).map(_.updateSeqNumber)
+          updateSequenceNumber       = claimResponse.updateSeqNumber
         )
+
         euVatRefundsService
           .addPurchase(purchaseRequest)
           .flatMap { response =>
             for {
-              withResponse <- Future.fromTry(answers.set(AddPurchaseResponsePage, response))
-              _            <- sessionRepository.set(withResponse)
+              updatedAnswers <- Future.fromTry(
+                                  answers.set(AddPurchaseResponsePage, response)
+                                )
+              _ <- sessionRepository.set(updatedAnswers)
             } yield {
-              val call   = navigator.nextPage(PurchaseTypePage, mode, withResponse)
+              val call = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)
               val prefix = MountPrefix.get
-              if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
-              else Redirect(Call(call.method, s"$prefix${call.url}"))
+
+              if (prefix.isEmpty || call.url.startsWith(prefix)) {
+                Redirect(call)
+              } else {
+                Redirect(Call(call.method, s"$prefix${call.url}"))
+              }
             }
           }
-          .recover { case ex: Exception =>
+          .recover { case ex =>
             logger.error("Error while adding the purchase", ex)
             Redirect(routes.JourneyRecoveryController.onPageLoad())
           }
-      case None =>
-        logger.warn("Missing applicationId for addPurchase")
-        Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
-    }
+      }
   }
   // mount prefix is provided by utils.MountPrefix
 }

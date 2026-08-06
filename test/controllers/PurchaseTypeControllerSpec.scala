@@ -200,7 +200,9 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         .thenReturn(Future.successful(AddPurchaseResponse(1, 2)))
 
       val userAnswers = emptyUserAnswers
-        .set(pages.ClaimApplicationResponsePage, ApplicationResponse(134, "GB123134", 1)).success.value
+        .set(pages.ClaimApplicationResponsePage, ApplicationResponse(134, "GB123134", 1))
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -228,8 +230,12 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       // set country to LT which has no 'fuel' mapping in purchase-mapping.conf
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "LT").success.value
-        .set(pages.ClaimApplicationResponsePage, ApplicationResponse(134, "GB123134", 1)).success.value
+        .set(pages.RefundingCountryPage, "LT")
+        .success
+        .value
+        .set(pages.ClaimApplicationResponsePage, ApplicationResponse(134, "GB123134", 1))
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(

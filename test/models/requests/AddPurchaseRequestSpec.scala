@@ -42,7 +42,7 @@ class AddPurchaseRequestSpec extends AnyWordSpec with Matchers {
     taxableAmount              = Some(BigDecimal(100.00)),
     vatAmount                  = Some(BigDecimal(20.00)),
     deductibleVatAmount        = Some(BigDecimal(20.00)),
-    updateSequenceNumber       = Some(1)
+    updateSequenceNumber       = 1
   )
 
   "AddPurchaseRequest JSON format" should {
@@ -53,14 +53,15 @@ class AddPurchaseRequestSpec extends AnyWordSpec with Matchers {
 
     "deserialize when optional fields are absent" in {
       val json = Json.obj(
-        "applicationId" -> 123456,
+        "applicationId"            -> 123456,
         "goodsDescriptionCategory" -> "1",
+        "updateSequenceNumber"     -> 1
       )
       val result = json.as[AddPurchaseRequest]
 
       result.applicationId        shouldBe 123456L
       result.supplierName         shouldBe None
-      result.updateSequenceNumber shouldBe None
+      result.updateSequenceNumber shouldBe 1
     }
   }
 }
