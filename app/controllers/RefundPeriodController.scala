@@ -116,8 +116,8 @@ class RefundPeriodController @Inject() (
       (startDate.equals(regDate) || startDate.isAfter(regDate), "refundPeriod.start.error.beforeVatRegDate.firstQuarter")
     } else { // Case 2: Apr–Dec rule
       val min = regDate.minusMonths(3)
-      // valid when start is between min (inclusive) and regDate (inclusive)
-      (!startDate.isBefore(min) && !startDate.isAfter(regDate), "refundPeriod.start.error.beforeVatRegDate.remainingQuarter")
+      // valid when start is within three months before the registration date or anytime after
+      (!startDate.isBefore(min) || startDate.isAfter(regDate), "refundPeriod.start.error.beforeVatRegDate.remainingQuarter")
     }
   }
 

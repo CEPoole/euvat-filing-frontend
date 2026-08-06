@@ -38,7 +38,7 @@ import java.time.LocalDateTime
 import scala.concurrent.Future
 
 class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
-
+ 
   val formProviderBeforeSept30: RefundPeriodFormProvider = new forms.RefundPeriodFormProvider() {
     override protected def today: java.time.LocalDate = java.time.LocalDate.of(2024, 6, 1)
   }
@@ -323,6 +323,32 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
               "start.year"  -> "2024",
               "end.month"   -> "12",
               "end.year"    -> "2024"
+            )
+          val result = route(application, request).value
+
+          status(result) mustEqual SEE_OTHER
+          redirectLocation(result).value mustEqual onwardRoute.url
+        }
+      }
+
+      "must accept period 02/2026-04/2026 for non-exempt VRN with old registration date" in {
+        val traderOld = TraderKnownFactsResponse(888777666, tradeClass = Some(baCode1), dateOfRegistration = Some(LocalDateTime.of(2010, 1, 1, 0, 0)))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(traderOld))
+
+        val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, traderOld).success.value
+
+        val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
+          .overrides(bind[Navigator].toInstance(new FakeNavigator(onwardRoute)))
+          .overrides(bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
+          .build()
+
+        running(application) {
+          val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
+            .withFormUrlEncodedBody(
+              "start.month" -> "02",
+              "start.year"  -> "2026",
+              "end.month"   -> "04",
+              "end.year"    -> "2026"
             )
           val result = route(application, request).value
 
@@ -1114,9 +1140,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
               .withFormUrlEncodedBody(
                 "start.month" -> "03",
-                "start.year"  -> "2024",
-                "end.month"   -> "08",
-                "end.year"    -> "2024"
+                "start.year" -> "2024",
+                "end.month" -> "08",
+                "end.year" -> "2024"
               )
             val result = route(application, request).value
 
@@ -1164,6 +1190,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
               )
             val result = route(application, request).value
 
+            // now redirects to overlap warning page
             status(result) mustEqual SEE_OTHER
             redirectLocation(result).value mustEqual routes.PeriodOverlapWarningController.onPageLoad(NormalMode).url
           }
@@ -1208,6 +1235,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
               )
             val result = route(application, request).value
 
+            // now redirects to overlap warning page
             status(result) mustEqual SEE_OTHER
             redirectLocation(result).value mustEqual routes.PeriodOverlapWarningController.onPageLoad(NormalMode).url
           }
