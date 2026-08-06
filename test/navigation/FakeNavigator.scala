@@ -46,8 +46,7 @@ class FakeNavigator(desiredRoute: Call)
         }
       """)
         )
-      )
-      ,
+      ),
       new ConfigPurchaseMapping(
         Configuration(
           ConfigFactory.parseString("""

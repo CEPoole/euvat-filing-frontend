@@ -18,11 +18,11 @@ package config
 
 import javax.inject.{Inject, Provider, Singleton}
 import play.api.{Configuration, Environment}
-import play.api.i18n.{Langs, MessagesApi, DefaultMessagesApi}
+import play.api.i18n.{DefaultMessagesApi, Langs, MessagesApi}
 import scala.io.Source
 
 @Singleton
-class MergedMessagesApiProvider @Inject()(
+class MergedMessagesApiProvider @Inject() (
   env: Environment,
   config: Configuration,
   langs: Langs
@@ -33,7 +33,9 @@ class MergedMessagesApiProvider @Inject()(
       case Some(is) =>
         val src = Source.fromInputStream(is, "UTF-8")
         try {
-          src.getLines().toSeq
+          src
+            .getLines()
+            .toSeq
             .map(_.trim)
             .filter(l => l.nonEmpty && !l.startsWith("#"))
             .flatMap { line =>
@@ -58,7 +60,9 @@ class MergedMessagesApiProvider @Inject()(
   }
 
   override def get(): MessagesApi = {
-    val merged = try loadMergedMessages() catch { case _: Throwable => Map.empty }
+    val merged =
+      try loadMergedMessages()
+      catch { case _: Throwable => Map.empty }
     new DefaultMessagesApi(merged, langs)
   }
 }

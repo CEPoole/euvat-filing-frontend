@@ -19,13 +19,13 @@ package controllers.helpers
 import models.requests.DataRequest
 import models.{Mode, PurchaseType}
 import models.PurchaseSubCategoryType
-import pages.{PurchaseTypePage, PurchaseSubTypePage, PurchaseSubCategoryPage}
+import pages.{PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage}
 import play.api.mvc.Call
 import utils.MountPrefix
 
 object PurchaseBackLinkHelper {
 
-  def computeBackTarget(mode: Mode)(implicit request: DataRequest[_]): Call = {
+  def computeBackTarget(mode: Mode)(implicit request: DataRequest[?]): Call = {
     val maybePurchaseTypeSlug = request.userAnswers.get(PurchaseTypePage).map(PurchaseType.slugOf)
     val maybeParentCode = request.userAnswers.get(PurchaseSubTypePage)
     val maybeChildCode = request.userAnswers.get(PurchaseSubCategoryPage)
@@ -38,7 +38,8 @@ object PurchaseBackLinkHelper {
           PurchaseType.values.find(pt => PurchaseType.slugOf(pt) == slug) match {
             case Some(pt) =>
               val parentKey = pt.toString
-              val slugOpt = PurchaseSubCategoryType.slugFor(parentKey, child)
+              val slugOpt = PurchaseSubCategoryType
+                .slugFor(parentKey, child)
                 .orElse {
                   // fallback to parent head (e.g. "1") then to first available slug
                   val parent = child.split("\\.").head
@@ -46,10 +47,12 @@ object PurchaseBackLinkHelper {
                 }
                 .orElse(PurchaseSubCategoryType.firstSlugFor(parentKey))
 
-              slugOpt.map(s => {
-                val p = MountPrefix.get
-                if (p.isEmpty) Call("GET", s"/$s") else Call("GET", s"$p/$s")
-              }).getOrElse(controllers.routes.PurchaseTypeController.onPageLoad(mode))
+              slugOpt
+                .map(s => {
+                  val p = MountPrefix.get
+                  if (p.isEmpty) Call("GET", s"/$s") else Call("GET", s"$p/$s")
+                })
+                .getOrElse(controllers.routes.PurchaseTypeController.onPageLoad(mode))
             case None => controllers.routes.PurchaseTypeController.onPageLoad(mode)
           }
         } else controllers.routes.PurchaseTypeController.onPageLoad(mode)
@@ -59,18 +62,20 @@ object PurchaseBackLinkHelper {
         val last = parent.split("\\.").lastOption.getOrElse(parent)
         val candidates = Seq(parent, last, head, child).distinct
 
-        val maybeCall = candidates.iterator.map { c =>
+        val maybeCall = candidates.iterator
+          .map { c =>
             try {
-            PurchaseType.values.find(pt => PurchaseType.slugOf(pt) == slug) match {
-              case Some(pt) =>
-                val parentKey = pt.toString
-                val slugPath = PurchaseSubCategoryType.pathFor(parentKey, c)
-                val p = MountPrefix.get
-                Some(Call("GET", if (p.isEmpty) s"/$slugPath" else s"$p/$slugPath"))
-              case None => None
-            }
-          } catch { case _: Throwable => None }
-        }.collectFirst { case Some(call) => call }
+              PurchaseType.values.find(pt => PurchaseType.slugOf(pt) == slug) match {
+                case Some(pt) =>
+                  val parentKey = pt.toString
+                  val slugPath = PurchaseSubCategoryType.pathFor(parentKey, c)
+                  val p = MountPrefix.get
+                  Some(Call("GET", if (p.isEmpty) s"/$slugPath" else s"$p/$slugPath"))
+                case None => None
+              }
+            } catch { case _: Throwable => None }
+          }
+          .collectFirst { case Some(call) => call }
 
         maybeCall.getOrElse(controllers.routes.PurchaseTypeController.onPageLoad(mode))
 

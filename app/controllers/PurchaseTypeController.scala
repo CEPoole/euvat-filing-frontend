@@ -21,7 +21,7 @@ import models.requests.DataRequest
 import forms.PurchaseTypeFormProvider
 import models.{Mode, PurchaseType}
 import navigation.Navigator
-import pages.{PurchaseTypePage, CountryChangedPage}
+import pages.{CountryChangedPage, PurchaseTypePage}
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents, RequestHeader}
@@ -66,10 +66,16 @@ class PurchaseTypeController @Inject() (
         afterClearedFlag                <- afterRemovedPurchaseSubCatLbl.remove(pages.CountryChangedPage)
       } yield afterClearedFlag
 
-      Future.fromTry(clearedTry).flatMap(updated => sessionRepository.set(updated).map(_ => {
-        val preparedForm = updated.get(PurchaseTypePage).fold(form)(form.fill)
-        Ok(view(preparedForm, mode, backLink(mode)))
-      }))
+      Future
+        .fromTry(clearedTry)
+        .flatMap(updated =>
+          sessionRepository
+            .set(updated)
+            .map(_ => {
+              val preparedForm = updated.get(PurchaseTypePage).fold(form)(form.fill)
+              Ok(view(preparedForm, mode, backLink(mode)))
+            })
+        )
     } else {
       val preparedForm = request.userAnswers.get(PurchaseTypePage).fold(form)(form.fill)
       Future.successful(Ok(view(preparedForm, mode, backLink(mode))))

@@ -56,10 +56,12 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
         val view = application.injector.instanceOf[TotalVatPaidView]
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode), "€", "Euro")(
-          request,
-          messages(application)
-        ).toString)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(form, NormalMode, routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode), "€", "Euro")(
+            request,
+            messages(application)
+          ).toString
+        )
       }
     }
 
@@ -76,12 +78,12 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
         val view = application.injector.instanceOf[TotalVatPaidView]
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form.fill(BigDecimal("12.34")),
-                       NormalMode,
-                       routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode),
-                       "€",
-                       "Euro"
-                      )(request, messages(application)).toString)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(form.fill(BigDecimal("12.34")), NormalMode, routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode), "€", "Euro")(
+            request,
+            messages(application)
+          ).toString
+        )
       }
     }
 
@@ -148,15 +150,12 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(boundForm,
-                                               NormalMode,
-                                               routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode),
-                                               "€",
-                                               "Euro"
-                                              )(
-          request,
-          messages(application)
-        ).toString)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(boundForm, NormalMode, routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode), "€", "Euro")(
+            request,
+            messages(application)
+          ).toString
+        )
       }
     }
 

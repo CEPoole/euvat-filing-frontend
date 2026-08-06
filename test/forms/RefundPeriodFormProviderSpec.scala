@@ -43,10 +43,12 @@ class RefundPeriodFormProviderSpec extends FormSpec with Matchers {
         "end.year"    -> "2020"
       )
 
-      val errors = form.bind(data).fold(
-        formWithErrors => formWithErrors.errors,
-        _ => fail("Expected validation errors")
-      )
+      val errors = form
+        .bind(data)
+        .fold(
+          formWithErrors => formWithErrors.errors,
+          _ => fail("Expected validation errors")
+        )
       errors must contain(FormError("", "refundPeriod.error.beforeEarliest.both", Seq("January 2021")))
     }
 
@@ -60,10 +62,12 @@ class RefundPeriodFormProviderSpec extends FormSpec with Matchers {
         "end.year"    -> "2021"
       )
 
-      val errors = form.bind(data).fold(
-        formWithErrors => formWithErrors.errors,
-        _ => fail("Expected validation errors")
-      )
+      val errors = form
+        .bind(data)
+        .fold(
+          formWithErrors => formWithErrors.errors,
+          _ => fail("Expected validation errors")
+        )
       errors must contain(FormError("", "refundPeriod.error.beforeEarliest.start", Seq("January 2021")))
     }
 
@@ -77,13 +81,15 @@ class RefundPeriodFormProviderSpec extends FormSpec with Matchers {
         "end.year"    -> "2021"
       )
 
-      val errors = form.bind(data).fold(
-        formWithErrors => formWithErrors.errors,
-        _ => fail("Expected validation errors")
-      )
+      val errors = form
+        .bind(data)
+        .fold(
+          formWithErrors => formWithErrors.errors,
+          _ => fail("Expected validation errors")
+        )
 
       errors.map(_.message).exists(_.startsWith("refundPeriod.start.error.required")) mustBe true
-      errors.map(_.message) must not contain ("refundPeriod.error.beforeEarliest.start")
+      errors.map(_.message) must not contain "refundPeriod.error.beforeEarliest.start"
     }
 
     "must error when end only is before earliest" in {
@@ -96,10 +102,12 @@ class RefundPeriodFormProviderSpec extends FormSpec with Matchers {
         "end.year"    -> "2020"
       )
 
-      val errors = form.bind(data).fold(
-        formWithErrors => formWithErrors.errors,
-        _ => fail("Expected validation errors")
-      )
+      val errors = form
+        .bind(data)
+        .fold(
+          formWithErrors => formWithErrors.errors,
+          _ => fail("Expected validation errors")
+        )
       errors must contain(FormError("", "refundPeriod.error.beforeEarliest.end", Seq("January 2021")))
     }
 
@@ -138,10 +146,12 @@ class RefundPeriodFormProviderSpec extends FormSpec with Matchers {
         "end.year"    -> "2020"
       )
 
-      val errors = form.bind(data).fold(
-        formWithErrors => formWithErrors.errors,
-        _ => fail("Expected validation errors")
-      )
+      val errors = form
+        .bind(data)
+        .fold(
+          formWithErrors => formWithErrors.errors,
+          _ => fail("Expected validation errors")
+        )
 
       errors.map(_.message) must contain("refundPeriod.error.periodNotLessThan3Months")
     }
@@ -162,7 +172,7 @@ class RefundPeriodFormProviderSpec extends FormSpec with Matchers {
 
       // period length error should appear and earliest error should not
       errors.map(_.message) must contain("refundPeriod.error.periodNotLessThan3Months")
-      errors.map(_.message) must not contain ("refundPeriod.error.beforeEarliest.both")
+      errors.map(_.message) must not contain "refundPeriod.error.beforeEarliest.both"
     }
 
     "must still prioritise period-length over earliest when earliest is later" in {
@@ -181,7 +191,7 @@ class RefundPeriodFormProviderSpec extends FormSpec with Matchers {
       val errors = mappedForm.errors
 
       errors.map(_.message) must contain("refundPeriod.error.periodNotLessThan3Months")
-      errors.map(_.message) must not contain ("refundPeriod.error.beforeEarliest.both")
+      errors.map(_.message) must not contain "refundPeriod.error.beforeEarliest.both"
     }
 
     "must error when either date is after latest" in {
@@ -194,10 +204,12 @@ class RefundPeriodFormProviderSpec extends FormSpec with Matchers {
         "end.year"    -> "2021"
       )
 
-      val errors = form.bind(data).fold(
-        formWithErrors => formWithErrors.errors,
-        _ => fail("Expected validation errors")
-      )
+      val errors = form
+        .bind(data)
+        .fold(
+          formWithErrors => formWithErrors.errors,
+          _ => fail("Expected validation errors")
+        )
       errors must contain(FormError("", "refundPeriod.error.afterLatest.both", Seq("December 2020")))
     }
 
@@ -211,10 +223,12 @@ class RefundPeriodFormProviderSpec extends FormSpec with Matchers {
         "end.year"    -> "2020"
       )
 
-      val errors = form.bind(data).fold(
-        formWithErrors => formWithErrors.errors,
-        _ => fail("Expected validation errors")
-      )
+      val errors = form
+        .bind(data)
+        .fold(
+          formWithErrors => formWithErrors.errors,
+          _ => fail("Expected validation errors")
+        )
       errors must contain(FormError("", "refundPeriod.error.afterLatest.start", Seq("December 2020")))
     }
 
@@ -228,10 +242,12 @@ class RefundPeriodFormProviderSpec extends FormSpec with Matchers {
         "end.year"    -> "2021"
       )
 
-      val errors = form.bind(data).fold(
-        formWithErrors => formWithErrors.errors,
-        _ => fail("Expected validation errors")
-      )
+      val errors = form
+        .bind(data)
+        .fold(
+          formWithErrors => formWithErrors.errors,
+          _ => fail("Expected validation errors")
+        )
       errors must contain(FormError("", "refundPeriod.error.afterLatest.end", Seq("December 2020")))
     }
   }

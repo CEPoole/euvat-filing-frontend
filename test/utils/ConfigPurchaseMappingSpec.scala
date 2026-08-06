@@ -43,7 +43,7 @@ class ConfigPurchaseMappingSpec extends AnyWordSpec with Matchers {
       val fuelCodes = svc.subcodesFor("AT", "fuel").map(_._1)
       fuelCodes should contain allElementsOf Seq("1", "1.1", "10")
 
-      svc.subcategoriesFor("AT", "fuel", "1") should contain ("1.1" -> "purchase.sub.fuel.1.1")
+      svc.subcategoriesFor("AT", "fuel", "1") should contain("1.1" -> "purchase.sub.fuel.1.1")
 
       val foodCodes = svc.subcodesFor("foodAndDrink").map(_._1)
       foodCodes should contain allElementsOf Seq("1", "1.1")
@@ -57,7 +57,7 @@ class ConfigPurchaseMappingSpec extends AnyWordSpec with Matchers {
       val svc = new ConfigPurchaseMapping(cfg)
 
       svc.subcodesFor("DE", "fuel") shouldBe empty
-      svc.subcodesFor("fuel") shouldBe empty
+      svc.subcodesFor("fuel")       shouldBe empty
     }
 
     "ignore non-string/object list entries and not throw" in {
@@ -71,7 +71,7 @@ class ConfigPurchaseMappingSpec extends AnyWordSpec with Matchers {
       val svc = new ConfigPurchaseMapping(cfg)
 
       val subs = svc.subcodesFor("IT", "fuel").map(_._1)
-      subs should contain ("1")
+      subs should contain("1")
     }
 
     "ignore non-string/object entries in HOCON arrays" in {
@@ -127,7 +127,7 @@ class ConfigPurchaseMappingSpec extends AnyWordSpec with Matchers {
       val svc = new ConfigPurchaseMapping(cfg)
 
       val subs = svc.subcodesFor("DE", "fuel").map(_._1)
-      subs should contain ("1")
+      subs should contain("1")
 
       val children = svc.subcategoriesFor("DE", "fuel", "1")
       children.map(_._1) should contain allElementsOf Seq("1.1", "1.2")
@@ -326,10 +326,10 @@ class ConfigPurchaseMappingSpec extends AnyWordSpec with Matchers {
       val svc = new ConfigPurchaseMapping(cfg)
 
       val subs = svc.subcodesFor("FR", "fuel").map(_._1)
-      subs should contain ("2")
+      subs should contain("2")
 
       val children = svc.subcategoriesFor("FR", "fuel", "2")
-      children should contain (("2.1", "purchase.sub.fuel.2.1"))
+      children should contain(("2.1", "purchase.sub.fuel.2.1"))
     }
 
     "parse configuration entries provided as nested objects with subcodes (covered)" in {
@@ -345,10 +345,10 @@ class ConfigPurchaseMappingSpec extends AnyWordSpec with Matchers {
       val svc = new ConfigPurchaseMapping(cfg)
 
       val subs = svc.subcodesFor("DE", "fuel").map(_._1)
-      subs should contain ("1")
+      subs should contain("1")
 
       val children = svc.subcategoriesFor("DE", "fuel", "1")
-      children should contain (("1.1", "purchase.sub.fuel.1.1"))
+      children should contain(("1.1", "purchase.sub.fuel.1.1"))
     }
 
     "return subcodes for parentKey without country (covered)" in {
@@ -365,7 +365,7 @@ class ConfigPurchaseMappingSpec extends AnyWordSpec with Matchers {
       val svc = new ConfigPurchaseMapping(cfg)
 
       val subs = svc.subcodesFor("fuel").map(_._1)
-      subs should contain ("3")
+      subs should contain("3")
     }
   }
 }

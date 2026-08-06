@@ -19,9 +19,9 @@ package controllers.helpers
 import base.SpecBase
 import models.{NormalMode, PurchaseType}
 import models.requests.DataRequest
-import pages.{PurchaseTypePage, PurchaseSubTypePage, PurchaseSubCategoryPage}
+import pages.{PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.mvc.Call
 import controllers.helpers.PurchaseBackLinkHelper
 
@@ -40,8 +40,12 @@ class PurchaseBackLinkHelperSpec extends SpecBase {
 
     "should return mounted slug when PurchaseType and PurchaseSubType present and no subcategory" in {
       val userAnswers: models.UserAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel).success.value
-        .set(PurchaseSubTypePage, "1").success.value
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(PurchaseSubTypePage, "1")
+        .success
+        .value
 
       implicit val request = DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, userAnswers)
 
@@ -53,8 +57,12 @@ class PurchaseBackLinkHelperSpec extends SpecBase {
 
     "should fallback to PurchaseType when child present but parent missing (child without dot)" in {
       val userAnswers: models.UserAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel).success.value
-        .set(PurchaseSubCategoryPage, "1").success.value
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(PurchaseSubCategoryPage, "1")
+        .success
+        .value
 
       implicit val request = DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, userAnswers)
 
@@ -65,8 +73,12 @@ class PurchaseBackLinkHelperSpec extends SpecBase {
 
     "should map to first available slug when child contains dot and parent missing" in {
       val userAnswers: models.UserAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel).success.value
-        .set(PurchaseSubCategoryPage, "1.1").success.value
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(PurchaseSubCategoryPage, "1.1")
+        .success
+        .value
 
       implicit val request = DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, userAnswers)
 

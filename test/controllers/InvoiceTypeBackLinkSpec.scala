@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import models.{NormalMode, PurchaseType}
-import pages.{InvoiceTypePage, PurchaseTypePage, PurchaseSubCategoryPage, PurchaseSubTypePage}
+import pages.{InvoiceTypePage, PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import play.api.mvc.Call
@@ -56,13 +56,20 @@ class InvoiceTypeBackLinkSpec extends SpecBase {
         val result = play.api.test.Helpers.route(application, request).value
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, controllers.routes.PurchaseTypeController.onPageLoad(NormalMode))(request, messages(application)).toString)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(form, NormalMode, controllers.routes.PurchaseTypeController.onPageLoad(NormalMode))(request, messages(application)).toString
+        )
       }
     }
 
     "should fallback to PurchaseType when child present but parent missing" in {
-      val userAnswers = emptyUserAnswers.set(PurchaseTypePage, PurchaseType.Fuel).success.value
-      .set(PurchaseSubCategoryPage, "1").success.value
+      val userAnswers = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(PurchaseSubCategoryPage, "1")
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
@@ -73,15 +80,23 @@ class InvoiceTypeBackLinkSpec extends SpecBase {
         val result = play.api.test.Helpers.route(application, request).value
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, controllers.routes.PurchaseTypeController.onPageLoad(NormalMode))(request, messages(application)).toString)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(form, NormalMode, controllers.routes.PurchaseTypeController.onPageLoad(NormalMode))(request, messages(application)).toString
+        )
       }
     }
 
     "should link to PurchaseSubCategory when parent and child present" in {
       val userAnswers = emptyUserAnswers
-      .set(PurchaseTypePage, PurchaseType.Fuel).success.value
-      .set(PurchaseSubTypePage, "1").success.value
-      .set(PurchaseSubCategoryPage, "1").success.value
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(PurchaseSubTypePage, "1")
+        .success
+        .value
+        .set(PurchaseSubCategoryPage, "1")
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
@@ -94,7 +109,9 @@ class InvoiceTypeBackLinkSpec extends SpecBase {
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, Call("GET", "/file-eu-vat/fuel-type"))(request, messages(application)).toString)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(form, NormalMode, Call("GET", "/file-eu-vat/fuel-type"))(request, messages(application)).toString
+        )
       }
     }
 

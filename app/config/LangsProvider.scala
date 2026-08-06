@@ -18,10 +18,10 @@ package config
 
 import javax.inject.{Inject, Provider, Singleton}
 import play.api.Configuration
-import play.api.i18n.{Lang, Langs, DefaultLangs}
+import play.api.i18n.{DefaultLangs, Lang, Langs}
 
 @Singleton
-class LangsProvider @Inject()(config: Configuration) extends Provider[Langs] {
+class LangsProvider @Inject() (config: Configuration) extends Provider[Langs] {
   override def get(): Langs = {
     val langsCfg = config.get[Seq[String]]("play.i18n.langs")
     new DefaultLangs(langsCfg.map(Lang.apply))

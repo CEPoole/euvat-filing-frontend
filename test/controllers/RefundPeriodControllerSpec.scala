@@ -51,7 +51,6 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
   private val baCode1 = "49200"
   private val trader: TraderKnownFactsResponse = TraderKnownFactsResponse(123, tradeClass = Some(baCode1))
 
-
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockEuVatRefundsService)
@@ -76,15 +75,17 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
           val form = application.injector.instanceOf[forms.RefundPeriodFormProvider].apply()
 
           status(result) mustEqual OK
-          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(
-            form,
-            NormalMode,
-            routes.RefundingLanguageController.onPageLoad(NormalMode),
-            None,
-            None,
-            Set.empty[String],
-            Map.empty[String, String]
-          )(request, msgs).toString)
+          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+            view(
+              form,
+              NormalMode,
+              routes.RefundingLanguageController.onPageLoad(NormalMode),
+              None,
+              None,
+              Set.empty[String],
+              Map.empty[String, String]
+            )(request, msgs).toString
+          )
         }
       }
 
@@ -107,15 +108,16 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
           val form = formProvider().fill(forms.RefundPeriodData(start, end))
 
           status(result) mustEqual OK
-          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(
-            form,
-            NormalMode,
-            routes.RefundingLanguageController.onPageLoad(NormalMode),
-            None,
-            None,
-            Set.empty[String],
-            Map.empty[String, String]
-          )(request, msgs).toString
+          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+            view(
+              form,
+              NormalMode,
+              routes.RefundingLanguageController.onPageLoad(NormalMode),
+              None,
+              None,
+              Set.empty[String],
+              Map.empty[String, String]
+            )(request, msgs).toString
           )
         }
       }
@@ -331,6 +333,32 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         }
       }
 
+      "must accept period 02/2026-04/2026 for non-exempt VRN with old registration date" in {
+        val traderOld = TraderKnownFactsResponse(888777666, tradeClass = Some(baCode1), dateOfRegistration = Some(LocalDateTime.of(2010, 1, 1, 0, 0)))
+        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(traderOld))
+
+        val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, traderOld).success.value
+
+        val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
+          .overrides(bind[Navigator].toInstance(new FakeNavigator(onwardRoute)))
+          .overrides(bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
+          .build()
+
+        running(application) {
+          val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
+            .withFormUrlEncodedBody(
+              "start.month" -> "02",
+              "start.year"  -> "2026",
+              "end.month"   -> "04",
+              "end.year"    -> "2026"
+            )
+          val result = route(application, request).value
+
+          status(result) mustEqual SEE_OTHER
+          redirectLocation(result).value mustEqual onwardRoute.url
+        }
+      }
+
       "must show after-latest error for exempt VRN when start is after configured latest" in {
         // Configure an exempt VRN and a latest permitted date of Dec 2020
         val exemptVrn = 999900106
@@ -342,7 +370,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
 
         val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
           .configure(
-            "settings.refund.can.create.vrns" -> "999900106",
+            "settings.refund.can.create.vrns"             -> "999900106",
             "settings.refund.start.date.latest.permitted" -> "12/20"
           )
           .build()
@@ -375,7 +403,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
           .configure(
             "settings.refund.start.date.earliest.permitted" -> "01/20",
-            "settings.refund.start.date.latest.permitted"  -> "12/20"
+            "settings.refund.start.date.latest.permitted"   -> "12/20"
           )
           .build()
 
@@ -404,7 +432,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
           .configure(
             "settings.refund.start.date.earliest.permitted" -> "",
-            "settings.refund.start.date.latest.permitted"  -> "12/20"
+            "settings.refund.start.date.latest.permitted"   -> "12/20"
           )
           .build()
 
@@ -457,7 +485,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
           val expected = msgs.preferred(FakeRequest()).apply("refundPeriod.error.periodNotLessThan3Months")
           contentAsString(result) must include(expected)
           // Ensure cutoff/earliest messages are suppressed for exempt VRN short window
-          contentAsString(result) must not include ("Refund period start date cannot be before 1 January")
+          contentAsString(result) must not include "Refund period start date cannot be before 1 January"
         }
       }
 
@@ -483,15 +511,15 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
               "end.year"    -> "2021"
             )
 
-            val result = route(application, request).value
+          val result = route(application, request).value
 
-            status(result) mustEqual BAD_REQUEST
+          status(result) mustEqual BAD_REQUEST
 
-            // human representation of earliest (from config 01/25)
-            val human = java.time.YearMonth.of(2025, 1).atDay(1).format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy"))
-            contentAsString(result) must include(human)
-            // Do not include the same-year calendar error when earliest business rule applies
-            contentAsString(result) must not include (messages(application)("refundPeriod.error.startAndEndInSameYear"))
+          // human representation of earliest (from config 01/25)
+          val human = java.time.YearMonth.of(2025, 1).atDay(1).format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy"))
+          contentAsString(result) must include(human)
+          // Do not include the same-year calendar error when earliest business rule applies
+          contentAsString(result) must not include (messages(application)("refundPeriod.error.startAndEndInSameYear"))
         }
       }
 
@@ -536,7 +564,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
 
         val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
           .configure(
-            "settings.refund.can.create.vrns" -> "",
+            "settings.refund.can.create.vrns"               -> "",
             "settings.refund.start.date.earliest.permitted" -> "01/21"
           )
           .build()
@@ -568,7 +596,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
 
         val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
           .configure(
-            "settings.refund.can.create.vrns" -> "",
+            "settings.refund.can.create.vrns"               -> "",
             "settings.refund.start.date.earliest.permitted" -> "01/21"
           )
           .build()
@@ -598,7 +626,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
 
         val application = appBuilder(userAnswers = Some(userAnswersWithTrader))
           .configure(
-            "settings.refund.can.create.vrns" -> "",
+            "settings.refund.can.create.vrns"               -> "",
             "settings.refund.start.date.earliest.permitted" -> "01/21"
           )
           .build()
@@ -650,7 +678,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
           body must include(humanLatest)
           // only end should be linked in the error summary
           body must include("href=\"#end.month\"")
-          body must not include ("href=\"#start.month\"")
+          body must not include "href=\"#start.month\""
         }
       }
 
@@ -1164,6 +1192,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
               )
             val result = route(application, request).value
 
+            // now redirects to overlap warning page
             status(result) mustEqual SEE_OTHER
             redirectLocation(result).value mustEqual routes.PeriodOverlapWarningController.onPageLoad(NormalMode).url
           }
@@ -1208,6 +1237,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
               )
             val result = route(application, request).value
 
+            // now redirects to overlap warning page
             status(result) mustEqual SEE_OTHER
             redirectLocation(result).value mustEqual routes.PeriodOverlapWarningController.onPageLoad(NormalMode).url
           }

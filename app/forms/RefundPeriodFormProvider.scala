@@ -128,10 +128,15 @@ class RefundPeriodFormProvider @Inject() () {
     // rule exists, drop the calendar-year mismatch so the latest/earliest maps only to
     // the end (or as configured). This keeps exempt-VRN behaviour focused on the
     // configured window.
-    val filteredAfterCutoff2 = if (suppressCutoff && hasLatestOrEarliest) filteredAfterCutoff.filterNot(_.message == "refundPeriod.error.startAndEndInSameYear") else filteredAfterCutoff
+    val filteredAfterCutoff2 =
+      if (suppressCutoff && hasLatestOrEarliest) filteredAfterCutoff.filterNot(_.message == "refundPeriod.error.startAndEndInSameYear")
+      else filteredAfterCutoff
 
     // Prefer start/year mismatch, earliest/latest, or period-length error over the generic end-in-past message
-    val filteredErrorsAfterInPast = if (filteredAfterCutoff2.exists(_.message == "refundPeriod.error.startAndEndInSameYear") || hasLatestOrEarliest || hasPeriodLengthError) filteredAfterCutoff2.filterNot(_.message == "refundPeriod.end.error.inPast") else filteredAfterCutoff2
+    val filteredErrorsAfterInPast =
+      if (filteredAfterCutoff2.exists(_.message == "refundPeriod.error.startAndEndInSameYear") || hasLatestOrEarliest || hasPeriodLengthError)
+        filteredAfterCutoff2.filterNot(_.message == "refundPeriod.end.error.inPast")
+      else filteredAfterCutoff2
 
     // If there are no field-level errors and an earliest business-rule error exists,
     // only surface the earliest errors (suppress calendar-year and other checks).
@@ -149,14 +154,14 @@ class RefundPeriodFormProvider @Inject() () {
           case s if s.endsWith(".both")  => Seq(error.copy(key = "start"), error.copy(key = "end"))
           case s if s.endsWith(".start") => Seq(error.copy(key = "start"))
           case s if s.endsWith(".end")   => Seq(error.copy(key = "end"))
-          case _                           => Seq(error.copy(key = "start"))
+          case _                         => Seq(error.copy(key = "start"))
         }
       } else if (msg.startsWith(latestPrefix)) {
         msg match {
           case s if s.endsWith(".both")  => Seq(error.copy(key = "start"), error.copy(key = "end"))
           case s if s.endsWith(".start") => Seq(error.copy(key = "start"))
           case s if s.endsWith(".end")   => Seq(error.copy(key = "end"))
-          case _                           => Seq(error.copy(key = "end"))
+          case _                         => Seq(error.copy(key = "end"))
         }
       } else {
         errorMappings.get(error.message) match {
@@ -174,7 +179,9 @@ class RefundPeriodFormProvider @Inject() () {
 
   def apply()(implicit messages: Messages): Form[RefundPeriodData] = apply(None, None, skipSeptemberCutoff = false)
 
-  def apply(earliest: Option[YearMonth], latest: Option[YearMonth], skipSeptemberCutoff: Boolean = false)(implicit messages: Messages): Form[RefundPeriodData] = {
+  def apply(earliest: Option[YearMonth], latest: Option[YearMonth], skipSeptemberCutoff: Boolean = false)(implicit
+    messages: Messages
+  ): Form[RefundPeriodData] = {
     import play.api.data.Mapping
 
     val baseMapping: Mapping[RefundPeriodData] = mapping(
@@ -194,13 +201,16 @@ class RefundPeriodFormProvider @Inject() () {
       )
       .verifying("refundPeriod.error.startAndEndInSameYear", datesInSameYear(earliest))
       .verifying("refundPeriod.error.periodNotLessThan3Months", periodLessThan3Months)
-      .verifying("refundPeriod.end.error.inPast", data => {
-        if (!data.start.isBefore(currentYearMonth) && !data.end.isBefore(currentYearMonth)) {
-          true
-        } else {
-          data.end.isBefore(currentYearMonth) || data.end.getMonthValue == 12
+      .verifying(
+        "refundPeriod.end.error.inPast",
+        data => {
+          if (!data.start.isBefore(currentYearMonth) && !data.end.isBefore(currentYearMonth)) {
+            true
+          } else {
+            data.end.isBefore(currentYearMonth) || data.end.getMonthValue == 12
+          }
         }
-      })
+      )
 
     if (!skipSeptemberCutoff) mapped = mapped.verifying(septemberCutoffConstraint)
 
@@ -262,7 +272,7 @@ class RefundPeriodFormProvider @Inject() () {
           else {
             val human = min.atDay(1).format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy"))
             (startBefore, endBefore) match {
-              case (true, true) => Invalid("refundPeriod.error.beforeEarliest.both", human)
+              case (true, true)  => Invalid("refundPeriod.error.beforeEarliest.both", human)
               case (true, false) => Invalid("refundPeriod.error.beforeEarliest.start", human)
               case (false, true) => Invalid("refundPeriod.error.beforeEarliest.end", human)
               case _             => Valid
@@ -282,7 +292,7 @@ class RefundPeriodFormProvider @Inject() () {
           else {
             val human = max.atDay(1).format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy"))
             (startAfter, endAfter) match {
-              case (true, true) => Invalid("refundPeriod.error.afterLatest.both", human)
+              case (true, true)  => Invalid("refundPeriod.error.afterLatest.both", human)
               case (true, false) => Invalid("refundPeriod.error.afterLatest.start", human)
               case (false, true) => Invalid("refundPeriod.error.afterLatest.end", human)
               case _             => Valid

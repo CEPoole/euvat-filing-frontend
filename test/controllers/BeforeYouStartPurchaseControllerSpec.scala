@@ -38,7 +38,9 @@ class BeforeYouStartPurchaseControllerSpec extends SpecBase {
         val view = application.injector.instanceOf[BeforeYouStartPurchaseView]
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(routes.TaskListDashboardController.onPageLoad())(request, messages(application)).toString)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(routes.TaskListDashboardController.onPageLoad())(request, messages(application)).toString
+        )
       }
     }
 

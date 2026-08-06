@@ -22,7 +22,7 @@ import forms.InvoiceTypeFormProvider
 import javax.inject.Inject
 import models.Mode
 import navigation.Navigator
-import pages.{InvoiceTypePage, PurchaseTypePage, PurchaseSubTypePage, PurchaseSubCategoryPage, PurchaseSubCategoryLabelPage, PurchaseSubTypeLabelPage, DescribeItemsOnInvoicePage}
+import pages.{DescribeItemsOnInvoicePage, InvoiceTypePage, PurchaseSubCategoryLabelPage, PurchaseSubCategoryPage, PurchaseSubTypeLabelPage, PurchaseSubTypePage, PurchaseTypePage}
 import models.requests.DataRequest
 import models.PurchaseType
 import models.PurchaseSubCategoryType
@@ -48,19 +48,20 @@ class InvoiceTypeController @Inject() (
   formProvider: InvoiceTypeFormProvider,
   val controllerComponents: MessagesControllerComponents,
   view: InvoiceTypeView
-) (implicit ec: ExecutionContext)
-  extends FrontendBaseController
-  with I18nSupport
-  with play.api.Logging {
+)(implicit ec: ExecutionContext)
+    extends FrontendBaseController
+    with I18nSupport
+    with play.api.Logging {
 
   val form = formProvider()
 
-  /**
-   * Compute the back target Call without mutating session. Used to render the back link.
-   */
+  /** Compute the back target Call without mutating session. Used to render the back link.
+    */
   private def computeBackTarget(mode: Mode)(implicit request: DataRequest[?]): play.api.mvc.Call = {
     try {
-      logger.info(s"InvoiceTypeController.backLink - purchaseType=${request.userAnswers.get(PurchaseTypePage)}, parent=${request.userAnswers.get(PurchaseSubTypePage)}, child=${request.userAnswers.get(PurchaseSubCategoryPage)}")
+      logger.info(
+        s"InvoiceTypeController.backLink - purchaseType=${request.userAnswers.get(PurchaseTypePage)}, parent=${request.userAnswers.get(PurchaseSubTypePage)}, child=${request.userAnswers.get(PurchaseSubCategoryPage)}"
+      )
     } catch { case _: Throwable => }
 
     // If PurchaseType is Other and a saved subtype ends with `.99` then
@@ -75,15 +76,18 @@ class InvoiceTypeController @Inject() (
       val childIsNone = request.userAnswers.get(PurchaseSubCategoryPage).exists(v => v.split("\\.").lastOption.contains("99"))
 
       if (parentIsNone) {
-        val countryOpt = request.userAnswers.get(pages.RefundingCountryPage)
+        val countryOpt = request.userAnswers
+          .get(pages.RefundingCountryPage)
           .orElse(request.userAnswers.get(pages.RefundingCountryNamePage).map(_.split(",").last.trim))
 
-        val multipleOptions = countryOpt.flatMap { c =>
-          try {
-            val opts = configPurchaseMapping.subcodesFor(c, "other")
-            if (opts.nonEmpty) Some(opts.size > 1) else None
-          } catch { case _: Throwable => None }
-        }.getOrElse(false)
+        val multipleOptions = countryOpt
+          .flatMap { c =>
+            try {
+              val opts = configPurchaseMapping.subcodesFor(c, "other")
+              if (opts.nonEmpty) Some(opts.size > 1) else None
+            } catch { case _: Throwable => None }
+          }
+          .getOrElse(false)
 
         // Previously we sent users directly to the PurchaseSubType page when
         // multiple `other` options existed. This caused the DescribeItemsOnInvoice
@@ -97,12 +101,9 @@ class InvoiceTypeController @Inject() (
     } else PurchaseBackLinkHelper.computeBackTarget(mode)
   }
 
-  /**
-   * Back-link endpoint: when the user clicks the back link this endpoint is hit, clears the
-   * appropriate session keys and then redirects to the computed target. This ensures clearing
-   * happens at the click moment instead of when InvoiceType is rendered.
-   */
-
+  /** Back-link endpoint: when the user clicks the back link this endpoint is hit, clears the appropriate session keys and then redirects to the
+    * computed target. This ensures clearing happens at the click moment instead of when InvoiceType is rendered.
+    */
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
     val preparedForm = request.userAnswers.get(InvoiceTypePage) match {
@@ -119,9 +120,9 @@ class InvoiceTypeController @Inject() (
     form
       .bindFromRequest()
       .fold(
-              formWithErrors =>
-                // render errors
-                Future.successful(BadRequest(view(formWithErrors, mode, computeBackTarget(mode)))),
+        formWithErrors =>
+          // render errors
+          Future.successful(BadRequest(view(formWithErrors, mode, computeBackTarget(mode)))),
         value =>
           for {
             updatedAnswers <- Future.fromTry(request.userAnswers.set(InvoiceTypePage, value))

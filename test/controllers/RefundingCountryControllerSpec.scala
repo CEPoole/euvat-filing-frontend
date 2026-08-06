@@ -36,7 +36,6 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
 
   // Use `normalizeHtml` from SpecBase to normalize CSRF and nonce differences
 
-
   val onwardRoute: Call = Call("GET", "/foo")
 
   "RefundingCountry Controller" - {
@@ -61,9 +60,11 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val backUrl = application.configuration.get[String]("urls.loginContinue") + controllers.routes.TaskListDashboardController.onPageLoad().url
         body must not include s"href=\"$backUrl\""
         val viewRequest = request.withCSRFToken
-        normalizeHtml(body) mustEqual normalizeHtml(view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
-           messages(application)
-          ).toString)
+        normalizeHtml(body) mustEqual normalizeHtml(
+          view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
+                                                                                                                messages(application)
+                                                                                                               ).toString
+        )
       }
     }
 
@@ -102,9 +103,11 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val backUrl = application.configuration.get[String]("urls.loginContinue") + controllers.routes.TaskListDashboardController.onPageLoad().url
         body must not include s"href=\"$backUrl\""
         val viewRequest = request.withCSRFToken
-        normalizeHtml(body) mustEqual normalizeHtml(view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
-           messages(application)
-          ).toString)
+        normalizeHtml(body) mustEqual normalizeHtml(
+          view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
+                                                                                                                messages(application)
+                                                                                                               ).toString
+        )
       }
     }
 
@@ -329,12 +332,24 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
 
       // Start with a saved country and various purchase selections
       val starting = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "BG").success.value
-        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
-        .set(pages.PurchaseSubTypePage, "1.1").success.value
-        .set(pages.PurchaseSubTypeLabelPage, "Fuel label").success.value
-        .set(pages.PurchaseSubCategoryPage, "1.1.1").success.value
-        .set(pages.PurchaseSubCategoryLabelPage, "Fuel sub label").success.value
+        .set(pages.RefundingCountryPage, "BG")
+        .success
+        .value
+        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .success
+        .value
+        .set(pages.PurchaseSubTypePage, "1.1")
+        .success
+        .value
+        .set(pages.PurchaseSubTypeLabelPage, "Fuel label")
+        .success
+        .value
+        .set(pages.PurchaseSubCategoryPage, "1.1.1")
+        .success
+        .value
+        .set(pages.PurchaseSubCategoryLabelPage, "Fuel sub label")
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(starting))
         .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
@@ -385,9 +400,11 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val backUrl = application.configuration.get[String]("urls.loginContinue") + controllers.routes.TaskListDashboardController.onPageLoad().url
         body must not include s"href=\"$backUrl\""
         val viewRequest = request.withCSRFToken
-        normalizeHtml(body) mustEqual normalizeHtml(view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
-           messages(application)
-          ).toString)
+        normalizeHtml(body) mustEqual normalizeHtml(
+          view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
+                                                                                                                messages(application)
+                                                                                                               ).toString
+        )
       }
 
     }
@@ -415,9 +432,11 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val backUrl = application.configuration.get[String]("urls.loginContinue") + controllers.routes.TaskListDashboardController.onPageLoad().url
         body must not include s"href=\"$backUrl\""
         val viewRequest = request.withCSRFToken
-        normalizeHtml(body) mustEqual normalizeHtml(view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
-           messages(application)
-          ).toString)
+        normalizeHtml(body) mustEqual normalizeHtml(
+          view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
+                                                                                                                messages(application)
+                                                                                                               ).toString
+        )
       }
     }
 

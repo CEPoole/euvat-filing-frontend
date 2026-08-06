@@ -91,7 +91,10 @@ class RefundPeriodController @Inject() (
     Ok(view(mappedForm, mode, backLink(mode), startMsg, endMsg, highlighted, errorLinkOverrides(mappedForm)))
   }
 
-  private def renderError(form: Form[RefundPeriodData], mode: Mode, traderVrnOverride: Option[String] = None)(implicit request: DataRequest[AnyContent], messages: Messages) = {
+  private def renderError(form: Form[RefundPeriodData], mode: Mode, traderVrnOverride: Option[String] = None)(implicit
+    request: DataRequest[AnyContent],
+    messages: Messages
+  ) = {
     val (_, _, isExempt) = computeEarliestAndLatest(request, traderVrnOverride)
     val (mappedForm, highlighted) = formProvider.withMappedErrors(form, suppressCutoff = isExempt)
     val startMsg = errorMessage(mappedForm, Seq("start", "start.month", "start.year"))
@@ -116,8 +119,8 @@ class RefundPeriodController @Inject() (
       (startDate.equals(regDate) || startDate.isAfter(regDate), "refundPeriod.start.error.beforeVatRegDate.firstQuarter")
     } else { // Case 2: Apr–Dec rule
       val min = regDate.minusMonths(3)
-      // valid when start is between min (inclusive) and regDate (inclusive)
-      (!startDate.isBefore(min) && !startDate.isAfter(regDate), "refundPeriod.start.error.beforeVatRegDate.remainingQuarter")
+      // valid when start is within three months before the registration date or anytime after
+      (!startDate.isBefore(min) || startDate.isAfter(regDate), "refundPeriod.start.error.beforeVatRegDate.remainingQuarter")
     }
   }
 
@@ -199,32 +202,34 @@ class RefundPeriodController @Inject() (
       baseForm
         .bindFromRequest()
         .fold(
-            formWithErrors => {
-              // Do not override cutoff errors with VAT-registration checks here; surface
-              // the binding/form errors directly so validation precedence remains
-              // earliest/latest -> field-level -> VAT-registration (F6) -> overlap.
-              renderError(formWithErrors, mode, Some(traderResponse.vatRegNumber.toString))
-            },
+          formWithErrors => {
+            // Do not override cutoff errors with VAT-registration checks here; surface
+            // the binding/form errors directly so validation precedence remains
+            // earliest/latest -> field-level -> VAT-registration (F6) -> overlap.
+            renderError(formWithErrors, mode, Some(traderResponse.vatRegNumber.toString))
+          },
           value => {
             val startDate = YearMonth.of(value.start.getYear, value.start.getMonthValue).atDay(1).atStartOfDay()
             val endDate = YearMonth.of(value.end.getYear, value.end.getMonthValue).atEndOfMonth().atTime(23, 59, 59, 999000000)
 
             // earliest/latest re-check (defensive) and business checks
             earliestForTrader match {
-                case Some(min) if value.start.isBefore(min) || value.end.isBefore(min) =>
-                  val startBefore = value.start.isBefore(min)
-                  val endBefore = value.end.isBefore(min)
-                  val human = min.atDay(1).format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy"))
-                  var f = baseForm.fill(value)
-                  if (startBefore && endBefore) {
-                    f = f.withError("start", "refundPeriod.error.beforeEarliest.both", human).withError("end", "refundPeriod.error.beforeEarliest.both", human)
-                  } else if (startBefore) {
-                    f = f.withError("start", "refundPeriod.error.beforeEarliest.start", human)
-                  } else if (endBefore) {
-                    f = f.withError("end", "refundPeriod.error.beforeEarliest.end", human)
-                  }
-                  val formWithError = f
-                  renderError(formWithError, mode, Some(traderResponse.vatRegNumber.toString))
+              case Some(min) if value.start.isBefore(min) || value.end.isBefore(min) =>
+                val startBefore = value.start.isBefore(min)
+                val endBefore = value.end.isBefore(min)
+                val human = min.atDay(1).format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy"))
+                var f = baseForm.fill(value)
+                if (startBefore && endBefore) {
+                  f = f
+                    .withError("start", "refundPeriod.error.beforeEarliest.both", human)
+                    .withError("end", "refundPeriod.error.beforeEarliest.both", human)
+                } else if (startBefore) {
+                  f = f.withError("start", "refundPeriod.error.beforeEarliest.start", human)
+                } else if (endBefore) {
+                  f = f.withError("end", "refundPeriod.error.beforeEarliest.end", human)
+                }
+                val formWithError = f
+                renderError(formWithError, mode, Some(traderResponse.vatRegNumber.toString))
               case _ =>
                 latestForTrader match {
                   case Some(max) if value.start.isAfter(max) || value.end.isAfter(max) =>
@@ -233,7 +238,9 @@ class RefundPeriodController @Inject() (
                     val human = max.atDay(1).format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy"))
                     var f2 = baseForm.fill(value)
                     if (startAfter && endAfter) {
-                      f2 = f2.withError("start", "refundPeriod.error.afterLatest.both", human).withError("end", "refundPeriod.error.afterLatest.both", human)
+                      f2 = f2
+                        .withError("start", "refundPeriod.error.afterLatest.both", human)
+                        .withError("end", "refundPeriod.error.afterLatest.both", human)
                     } else if (startAfter) {
                       f2 = f2.withError("start", "refundPeriod.error.afterLatest.start", human)
                     } else if (endAfter) {
@@ -242,31 +249,32 @@ class RefundPeriodController @Inject() (
                     val formWithError = f2
                     renderError(formWithError, mode, Some(traderResponse.vatRegNumber.toString))
                   case _ =>
-                    val maybeErrorForm: Option[Form[RefundPeriodData]] = (traderResponse.dateOfRegistration, traderResponse.dateOfDeregistration) match {
-                      case (Some(regDate), Some(deRegDate)) =>
-                        val (validStartDate, msg) = isStartDateValid(startDate, regDate)
-                        if (!validStartDate) {
-                          Some(baseForm.fill(value).withError("start", msg))
-                        } else if (endDate.isAfter(deRegDate)) {
-                          Some(baseForm.fill(value).withError("end", "refundPeriod.end.error.afterVatDeRegDate"))
-                        } else {
-                          None
-                        }
-                      case (Some(regDate), None) =>
-                        val (validStartDate, msg) = isStartDateValid(startDate, regDate)
-                        if (!validStartDate) {
-                          Some(baseForm.fill(value).withError("start", msg))
-                        } else {
-                          None
-                        }
-                      case (None, Some(deRegDate)) =>
-                        if (endDate.isAfter(deRegDate)) {
-                          Some(baseForm.fill(value).withError("end", "refundPeriod.end.error.afterVatDeRegDate"))
-                        } else {
-                          None
-                        }
-                      case _ => None
-                    }
+                    val maybeErrorForm: Option[Form[RefundPeriodData]] =
+                      (traderResponse.dateOfRegistration, traderResponse.dateOfDeregistration) match {
+                        case (Some(regDate), Some(deRegDate)) =>
+                          val (validStartDate, msg) = isStartDateValid(startDate, regDate)
+                          if (!validStartDate) {
+                            Some(baseForm.fill(value).withError("start", msg))
+                          } else if (endDate.isAfter(deRegDate)) {
+                            Some(baseForm.fill(value).withError("end", "refundPeriod.end.error.afterVatDeRegDate"))
+                          } else {
+                            None
+                          }
+                        case (Some(regDate), None) =>
+                          val (validStartDate, msg) = isStartDateValid(startDate, regDate)
+                          if (!validStartDate) {
+                            Some(baseForm.fill(value).withError("start", msg))
+                          } else {
+                            None
+                          }
+                        case (None, Some(deRegDate)) =>
+                          if (endDate.isAfter(deRegDate)) {
+                            Some(baseForm.fill(value).withError("end", "refundPeriod.end.error.afterVatDeRegDate"))
+                          } else {
+                            None
+                          }
+                        case _ => None
+                      }
 
                     maybeErrorForm match {
                       case Some(formWithError) => renderError(formWithError, mode, Some(traderResponse.vatRegNumber.toString))
@@ -284,7 +292,9 @@ class RefundPeriodController @Inject() (
     }
   }
 
-  private def computeEarliestAndLatest(request: DataRequest[?], traderVrnOverride: Option[String] = None): (Option[YearMonth], Option[YearMonth], Boolean) = {
+  private def computeEarliestAndLatest(request: DataRequest[?],
+                                       traderVrnOverride: Option[String] = None
+                                      ): (Option[YearMonth], Option[YearMonth], Boolean) = {
     def parseMMYY(s: String): Option[YearMonth] = {
       val parts = s.split("/")
       if (parts.length == 2 && parts(0).forall(_.isDigit) && parts(1).forall(_.isDigit) && parts(0).length == 2 && parts(1).length == 2) {
@@ -314,9 +324,9 @@ class RefundPeriodController @Inject() (
       // If config is missing or blank => default to January 2021 per spec.
       // If config exists but fails to parse, skip earliest validation (None).
       configuration.getOptional[String]("settings.refund.start.date.earliest.permitted") match {
-        case None => Some(YearMonth.of(2021, 1))
+        case None                      => Some(YearMonth.of(2021, 1))
         case Some(v) if v.trim.isEmpty => Some(YearMonth.of(2021, 1))
-        case Some(v) => parseMMYY(v) // if parse fails -> None => skip validation
+        case Some(v)                   => parseMMYY(v) // if parse fails -> None => skip validation
       }
     }
 

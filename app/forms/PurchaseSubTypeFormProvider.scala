@@ -27,13 +27,10 @@ class PurchaseSubTypeFormProvider @Inject() () {
     case _                          => Invalid(requiredKey)
   }
 
-  /**
-   * Create a form for a radio selection where the caller supplies the message key
-   * to use when the value is missing. We bind as an optional `text` and apply a
-   * form-level constraint so the dynamic `requiredKey` is used even when the
-   * request omits the `value` parameter entirely (Play's default missing-field
-   * error would otherwise use the static `error.required`).
-   */
+  /** Create a form for a radio selection where the caller supplies the message key to use when the value is missing. We bind as an optional `text`
+    * and apply a form-level constraint so the dynamic `requiredKey` is used even when the request omits the `value` parameter entirely (Play's
+    * default missing-field error would otherwise use the static `error.required`).
+    */
   def apply(requiredKey: String = "error.required"): Form[String] = {
     val mapping = optional(text)
       .verifying(nonEmptyOpt(requiredKey))

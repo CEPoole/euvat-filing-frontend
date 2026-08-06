@@ -30,17 +30,13 @@ import com.typesafe.config.{ConfigObject, ConfigValueType}
 
 case class PurchaseNode(parent: String, code: String, label: String, children: Seq[PurchaseNode] = Seq.empty)
 
-/**
- * `ConfigPurchaseMapping` loads a declarative purchase mapping from
- * `application.conf` (under `purchase.mapping`) and exposes helpers used by
- * controllers and views to build radio items and lookup subcodes/subcategories.
- *
- * The mapping supports mixed arrays (plain strings and nested objects) and
- * contains logic to normalise label keys that include numeric ordering
- * segments. The class is intentionally defensive: most parsing errors are
- * swallowed and an empty mapping is returned so the application can fall
- * back to sensible defaults.
- */
+/** `ConfigPurchaseMapping` loads a declarative purchase mapping from `application.conf` (under `purchase.mapping`) and exposes helpers used by
+  * controllers and views to build radio items and lookup subcodes/subcategories.
+  *
+  * The mapping supports mixed arrays (plain strings and nested objects) and contains logic to normalise label keys that include numeric ordering
+  * segments. The class is intentionally defensive: most parsing errors are swallowed and an empty mapping is returned so the application can fall
+  * back to sensible defaults.
+  */
 
 object ConfigPurchaseMapping {
   val NoneValue: String = "__none__"
@@ -48,12 +44,9 @@ object ConfigPurchaseMapping {
 
 class ConfigPurchaseMapping @Inject() (config: Configuration = Configuration.empty, env: Environment = Environment.simple()) {
 
-  /**
-   * Normalise a label key by dropping a numeric segment that duplicates the
-   * first numeric segment of the `code` when present. This mirrors a set of
-   * legacy label shapes used in configuration and keeps resulting message
-   * keys stable for lookups in message bundles.
-   */
+  /** Normalise a label key by dropping a numeric segment that duplicates the first numeric segment of the `code` when present. This mirrors a set of
+    * legacy label shapes used in configuration and keeps resulting message keys stable for lookups in message bundles.
+    */
   private def normalizeLabel(label: String, code: String): String = {
     if (label == null) return ""
     val prefix = "purchase.sub."
@@ -69,182 +62,182 @@ class ConfigPurchaseMapping @Inject() (config: Configuration = Configuration.emp
     } else label
   }
 
+  private val mapping: Map[String, Seq[PurchaseNode]] =
+    try {
+      // The raw HOCON node under `purchase.mapping` is the source of truth.
+      // It's expected to have top-level keys for country codes (eg "DE", "AT").
+      val rootConfig = config.underlying.getConfig("purchase.mapping")
 
-  private val mapping: Map[String, Seq[PurchaseNode]] = try {
-    // The raw HOCON node under `purchase.mapping` is the source of truth.
-    // It's expected to have top-level keys for country codes (eg "DE", "AT").
-    val rootConfig = config.underlying.getConfig("purchase.mapping")
+      // Parse a single mapping entry. Entries come in two flavours:
+      // - String rows encoded as "parent|code|label"
+      // - Nested objects represented as a Play `Configuration` for richer entries
+      def parseEntry(entry: Any): PurchaseNode = entry match {
+        // Simple string entry: parts are delimited by '|'
+        case s: String =>
+          val parts = s.split("\\|", 3)
+          // Expect exactly three parts; if malformed the downstream logic
+          // will still treat missing parts as empty strings.
+          PurchaseNode(parts(0), parts(1), parts(2), Seq.empty)
 
-    // Parse a single mapping entry. Entries come in two flavours:
-    // - String rows encoded as "parent|code|label"
-    // - Nested objects represented as a Play `Configuration` for richer entries
-    def parseEntry(entry: Any): PurchaseNode = entry match {
-      // Simple string entry: parts are delimited by '|'
-      case s: String =>
-        val parts = s.split("\\|", 3)
-        // Expect exactly three parts; if malformed the downstream logic
-        // will still treat missing parts as empty strings.
-        PurchaseNode(parts(0), parts(1), parts(2), Seq.empty)
+        // Complex object entry: may contain `subcodes` which is itself an
+        // array of strings and/or objects. We recursively parse children.
+        case c: Configuration =>
+          val parent = c.getOptional[String]("parent").getOrElse("")
+          val code = c.getOptional[String]("code").getOrElse("")
+          val label = c.getOptional[String]("label").getOrElse("")
 
-      // Complex object entry: may contain `subcodes` which is itself an
-      // array of strings and/or objects. We recursively parse children.
-      case c: Configuration =>
-        val parent = c.getOptional[String]("parent").getOrElse("")
-        val code = c.getOptional[String]("code").getOrElse("")
-        val label = c.getOptional[String]("label").getOrElse("")
-
-        // Attempt to read nested `subcodes` list; be defensive as the
-        // configuration shape can vary and may include non-string/object
-        // elements which we ignore.
-        val children: Seq[PurchaseNode] = try {
-          val underlying = c.underlying
-          val list = underlying.getList("subcodes")
-          // Convert Java list -> Scala and map each value depending on its type
-          list.asScala.toSeq.map { v =>
-            v.valueType() match {
-              case ConfigValueType.STRING =>
-                // Recursively parse a string child entry
-                parseEntry(v.unwrapped().asInstanceOf[String])
-              case ConfigValueType.OBJECT =>
-                // Convert the ConfigObject to a Play Configuration then parse
-                val obj = v.asInstanceOf[ConfigObject].toConfig
-                parseEntry(Configuration(obj))
-              case _ =>
-                // Ignore unsupported list element types
-                PurchaseNode("", "", "", Seq.empty)
+          // Attempt to read nested `subcodes` list; be defensive as the
+          // configuration shape can vary and may include non-string/object
+          // elements which we ignore.
+          val children: Seq[PurchaseNode] =
+            try {
+              val underlying = c.underlying
+              val list = underlying.getList("subcodes")
+              // Convert Java list -> Scala and map each value depending on its type
+              list.asScala.toSeq.map { v =>
+                v.valueType() match {
+                  case ConfigValueType.STRING =>
+                    // Recursively parse a string child entry
+                    parseEntry(v.unwrapped().asInstanceOf[String])
+                  case ConfigValueType.OBJECT =>
+                    // Convert the ConfigObject to a Play Configuration then parse
+                    val obj = v.asInstanceOf[ConfigObject].toConfig
+                    parseEntry(Configuration(obj))
+                  case _ =>
+                    // Ignore unsupported list element types
+                    PurchaseNode("", "", "", Seq.empty)
+                }
+              }
+            } catch {
+              case _: Throwable => Seq.empty // parsing must not break startup
             }
-          }
-        } catch {
-          case _: Throwable => Seq.empty // parsing must not break startup
-        }
 
-        PurchaseNode(parent, code, label, children)
+          PurchaseNode(parent, code, label, children)
 
-      // Fallback for any unexpected types
-      case _ => PurchaseNode("", "", "", Seq.empty)
-    }
+        // Fallback for any unexpected types
+        case _ => PurchaseNode("", "", "", Seq.empty)
+      }
 
-    // iterate the top-level keys under purchase.mapping (country codes)
-    val countries: Seq[String] = rootConfig.root().keySet().asScala.toSeq
-    val playRoot = Configuration(rootConfig)
+      // iterate the top-level keys under purchase.mapping (country codes)
+      val countries: Seq[String] = rootConfig.root().keySet().asScala.toSeq
+      val playRoot = Configuration(rootConfig)
 
-    countries.map { key =>
-      // Each country key maps to a list which may contain plain strings or
-      // nested objects. We try multiple strategies to get a Seq[Any] that we
-      // can parse: prefer the underlying `Config` list (which preserves types)
-      // but fall back to Play's `Configuration` helpers when necessary.
-      val seqAny: Seq[Any] = try {
-        // Use the typesafe `Config` API which exposes the underlying value
-        // types directly. This handles mixed arrays gracefully.
-        val list = rootConfig.getList(key)
-        list.asScala.toSeq.map { v =>
-          v.valueType() match {
-            case ConfigValueType.STRING => v.unwrapped().asInstanceOf[String]
-            case ConfigValueType.OBJECT =>
-              // Convert nested ConfigObject into a Play Configuration for
-              // uniform parsing below.
-              val obj = v.asInstanceOf[ConfigObject].toConfig
-              Configuration(obj)
-            case _ => v.unwrapped()
-          }
-        }
-      } catch {
-        // If the underlying API path isn't present (eg when config is empty)
-        // try progressively weaker reads using Play's `Configuration` APIs.
-        case _: Throwable =>
+      countries.map { key =>
+        // Each country key maps to a list which may contain plain strings or
+        // nested objects. We try multiple strategies to get a Seq[Any] that we
+        // can parse: prefer the underlying `Config` list (which preserves types)
+        // but fall back to Play's `Configuration` helpers when necessary.
+        val seqAny: Seq[Any] =
           try {
-            // Try reading as a Seq[String]
-            playRoot.get[Seq[String]](key).map(_.asInstanceOf[Any])
+            // Use the typesafe `Config` API which exposes the underlying value
+            // types directly. This handles mixed arrays gracefully.
+            val list = rootConfig.getList(key)
+            list.asScala.toSeq.map { v =>
+              v.valueType() match {
+                case ConfigValueType.STRING => v.unwrapped().asInstanceOf[String]
+                case ConfigValueType.OBJECT =>
+                  // Convert nested ConfigObject into a Play Configuration for
+                  // uniform parsing below.
+                  val obj = v.asInstanceOf[ConfigObject].toConfig
+                  Configuration(obj)
+                case _ => v.unwrapped()
+              }
+            }
           } catch {
+            // If the underlying API path isn't present (eg when config is empty)
+            // try progressively weaker reads using Play's `Configuration` APIs.
             case _: Throwable =>
               try {
-                // Try reading as Seq[Configuration]
-                playRoot.get[Seq[Configuration]](key).map(_.asInstanceOf[Seq[Any]])
+                // Try reading as a Seq[String]
+                playRoot.get[Seq[String]](key).map(_.asInstanceOf[Any])
               } catch {
-                case _: Throwable => Seq.empty
+                case _: Throwable =>
+                  try {
+                    // Try reading as Seq[Configuration]
+                    playRoot.get[Seq[Configuration]](key).map(_.asInstanceOf[Seq[Any]])
+                  } catch {
+                    case _: Throwable => Seq.empty
+                  }
               }
           }
-      }
 
-      // Parse the (possibly mixed) list of entries into flat PurchaseNode items
-      // using `parseEntry` which handles both string and object entries.
-      val flatNodes = seqAny.map(parseEntry)
+        // Parse the (possibly mixed) list of entries into flat PurchaseNode items
+        // using `parseEntry` which handles both string and object entries.
+        val flatNodes = seqAny.map(parseEntry)
 
-      /**
-       * Normalise label keys by removing an ordering numeric segment when it
-       * occurs directly after the type segment. Example:
-       * `purchase.sub.fuel.1.10.5` -> `purchase.sub.fuel.10.5`.
-       */
-      def normalizeLabelKey(label: String): String = {
-        if (label == null) return ""
-        val prefix = "purchase.sub."
-        if (!label.startsWith(prefix)) return label
-        val rest = label.substring(prefix.length)
-        val parts = rest.split("\\.")
-        if (parts.length >= 2 && parts(1).matches("\\d+")) {
-          val newRest = parts.head +: parts.drop(2)
-          prefix + newRest.mkString(".")
-        } else {
-          label
-        }
-      }
-
-      // build a two-level tree: base subcodes (first two segments) and their children
-      val groupedByParent: Map[String, Seq[PurchaseNode]] = flatNodes.groupBy(_.parent)
-
-      // Build a two-level tree for the country: a list of base subcodes
-      // (first two dotted segments) each with their derived children. This
-      // collapses deeper codes under their closest base so lookups are
-      // straightforward for controllers that only need a single level of
-      // subcategories.
-      val nodes = groupedByParent.toSeq.flatMap { case (parentKey, nodesForParent) =>
-        // compute base subcode keys (take first two dot segments)
-        val baseKeys: Seq[String] = nodesForParent.map { n =>
-          val parts = n.code.split("\\.")
-          // base example: from "1.10.1" -> "1.10"
-          parts.take(2).mkString(".")
-        }.distinct
-
-        baseKeys.map { base =>
-          // Prefer an explicit label defined for the base; otherwise derive
-          // a label from the first child's label by stripping the final
-          // segment from a dotted message key.
-          val explicitLabelOpt = nodesForParent.find(_.code == base).map(_.label)
-          val derivedLabel = explicitLabelOpt.orElse {
-            nodesForParent.find(n => n.code.startsWith(base + ".")).flatMap { child =>
-              val l = child.label
-              if (l != null && l.startsWith("purchase.sub.")) {
-                val parts = l.split("\\.")
-                // drop the last segment of the message key (child index)
-                if (parts.length > 3) Some(parts.dropRight(1).mkString(".")) else None
-              } else None
-            }
+        /** Normalise label keys by removing an ordering numeric segment when it occurs directly after the type segment. Example:
+          * `purchase.sub.fuel.1.10.5` -> `purchase.sub.fuel.10.5`.
+          */
+        def normalizeLabelKey(label: String): String = {
+          if (label == null) return ""
+          val prefix = "purchase.sub."
+          if (!label.startsWith(prefix)) return label
+          val rest = label.substring(prefix.length)
+          val parts = rest.split("\\.")
+          if (parts.length >= 2 && parts(1).matches("\\d+")) {
+            val newRest = parts.head +: parts.drop(2)
+            prefix + newRest.mkString(".")
+          } else {
+            label
           }
-          val label = derivedLabel.getOrElse(base)
-
-          // Children can come either from explicit `subcodes` inside a
-          // parent object or from sibling entries whose code starts with
-          // the base's prefix. Collect both sources and merge them.
-          val explicitNodeOpt = nodesForParent.find(_.code == base)
-          val explicitChildren: Seq[PurchaseNode] = explicitNodeOpt.toSeq.flatMap(_.children)
-
-          val siblingChildren: Seq[PurchaseNode] = nodesForParent
-            .filter(n => n.code != base && n.code.startsWith(base + "."))
-            .map(n => PurchaseNode(parentKey, n.code, n.label, Seq.empty))
-
-          // merge and deduplicate children by their code, then sort for
-          // deterministic ordering in tests and views
-          val children = (explicitChildren ++ siblingChildren).groupBy(_.code).map(_._2.head).toSeq.sortBy(_.code)
-
-          PurchaseNode(parentKey, base, label, children)
         }
-      }
 
-      key -> nodes
-    }.toMap
-  } catch {
-    case _: Throwable => Map.empty
-  }
+        // build a two-level tree: base subcodes (first two segments) and their children
+        val groupedByParent: Map[String, Seq[PurchaseNode]] = flatNodes.groupBy(_.parent)
+
+        // Build a two-level tree for the country: a list of base subcodes
+        // (first two dotted segments) each with their derived children. This
+        // collapses deeper codes under their closest base so lookups are
+        // straightforward for controllers that only need a single level of
+        // subcategories.
+        val nodes = groupedByParent.toSeq.flatMap { case (parentKey, nodesForParent) =>
+          // compute base subcode keys (take first two dot segments)
+          val baseKeys: Seq[String] = nodesForParent.map { n =>
+            val parts = n.code.split("\\.")
+            // base example: from "1.10.1" -> "1.10"
+            parts.take(2).mkString(".")
+          }.distinct
+
+          baseKeys.map { base =>
+            // Prefer an explicit label defined for the base; otherwise derive
+            // a label from the first child's label by stripping the final
+            // segment from a dotted message key.
+            val explicitLabelOpt = nodesForParent.find(_.code == base).map(_.label)
+            val derivedLabel = explicitLabelOpt.orElse {
+              nodesForParent.find(n => n.code.startsWith(base + ".")).flatMap { child =>
+                val l = child.label
+                if (l != null && l.startsWith("purchase.sub.")) {
+                  val parts = l.split("\\.")
+                  // drop the last segment of the message key (child index)
+                  if (parts.length > 3) Some(parts.dropRight(1).mkString(".")) else None
+                } else None
+              }
+            }
+            val label = derivedLabel.getOrElse(base)
+
+            // Children can come either from explicit `subcodes` inside a
+            // parent object or from sibling entries whose code starts with
+            // the base's prefix. Collect both sources and merge them.
+            val explicitNodeOpt = nodesForParent.find(_.code == base)
+            val explicitChildren: Seq[PurchaseNode] = explicitNodeOpt.toSeq.flatMap(_.children)
+
+            val siblingChildren: Seq[PurchaseNode] = nodesForParent
+              .filter(n => n.code != base && n.code.startsWith(base + "."))
+              .map(n => PurchaseNode(parentKey, n.code, n.label, Seq.empty))
+
+            // merge and deduplicate children by their code, then sort for
+            // deterministic ordering in tests and views
+            val children = (explicitChildren ++ siblingChildren).groupBy(_.code).map(_._2.head).toSeq.sortBy(_.code)
+
+            PurchaseNode(parentKey, base, label, children)
+          }
+        }
+
+        key -> nodes
+      }.toMap
+    } catch {
+      case _: Throwable => Map.empty
+    }
 
   def subcodesFor(country: String, parentKey: String): Seq[(String, String)] =
     nodesForCountry(country).toSeq.flatMap(_.filter(_.parent == parentKey).map(n => (n.code, n.label)))
@@ -327,47 +320,59 @@ class ConfigPurchaseMapping @Inject() (config: Configuration = Configuration.emp
       def loadPurchaseMessages(langCode: String): Map[String, String] = {
         val namesToTry = Seq(s"messages.purchase.$langCode", "messages.purchase.en")
 
-        namesToTry.iterator.flatMap { name =>
-          try {
-            env.resourceAsStream(name).map { is =>
-              val src = Source.fromInputStream(is, "UTF-8")
-              try {
-                src.getLines().toSeq
-                  .map(_.trim)
-                  .filter(l => l.nonEmpty && !l.startsWith("#"))
-                  .flatMap { line =>
-                    val idx = line.indexOf('=')
-                    if (idx > 0) Some(line.substring(0, idx).trim -> line.substring(idx + 1).trim)
-                    else None
-                  }
-              } finally src.close()
-            }.getOrElse(Seq.empty)
-          } catch {
-            case _: Throwable => Seq.empty
+        namesToTry.iterator
+          .flatMap { name =>
+            try {
+              env
+                .resourceAsStream(name)
+                .map { is =>
+                  val src = Source.fromInputStream(is, "UTF-8")
+                  try {
+                    src
+                      .getLines()
+                      .toSeq
+                      .map(_.trim)
+                      .filter(l => l.nonEmpty && !l.startsWith("#"))
+                      .flatMap { line =>
+                        val idx = line.indexOf('=')
+                        if (idx > 0) Some(line.substring(0, idx).trim -> line.substring(idx + 1).trim)
+                        else None
+                      }
+                  } finally src.close()
+                }
+                .getOrElse(Seq.empty)
+            } catch {
+              case _: Throwable => Seq.empty
+            }
           }
-        }.toSeq.foldLeft(Map.empty[String, String]) { case (acc, (k, v)) => acc + (k -> v) }
+          .toSeq
+          .foldLeft(Map.empty[String, String]) { case (acc, (k, v)) => acc + (k -> v) }
       }
 
       // Load purchase-specific message fallbacks from resource bundles named
       // `messages.purchase.<lang>`. If no resource is present we fall back to
       // the main `Messages` instance provided by Play.
-      val purchaseMap = try loadPurchaseMessages(lang) catch { case _: Throwable => Map.empty[String, String] }
+      val purchaseMap =
+        try loadPurchaseMessages(lang)
+        catch { case _: Throwable => Map.empty[String, String] }
 
       // Resolve the first candidate that exists in either Play Messages or
       // the `messages.purchase.*` fallbacks. If none are defined default to
       // the provided label key string.
-      val label = candidates.collectFirst({
-        case k if msgs.isDefinedAt(k) => msgs(k)
-        case k if purchaseMap.get(k).isDefined => purchaseMap(k)
-      }).getOrElse(labelKey)
+      val label = candidates
+        .collectFirst {
+          case k if msgs.isDefinedAt(k)          => msgs(k)
+          case k if purchaseMap.get(k).isDefined => purchaseMap(k)
+        }
+        .getOrElse(labelKey)
       RadioItem(
         content = Text(label),
-        value = Some(code),
-        id = Some(s"value_$idx")
+        value   = Some(code),
+        id      = Some(s"value_$idx")
       )
     } :+ RadioItem(
       content = Text("None"),
-      value = Some(ConfigPurchaseMapping.NoneValue),
-      id = Some(s"value_none")
+      value   = Some(ConfigPurchaseMapping.NoneValue),
+      id      = Some(s"value_none")
     )
 }

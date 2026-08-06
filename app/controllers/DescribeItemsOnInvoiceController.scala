@@ -21,7 +21,7 @@ import forms.DescribeItemsOnInvoiceFormProvider
 import javax.inject.Inject
 import models.Mode
 import navigation.Navigator
-import pages.{DescribeItemsOnInvoicePage, PurchaseTypePage, PurchaseSubTypePage, PurchaseSubCategoryPage}
+import pages.{DescribeItemsOnInvoicePage, PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage}
 import play.api.mvc.Call
 import scala.util.Try
 import models.requests.DataRequest
@@ -68,17 +68,21 @@ class DescribeItemsOnInvoiceController @Inject() (
 
       if (parentIsNone) {
         // Attempt to resolve the refunding country from stored answers
-        val countryOpt = request.userAnswers.get(pages.RefundingCountryPage)
+        val countryOpt = request.userAnswers
+          .get(pages.RefundingCountryPage)
           .orElse(request.userAnswers.get(pages.RefundingCountryNamePage).map(_.split(",").last.trim))
 
-        val multipleOptions = countryOpt.flatMap { c =>
-          try {
-            val opts = configPurchaseMapping.subcodesFor(c, "other")
-            if (opts.nonEmpty) Some(opts.size > 1) else None
-          } catch { case _: Throwable => None }
-        }.getOrElse(false)
+        val multipleOptions = countryOpt
+          .flatMap { c =>
+            try {
+              val opts = configPurchaseMapping.subcodesFor(c, "other")
+              if (opts.nonEmpty) Some(opts.size > 1) else None
+            } catch { case _: Throwable => None }
+          }
+          .getOrElse(false)
 
-        if (multipleOptions) controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Other), mode)
+        if (multipleOptions)
+          controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Other), mode)
         else controllers.routes.PurchaseTypeController.onPageLoad(mode)
       } else {
         // Fallback: if the child indicates None, route to purchase type as before
@@ -101,8 +105,7 @@ class DescribeItemsOnInvoiceController @Inject() (
     form
       .bindFromRequest()
       .fold(
-        formWithErrors =>
-          Future.successful(BadRequest(view(formWithErrors, mode, computeBackTarget(mode)))) ,
+        formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, computeBackTarget(mode)))),
         value =>
           for {
             updatedAnswers <- Future.fromTry(request.userAnswers.set(DescribeItemsOnInvoicePage, value))
