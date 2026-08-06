@@ -21,15 +21,15 @@ import models.requests.{AddPurchaseRequest, DataRequest}
 import forms.PurchaseTypeFormProvider
 import models.{Mode, PurchaseType, PurchaseTypeCode, UserAnswers}
 import navigation.Navigator
-import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, CountryChangedPage, PurchaseTypePage, SimplifiedInvoiceVatRegCheckPage, CountryChangedPage}
+import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, CountryChangedPage, PurchaseTypePage}
 import play.api.Logging
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents, RequestHeader, Result}
+import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents, Result}
 import repositories.SessionRepository
-import utils.MountPrefix
 import services.EuVatRefundsService
 import uk.gov.hmrc.http.HeaderCarrier
+import utils.MountPrefix
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import views.html.PurchaseTypeView
@@ -38,18 +38,18 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class PurchaseTypeController @Inject() (
-  override val messagesApi: MessagesApi,
-  sessionRepository: SessionRepository,
-  navigator: Navigator,
-  identify: IdentifierAction,
-  getData: DataRetrievalAction,
-  requireData: DataRequiredAction,
-  formProvider: PurchaseTypeFormProvider,
-  val controllerComponents: MessagesControllerComponents,
-  euVatRefundsService: EuVatRefundsService,
-  view: PurchaseTypeView
-)(implicit ec: ExecutionContext)
-    extends FrontendBaseController
+                                         override val messagesApi: MessagesApi,
+                                         sessionRepository: SessionRepository,
+                                         navigator: Navigator,
+                                         identify: IdentifierAction,
+                                         getData: DataRetrievalAction,
+                                         requireData: DataRequiredAction,
+                                         formProvider: PurchaseTypeFormProvider,
+                                         val controllerComponents: MessagesControllerComponents,
+                                         euVatRefundsService: EuVatRefundsService,
+                                         view: PurchaseTypeView
+                                       )(implicit ec: ExecutionContext)
+  extends FrontendBaseController
     with I18nSupport
     with Logging {
 
@@ -111,31 +111,15 @@ class PurchaseTypeController @Inject() (
             updatedAnswers <- Future.fromTry(saved)
             _ <- sessionRepository.set(updatedAnswers)
             result <- addPurchaseAndPersist(updatedAnswers, value, mode)
-          for {
-            updatedAnswers <- Future.fromTry(saved)
-          (for {
-          for {
-            updatedAnswers <- Future.fromTry(request.userAnswers.set(PurchaseTypePage, value))
-            _              <- sessionRepository.set(updatedAnswers)
-          } yield {
-            val call = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)
-            val prefix = MountPrefix.get
-            if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
-            else Redirect(Call(call.method, s"$prefix${call.url}"))
-          }
-            result         <- addPurchaseAndPersist(updatedAnswers, value, mode)
           } yield result
         }
       )
   }
 
-  // mount prefix is provided by utils.MountPrefix
-
   private def addPurchaseAndPersist(answers: UserAnswers, purchaseType: PurchaseType, mode: Mode)(implicit
-    request: DataRequest[?]
+                                                                                                  request: DataRequest[?]
   ): Future[Result] = {
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
-
     answers.get(ClaimApplicationResponsePage).map(_.applicationId) match {
       case Some(applicationId) =>
         val purchaseRequest = AddPurchaseRequest(
@@ -164,16 +148,21 @@ class PurchaseTypeController @Inject() (
             for {
               withResponse <- Future.fromTry(answers.set(AddPurchaseResponsePage, response))
               _            <- sessionRepository.set(withResponse)
-            } yield Redirect(navigator.nextPage(PurchaseTypePage, mode, withResponse))
+            } yield {
+              val call   = navigator.nextPage(PurchaseTypePage, mode, withResponse)
+              val prefix = MountPrefix.get
+              if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
+              else Redirect(Call(call.method, s"$prefix${call.url}"))
+            }
           }
           .recover { case ex: Exception =>
             logger.error("Error while adding the purchase", ex)
             Redirect(routes.JourneyRecoveryController.onPageLoad())
           }
-
       case None =>
         logger.warn("Missing applicationId for addPurchase")
         Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
     }
   }
+  // mount prefix is provided by utils.MountPrefix
 }
