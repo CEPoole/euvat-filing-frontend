@@ -20,9 +20,9 @@ import com.google.inject.AbstractModule
 import controllers.actions.*
 
 import java.time.{Clock, ZoneOffset}
-import play.api.i18n.{MessagesApi, Langs}
+import play.api.i18n.{Langs, MessagesApi}
 import play.api.inject.bind
-import config.{MergedMessagesApiProvider, LangsProvider}
+import config.{LangsProvider, MergedMessagesApiProvider}
 
 class Module extends AbstractModule {
 

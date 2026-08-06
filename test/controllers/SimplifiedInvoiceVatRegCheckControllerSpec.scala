@@ -80,7 +80,9 @@ class SimplifiedInvoiceVatRegCheckControllerSpec extends SpecBase with MockitoSu
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form.fill(true), NormalMode, backLink)(request, messages(application)).toString)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(form.fill(true), NormalMode, backLink)(request, messages(application)).toString
+        )
       }
     }
 

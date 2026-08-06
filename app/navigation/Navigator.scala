@@ -25,7 +25,10 @@ import models.*
 import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, ConfigPurchaseMapping}
 
 @Singleton
-class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configLanguageMapping: ConfigLanguageMapping, configPurchaseMapping: ConfigPurchaseMapping) {
+class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
+                           configLanguageMapping: ConfigLanguageMapping,
+                           configPurchaseMapping: ConfigPurchaseMapping
+                          ) {
 
   def nextPage(page: Page, mode: Mode, userAnswers: UserAnswers): Call = mode match {
     case NormalMode => normalRoutes(page)(userAnswers)
@@ -47,19 +50,20 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
             else { routes.RefundPeriodController.onPageLoad(NormalMode) }
           case _ => routes.RefundingLanguageController.onPageLoad(NormalMode)
         }
-    case RefundingLanguagePage             => userAnswers => navigateFromRefundingLanguagePage(NormalMode)(userAnswers)
-    case RefundingCurrencyPage             => userAnswers => navigateFromRefundingCurrencyPage(NormalMode)(userAnswers)
-    case RefundPeriodPage                  => _ => routes.ContactDetailsController.onPageLoad(NormalMode)
-    case ContactDetailsPage                => _ => routes.BusinessActivityController.onPageLoad(NormalMode)
-    case BusinessActivityPage              => userAnswer => navigateFromBusinessActivityPage(NormalMode)(userAnswer)
-    case BusinessActivityTwoPage           => userAnswer => navigateFromBusinessActivity2Page(NormalMode)(userAnswer)
-    case BusinessActivityCodeThreePage     => _ => routes.BusinessActivityThreeController.onPageLoad()
-    case PurchaseTypePage                  => userAnswer => navigateFromPurchaseTypePage(NormalMode)(userAnswer)
-    case PurchaseSubCategoryPage           => userAnswers =>
-      userAnswers.get(PurchaseTypePage) match {
-        case Some(_) => routes.InvoiceTypeController.onPageLoad(NormalMode)
-        case _       => routes.JourneyRecoveryController.onPageLoad()
-      }
+    case RefundingLanguagePage         => userAnswers => navigateFromRefundingLanguagePage(NormalMode)(userAnswers)
+    case RefundingCurrencyPage         => userAnswers => navigateFromRefundingCurrencyPage(NormalMode)(userAnswers)
+    case RefundPeriodPage              => _ => routes.ContactDetailsController.onPageLoad(NormalMode)
+    case ContactDetailsPage            => _ => routes.BusinessActivityController.onPageLoad(NormalMode)
+    case BusinessActivityPage          => userAnswer => navigateFromBusinessActivityPage(NormalMode)(userAnswer)
+    case BusinessActivityTwoPage       => userAnswer => navigateFromBusinessActivity2Page(NormalMode)(userAnswer)
+    case BusinessActivityCodeThreePage => _ => routes.BusinessActivityThreeController.onPageLoad()
+    case PurchaseTypePage              => userAnswer => navigateFromPurchaseTypePage(NormalMode)(userAnswer)
+    case PurchaseSubCategoryPage =>
+      userAnswers =>
+        userAnswers.get(PurchaseTypePage) match {
+          case Some(_) => routes.InvoiceTypeController.onPageLoad(NormalMode)
+          case _       => routes.JourneyRecoveryController.onPageLoad()
+        }
     case DescribeItemsOnInvoicePage        => _ => routes.InvoiceTypeController.onPageLoad(NormalMode)
     case InvoiceTypePage                   => userAnswer => navigateFromInvoiceTypePage(NormalMode)(userAnswer)
     case InvoiceNumberPage                 => _ => routes.InvoiceDateController.onPageLoad(NormalMode)
@@ -92,19 +96,20 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping, configL
             else { routes.CheckYourClaimDetailsController.onPageLoad() }
           case _ => routes.RefundingLanguageController.onPageLoad(CheckMode)
         }
-    case RefundingLanguagePage             => userAnswers => navigateFromRefundingLanguagePage(CheckMode)(userAnswers)
-    case RefundingCurrencyPage             => userAnswers => navigateFromRefundingCurrencyPage(CheckMode)(userAnswers)
-    case RefundPeriodPage                  => _ => routes.CheckYourClaimDetailsController.onPageLoad()
-    case ContactDetailsPage                => _ => routes.CheckYourClaimDetailsController.onPageLoad()
-    case BusinessActivityPage              => userAnswer => navigateFromBusinessActivityPage(CheckMode)(userAnswer)
-    case BusinessActivityTwoPage           => userAnswer => navigateFromBusinessActivity2Page(CheckMode)(userAnswer)
-    case BusinessActivityCodeThreePage     => _ => routes.BusinessActivityThreeController.onPageLoad()
-    case PurchaseTypePage                  => userAnswer => navigateFromPurchaseTypePage(CheckMode)(userAnswer)
-    case PurchaseSubCategoryPage           => userAnswers =>
-      userAnswers.get(PurchaseTypePage) match {
-        case Some(_) => routes.InvoiceTypeController.onPageLoad(CheckMode)
-        case _       => routes.JourneyRecoveryController.onPageLoad()
-      }
+    case RefundingLanguagePage         => userAnswers => navigateFromRefundingLanguagePage(CheckMode)(userAnswers)
+    case RefundingCurrencyPage         => userAnswers => navigateFromRefundingCurrencyPage(CheckMode)(userAnswers)
+    case RefundPeriodPage              => _ => routes.CheckYourClaimDetailsController.onPageLoad()
+    case ContactDetailsPage            => _ => routes.CheckYourClaimDetailsController.onPageLoad()
+    case BusinessActivityPage          => userAnswer => navigateFromBusinessActivityPage(CheckMode)(userAnswer)
+    case BusinessActivityTwoPage       => userAnswer => navigateFromBusinessActivity2Page(CheckMode)(userAnswer)
+    case BusinessActivityCodeThreePage => _ => routes.BusinessActivityThreeController.onPageLoad()
+    case PurchaseTypePage              => userAnswer => navigateFromPurchaseTypePage(CheckMode)(userAnswer)
+    case PurchaseSubCategoryPage =>
+      userAnswers =>
+        userAnswers.get(PurchaseTypePage) match {
+          case Some(_) => routes.InvoiceTypeController.onPageLoad(CheckMode)
+          case _       => routes.JourneyRecoveryController.onPageLoad()
+        }
     case DescribeItemsOnInvoicePage        => _ => routes.InvoiceTypeController.onPageLoad(CheckMode)
     case InvoiceTypePage                   => userAnswer => navigateFromInvoiceTypePage(CheckMode)(userAnswer)
     case InvoiceNumberPage                 => _ => routes.InvoiceDateController.onPageLoad(CheckMode)

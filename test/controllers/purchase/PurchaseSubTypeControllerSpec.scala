@@ -20,7 +20,7 @@ import base.SpecBase
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import play.api.inject.bind
@@ -140,7 +140,8 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
     "must handle RefundingCountryNamePage stored as 'Austria,AT' and show children" in {
       val fakeConfig = new ConfigPurchaseMapping() {
         override def subcodesFor(country: String, parentKey: String) = Seq(("1.1", "purchase.sub.fuel.1"), ("1.3", "purchase.sub.fuel.3"))
-        override def subcategoriesFor(country: String, parentKey: String, subcode: String) = if (subcode == "1.1") Seq(("1.1.1", "purchase.sub.fuel.1.1"), ("1.1.2", "purchase.sub.fuel.1.2")) else Seq.empty
+        override def subcategoriesFor(country: String, parentKey: String, subcode: String) =
+          if (subcode == "1.1") Seq(("1.1.1", "purchase.sub.fuel.1.1"), ("1.1.2", "purchase.sub.fuel.1.2")) else Seq.empty
         override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
       }
 
@@ -166,8 +167,8 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         val loc = redirectLocation(result).value
         // The controller should route to the friendly subcategory path defined
         // by PurchaseSubCategoryType for dotted parent codes (e.g. "1.1").
-        loc must include ("/file-eu-vat/fuel-type")
-        loc mustNot include ("parentCode=")
+        loc must include("/file-eu-vat/fuel-type")
+        loc mustNot include("parentCode=")
 
         val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
@@ -187,10 +188,18 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "DE").success.value
-        .set(pages.PurchaseSubTypePage, "1").success.value
-        .set(pages.PurchaseSubCategoryPage, "1.1").success.value
-        .set(pages.PurchaseSubCategoryLabelPage, "lbl").success.value
+        .set(pages.RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(pages.PurchaseSubTypePage, "1")
+        .success
+        .value
+        .set(pages.PurchaseSubCategoryPage, "1.1")
+        .success
+        .value
+        .set(pages.PurchaseSubCategoryLabelPage, "lbl")
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -273,9 +282,9 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) must include ("There is a problem")
+        contentAsString(result) must include("There is a problem")
         // inline error summary should show the required message
-        contentAsString(result) must include (messages(application)("purchase.sub.fuel.error.required"))
+        contentAsString(result) must include(messages(application)("purchase.sub.fuel.error.required"))
       }
     }
 
@@ -286,8 +295,12 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       }
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "DE").success.value
-        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
+        .set(pages.RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig))
@@ -307,20 +320,24 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq(
           RadioItem(
             content = Aliases.Text(msgs("purchase.sub.test.1")),
-            value = Some("1"),
-            id = Some("value_0")
+            value   = Some("1"),
+            id      = Some("value_0")
           ),
           RadioItem(
             content = Aliases.Text(ConfigPurchaseMapping.NoneValue),
-            value = Some(ConfigPurchaseMapping.NoneValue),
-            id = Some("value_none")
+            value   = Some(ConfigPurchaseMapping.NoneValue),
+            id      = Some("value_none")
           )
         )
       }
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "AT").success.value
-        .set(pages.PurchaseTypePage, models.PurchaseType.Other).success.value
+        .set(pages.RefundingCountryPage, "AT")
+        .success
+        .value
+        .set(pages.PurchaseTypePage, models.PurchaseType.Other)
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig))
@@ -332,47 +349,55 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
 
         status(result) mustEqual OK
         val body = contentAsString(result)
-        body mustNot include (ConfigPurchaseMapping.NoneValue)
+        body mustNot include(ConfigPurchaseMapping.NoneValue)
       }
     }
 
-      "must clear stored subtype and label when CountryChangedPage is true" in {
-        val fakeConfig = new ConfigPurchaseMapping() {
-          override def subcodesFor(country: String, parentKey: String) = Seq(("1", "purchase.sub.test.1"))
-          override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
-        }
-
-        val mockSessionRepository = mock[repositories.SessionRepository]
-        when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
-
-        val userAnswers = emptyUserAnswers
-          .set(pages.RefundingCountryPage, "DE").success.value
-          .set(pages.PurchaseSubTypePage, "1").success.value
-          .set(pages.PurchaseSubTypeLabelPage, "label").success.value
-          .set(pages.CountryChangedPage, true).success.value
-
-        val application = applicationBuilder(userAnswers = Some(userAnswers))
-          .overrides(
-            bind[ConfigPurchaseMapping].toInstance(fakeConfig),
-            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
-          )
-          .build()
-
-        running(application) {
-          val request = FakeRequest(GET, "/file-eu-vat/fuel-use")
-          val result = route(application, request).value
-
-          status(result) mustEqual SEE_OTHER
-          redirectLocation(result).value mustEqual "/file-eu-vat/fuel-use"
-
-          val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
-          verify(mockSessionRepository, times(1)).set(captor.capture())
-          val saved = captor.getValue
-          saved.get(pages.PurchaseSubTypePage) mustBe None
-          saved.get(pages.PurchaseSubTypeLabelPage) mustBe None
-          saved.get(pages.CountryChangedPage) mustBe None
-        }
+    "must clear stored subtype and label when CountryChangedPage is true" in {
+      val fakeConfig = new ConfigPurchaseMapping() {
+        override def subcodesFor(country: String, parentKey: String) = Seq(("1", "purchase.sub.test.1"))
+        override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
       }
+
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+
+      val userAnswers = emptyUserAnswers
+        .set(pages.RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(pages.PurchaseSubTypePage, "1")
+        .success
+        .value
+        .set(pages.PurchaseSubTypeLabelPage, "label")
+        .success
+        .value
+        .set(pages.CountryChangedPage, true)
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[ConfigPurchaseMapping].toInstance(fakeConfig),
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(GET, "/file-eu-vat/fuel-use")
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual "/file-eu-vat/fuel-use"
+
+        val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        val saved = captor.getValue
+        saved.get(pages.PurchaseSubTypePage) mustBe None
+        saved.get(pages.PurchaseSubTypeLabelPage) mustBe None
+        saved.get(pages.CountryChangedPage) mustBe None
+      }
+    }
 
     "must save and redirect when parent comes from user answers (children exist)" in {
       val fakeConfig = new ConfigPurchaseMapping() {
@@ -385,8 +410,12 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "DE").success.value
-        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
+        .set(pages.RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -449,8 +478,12 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "DE").success.value
-        .set(pages.PurchaseSubTypePage, "1").success.value
+        .set(pages.RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(pages.PurchaseSubTypePage, "1")
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -496,8 +529,8 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) must include ("There is a problem")
-        contentAsString(result) must include (messages(application)("purchase.sub.fuel.error.required"))
+        contentAsString(result) must include("There is a problem")
+        contentAsString(result) must include(messages(application)("purchase.sub.fuel.error.required"))
       }
     }
 

@@ -29,7 +29,7 @@ class LangsProviderSpec extends AnyFreeSpec with Matchers {
       val langs = provider.get()
 
       // implementation returns DefaultLangs; ensure type is as expected
-      langs.getClass.getSimpleName must include ("DefaultLangs")
+      langs.getClass.getSimpleName must include("DefaultLangs")
     }
   }
 }

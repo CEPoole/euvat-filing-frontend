@@ -64,7 +64,9 @@ class BusinessActivityTwoControllerSpec extends SpecBase with MockitoSugar {
         val form = formProvider()
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLink, baCode1, "48120")(request, messages(application)).toString)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(form, NormalMode, backLink, baCode1, "48120")(request, messages(application)).toString
+        )
       }
     }
 
@@ -87,7 +89,9 @@ class BusinessActivityTwoControllerSpec extends SpecBase with MockitoSugar {
         val form = formProvider()
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLink, baCode1, "48120")(request, messages(application)).toString)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(form, NormalMode, backLink, baCode1, "48120")(request, messages(application)).toString
+        )
       }
     }
 

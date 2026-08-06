@@ -19,12 +19,12 @@ package controllers.purchase
 import controllers.actions.*
 import forms.PurchaseSubTypeFormProvider
 import navigation.Navigator
-import pages.{PurchaseSubTypePage, PurchaseTypePage, PurchaseSubCategoryPage, PurchaseSubCategoryLabelPage, PurchaseSubTypeLabelPage, CountryChangedPage}
+import pages.{CountryChangedPage, PurchaseSubCategoryLabelPage, PurchaseSubCategoryPage, PurchaseSubTypeLabelPage, PurchaseSubTypePage, PurchaseTypePage}
 import play.api.i18n.{I18nSupport, MessagesApi}
 import models.PurchaseType
 import models.PurchaseSubCategoryType
 import models.{Mode, UserAnswers}
-import play.api.mvc.{Action, AnyContent, MessagesControllerComponents, Call}
+import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
 import controllers.routes
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
@@ -60,18 +60,18 @@ class PurchaseSubCategoryController @Inject() (
   }
 
   private def titleForLabelKey(labelKey: String, msgs: play.api.i18n.Messages): Option[String] = {
-    val original = s"${labelKey}.title"
+    val original = s"$labelKey.title"
     val stripped = s"${stripLeadingNumeric(labelKey)}.title"
     Seq(original, stripped).collectFirst { case k if msgs.isDefinedAt(k) => msgs(k) }
   }
 
   private def parentDerivedTitle(parentKey: String, resolvedParentCode: String, msgs: play.api.i18n.Messages): Option[String] = {
-    val asIs = s"purchase.sub.${parentKey}.${resolvedParentCode}.title"
+    val asIs = s"purchase.sub.$parentKey.$resolvedParentCode.title"
     val dropLeading = {
       val parts = resolvedParentCode.split("\\.")
-      if (parts.length > 1) s"purchase.sub.${parentKey}.${parts.drop(1).mkString(".")}.title" else asIs
+      if (parts.length > 1) s"purchase.sub.$parentKey.${parts.drop(1).mkString(".")}.title" else asIs
     }
-    val lastSeg = resolvedParentCode.split("\\.").lastOption.map(s => s"purchase.sub.${parentKey}.${s}.title").getOrElse(asIs)
+    val lastSeg = resolvedParentCode.split("\\.").lastOption.map(s => s"purchase.sub.$parentKey.$s.title").getOrElse(asIs)
     Seq(asIs, dropLeading, lastSeg).collectFirst { case k if msgs.isDefinedAt(k) => msgs(k) }
   }
 
@@ -84,13 +84,19 @@ class PurchaseSubCategoryController @Inject() (
     } catch { case _: Throwable => None }
   }
 
-  private def computeFormAction(parentKey: String, candidates: Seq[String], userAnswers: UserAnswers)(implicit request: play.api.mvc.RequestHeader): Call = {
+  private def computeFormAction(parentKey: String, candidates: Seq[String], userAnswers: UserAnswers)(implicit
+    request: play.api.mvc.RequestHeader
+  ): Call = {
     val prefix = utils.MountPrefix.get
     val maybeSessionSlug = userAnswers.get(PurchaseTypePage).map(models.PurchaseType.slugOf)
-    candidates.iterator.flatMap(c => tryReverseParent(parentKey, c)).find(_ => true).getOrElse(
-      maybeSessionSlug.map { slug => Call("POST", (if (prefix.isEmpty) s"/$slug" else s"$prefix/$slug")) }
-        .getOrElse(Call("POST", (if (prefix.isEmpty) s"/" else s"$prefix/")))
-    )
+    candidates.iterator
+      .flatMap(c => tryReverseParent(parentKey, c))
+      .find(_ => true)
+      .getOrElse(
+        maybeSessionSlug
+          .map(slug => Call("POST", if (prefix.isEmpty) s"/$slug" else s"$prefix/$slug"))
+          .getOrElse(Call("POST", if (prefix.isEmpty) s"/" else s"$prefix/"))
+      )
   }
 
   private def backUrlFor(userAnswers: UserAnswers)(implicit request: play.api.mvc.RequestHeader): String = {
@@ -108,18 +114,30 @@ class PurchaseSubCategoryController @Inject() (
   private def findByLastSegment(parentKey: String, seg: String, country: String): Option[String] =
     config.subcodesFor(country, parentKey).map(_._1).find(code => code.split("\\.").lastOption.contains(seg))
 
-  private def computeResolvedParentAndOptions(parentKey: String, effectiveParentCode: String, parentCode: String, country: String): (String, Seq[(String, String)]) = {
+  private def computeResolvedParentAndOptions(parentKey: String,
+                                              effectiveParentCode: String,
+                                              parentCode: String,
+                                              country: String
+                                             ): (String, Seq[(String, String)]) = {
     val initialOptions = config.subcategoriesFor(country, parentKey, effectiveParentCode)
     if (initialOptions.nonEmpty) (effectiveParentCode, initialOptions)
     else {
       val alt = effectiveParentCode.split("\\.").drop(1).mkString(".")
       val altOptions = if (alt.nonEmpty) config.subcategoriesFor(country, parentKey, alt) else Seq.empty
       if (altOptions.nonEmpty) (alt, altOptions)
-      else findByLastSegment(parentKey, parentCode, country).map(found => (found, config.subcategoriesFor(country, parentKey, found))).getOrElse((parentCode, initialOptions))
+      else
+        findByLastSegment(parentKey, parentCode, country)
+          .map(found => (found, config.subcategoriesFor(country, parentKey, found)))
+          .getOrElse((parentCode, initialOptions))
     }
   }
 
-  private def prepareSubCategoryViewData(parentKey: String, parentCode: String, effectiveParentCode: String, country: String, userAnswers: UserAnswers)(implicit request: play.api.mvc.RequestHeader) = {
+  private def prepareSubCategoryViewData(parentKey: String,
+                                         parentCode: String,
+                                         effectiveParentCode: String,
+                                         country: String,
+                                         userAnswers: UserAnswers
+                                        )(implicit request: play.api.mvc.RequestHeader) = {
     val msgs = messagesApi.preferred(request)
 
     val (resolvedParentCode, options) = computeResolvedParentAndOptions(parentKey, effectiveParentCode, parentCode, country)
@@ -133,16 +151,17 @@ class PurchaseSubCategoryController @Inject() (
     // then the fully-qualified resolvedParentCode, then the head segment. Fall back
     // to any title discovered from the option label keys.
     val specificTitleKeys = Seq(
-      s"purchase.sub.${parentKey}.${lastSeg}.title",
-      s"purchase.sub.${parentKey}.${resolvedParentCode}.title",
-      s"purchase.sub.${parentKey}.${headSeg}.title"
+      s"purchase.sub.$parentKey.$lastSeg.title",
+      s"purchase.sub.$parentKey.$resolvedParentCode.title",
+      s"purchase.sub.$parentKey.$headSeg.title"
     )
 
-    val childTitleOpt = specificTitleKeys.collectFirst { case k if msgs.isDefinedAt(k) => msgs(k) }
+    val childTitleOpt = specificTitleKeys
+      .collectFirst { case k if msgs.isDefinedAt(k) => msgs(k) }
       .orElse(options.to(LazyList).flatMap { case (_, labelKey) => titleForLabelKey(labelKey, msgs) }.headOption)
 
     val parentLabelKeyOpt = config.subcodesFor(country, parentKey).find(_._1 == resolvedParentCode).map(_._2)
-    val parentHeading = msgs(s"purchase.sub.${parentKey}.heading")
+    val parentHeading = msgs(s"purchase.sub.$parentKey.heading")
     val heading = childTitleOpt.orElse(parentDerivedTitle(parentKey, resolvedParentCode, msgs)).getOrElse(parentHeading)
     val pageTitle = heading
 
@@ -151,8 +170,8 @@ class PurchaseSubCategoryController @Inject() (
     // back to the parent-level key. Avoid using the head segment or the
     // fully-qualified resolved code here to prevent mismatches.
     val candidateKeys = Seq(
-      s"purchase.sub.${parentKey}.${lastSeg}.error.required",
-      s"purchase.sub.${parentKey}.error.required"
+      s"purchase.sub.$parentKey.$lastSeg.error.required",
+      s"purchase.sub.$parentKey.error.required"
     )
     val requiredKey = candidateKeys.find(k => msgs.isDefinedAt(k)).getOrElse("error.required")
     val preparedForm = userAnswers.get(PurchaseSubCategoryPage).fold(formProvider(requiredKey))(formProvider(requiredKey).fill)
@@ -194,22 +213,33 @@ class PurchaseSubCategoryController @Inject() (
         }
 
       } else {
-        val maybeParent  = request.userAnswers.get(pages.PurchaseTypePage).map(_.toString)
+        val maybeParent = request.userAnswers.get(pages.PurchaseTypePage).map(_.toString)
         val maybeCountry = resolveCountryCode(request.userAnswers)
 
         (maybeParent, maybeCountry) match {
           case (Some(parentKey), Some(country)) =>
             val parentFromSessionOpt = request.userAnswers.get(pages.PurchaseSubTypePage)
-            val effectiveParentCode  = parentFromSessionOpt.getOrElse {
+            val effectiveParentCode = parentFromSessionOpt.getOrElse {
               // fallback to first configured subcode for this parentKey when session missing
               config.subcodesFor(country, parentKey).headOption.map(_._1).getOrElse("")
             }
 
-                val (resolvedParentCode, options) = computeResolvedParentAndOptions(parentKey, effectiveParentCode, effectiveParentCode, country)
+            val (resolvedParentCode, options) = computeResolvedParentAndOptions(parentKey, effectiveParentCode, effectiveParentCode, country)
 
             if (options.isEmpty) Future.successful(Redirect(routes.InvoiceTypeController.onPageLoad(mode)))
             else {
-              val (resolvedParentCode2, options2, items2, pageTitle2, heading2, preparedForm2, formAction2, backUrl2, parentBase2, childToPersist2, parentLabelKeyOpt2) =
+              val (resolvedParentCode2,
+                   options2,
+                   items2,
+                   pageTitle2,
+                   heading2,
+                   preparedForm2,
+                   formAction2,
+                   backUrl2,
+                   parentBase2,
+                   childToPersist2,
+                   parentLabelKeyOpt2
+                  ) =
                 prepareSubCategoryViewData(parentKey, effectiveParentCode, effectiveParentCode, country, request.userAnswers)(request)
 
               request.userAnswers.get(pages.PurchaseSubTypePage) match {
@@ -241,11 +271,22 @@ class PurchaseSubCategoryController @Inject() (
     (maybeParent, maybeCountry) match {
       case (Some(parentKey), Some(country)) =>
         val parentFromSessionOpt = request.userAnswers.get(pages.PurchaseSubTypePage)
-        val effectiveParentCode  = parentFromSessionOpt.getOrElse {
+        val effectiveParentCode = parentFromSessionOpt.getOrElse {
           config.subcodesFor(country, parentKey).headOption.map(_._1).getOrElse("")
         }
 
-        val (resolvedParentCode, options, items, pageTitle, heading, preparedForm, formAction, backUrl, parentBase, childToPersist, parentLabelKeyOpt) =
+        val (resolvedParentCode,
+             options,
+             items,
+             pageTitle,
+             heading,
+             preparedForm,
+             formAction,
+             backUrl,
+             parentBase,
+             childToPersist,
+             parentLabelKeyOpt
+            ) =
           prepareSubCategoryViewData(parentKey, effectiveParentCode, effectiveParentCode, country, request.userAnswers)(request)
 
         if (options.isEmpty) Future.successful(Redirect(routes.InvoiceTypeController.onPageLoad(mode)))
@@ -264,7 +305,7 @@ class PurchaseSubCategoryController @Inject() (
 
                   val fut = for {
                     updated <- Future.fromTry(savedTry)
-                    _ <- sessionRepository.set(updated)
+                    _       <- sessionRepository.set(updated)
                   } yield Redirect(routes.InvoiceTypeController.onPageLoad(mode))
 
                   fut
@@ -273,13 +314,13 @@ class PurchaseSubCategoryController @Inject() (
                   val label = labelKeyOpt.map(k => messagesApi.preferred(request)(k)).getOrElse(value)
 
                   val savedTry = for {
-                    afterSet <- request.userAnswers.set(PurchaseSubCategoryPage, value)
+                    afterSet      <- request.userAnswers.set(PurchaseSubCategoryPage, value)
                     afterSetLabel <- afterSet.set(PurchaseSubCategoryLabelPage, label)
                   } yield afterSetLabel
 
                   for {
                     updated <- Future.fromTry(savedTry)
-                    _ <- sessionRepository.set(updated)
+                    _       <- sessionRepository.set(updated)
                   } yield Redirect(routes.InvoiceTypeController.onPageLoad(mode))
                 }
               }

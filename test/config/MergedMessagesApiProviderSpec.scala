@@ -20,7 +20,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import play.api.Environment
 import play.api.Configuration
-import play.api.i18n.{Lang, DefaultLangs, DefaultMessagesApi}
+import play.api.i18n.{DefaultLangs, DefaultMessagesApi, Lang}
 
 class MergedMessagesApiProviderSpec extends AnyFreeSpec with Matchers {
 

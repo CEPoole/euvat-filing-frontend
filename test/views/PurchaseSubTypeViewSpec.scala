@@ -35,7 +35,9 @@ class PurchaseSubTypeViewSpec extends SpecBase {
       running(application) {
         val view = application.injector.instanceOf[views.html.PurchaseSubTypeView]
 
-        val html = view(form, Seq.empty[RadioItem], "page.title", "Heading text", Call("POST", "/submit"), "/back")(play.api.test.FakeRequest(), messages(application)).toString()
+        val html = view(form, Seq.empty[RadioItem], "page.title", "Heading text", Call("POST", "/submit"), "/back")(play.api.test.FakeRequest(),
+                                                                                                                    messages(application)
+                                                                                                                   ).toString()
 
         // Limit assertions to the <main> region to avoid header/footer noise
         val mainStart = html.indexOf("<main")

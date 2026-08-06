@@ -50,8 +50,8 @@ class NavigatorSpec extends SpecBase {
           }
         """)
       )
-    )
-    , new utils.ConfigPurchaseMapping()
+    ),
+    new utils.ConfigPurchaseMapping()
   )
   val userAnswers: UserAnswers = UserAnswers("id")
 
@@ -155,7 +155,8 @@ class NavigatorSpec extends SpecBase {
       "must go from PurchaseTypePage to PurchaseSubTypeController when mapping exists for country" in {
         // fake ConfigPurchaseMapping that returns a subcode for AT and parent PurchaseType.Fuel
         val fakePurchaseConfig = new utils.ConfigPurchaseMapping() {
-          override def subcodesFor(country: String, parentKey: String) = if (country == "AT" && parentKey == PurchaseType.Fuel.toString) Seq(("1", "purchase.sub.fuel.1")) else Seq.empty
+          override def subcodesFor(country: String, parentKey: String) =
+            if (country == "AT" && parentKey == PurchaseType.Fuel.toString) Seq(("1", "purchase.sub.fuel.1")) else Seq.empty
         }
 
         val nav = new Navigator(
@@ -207,7 +208,8 @@ class NavigatorSpec extends SpecBase {
 
       "must go from PurchaseTypePage to PurchaseSubTypeController when country stored as name-only string is used" in {
         val fakePurchaseConfig = new utils.ConfigPurchaseMapping() {
-          override def subcodesFor(country: String, parentKey: String) = if (country == "Austria" && parentKey == PurchaseType.Fuel.toString) Seq(("1", "purchase.sub.fuel.1")) else Seq.empty
+          override def subcodesFor(country: String, parentKey: String) =
+            if (country == "Austria" && parentKey == PurchaseType.Fuel.toString) Seq(("1", "purchase.sub.fuel.1")) else Seq.empty
         }
 
         val nav = new Navigator(

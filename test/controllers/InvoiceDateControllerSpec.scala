@@ -50,10 +50,12 @@ class InvoiceDateControllerSpec extends SpecBase with MockitoSugar {
           implicit val msgs = messages(application)
 
           status(result) mustEqual OK
-          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(application.injector.instanceOf[forms.InvoiceDateFormProvider].apply(),
-                                                 models.NormalMode,
-                                                 routes.InvoiceNumberController.onPageLoad(models.NormalMode)
-                                                )(request, msgs).toString)
+          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+            view(application.injector.instanceOf[forms.InvoiceDateFormProvider].apply(),
+                 models.NormalMode,
+                 routes.InvoiceNumberController.onPageLoad(models.NormalMode)
+                )(request, msgs).toString
+          )
         }
       }
 
@@ -76,11 +78,13 @@ class InvoiceDateControllerSpec extends SpecBase with MockitoSugar {
           implicit val msgs = messages(application)
 
           status(result) mustEqual OK
-          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(
-            application.injector.instanceOf[forms.InvoiceDateFormProvider].apply().fill(LocalDate.of(2025, 4, 15)),
-            models.NormalMode,
-            routes.InvoiceNumberController.onPageLoad(models.NormalMode)
-          )(request, msgs).toString)
+          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+            view(
+              application.injector.instanceOf[forms.InvoiceDateFormProvider].apply().fill(LocalDate.of(2025, 4, 15)),
+              models.NormalMode,
+              routes.InvoiceNumberController.onPageLoad(models.NormalMode)
+            )(request, msgs).toString
+          )
         }
       }
 

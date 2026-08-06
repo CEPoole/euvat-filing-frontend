@@ -16,22 +16,20 @@
 
 package models
 
-/**
- * Mapping helper for purchase sub-category pages.
- *
- * Provides a canonical URL slug for a given parent key and parent code so
- * controllers and views can produce friendly paths and titles.
- */
+/** Mapping helper for purchase sub-category pages.
+  *
+  * Provides a canonical URL slug for a given parent key and parent code so controllers and views can produce friendly paths and titles.
+  */
 object PurchaseSubCategoryType {
 
   // Map of (parentKey -> (parentCode -> slug))
   private val mapping: Map[String, Map[String, String]] = Map(
     "fuel" -> Map(
-      "1.1" -> "fuel-type",
-      "1.2" -> "fuel-type-or-vehicle",
-      "1.3" -> "fuel-type",
-      "1.8" -> "vehicle-use",
-      "1.9" -> "vehicle-use",
+      "1.1"  -> "fuel-type",
+      "1.2"  -> "fuel-type-or-vehicle",
+      "1.3"  -> "fuel-type",
+      "1.8"  -> "vehicle-use",
+      "1.9"  -> "vehicle-use",
       "1.10" -> "fuel-type",
       "1.11" -> "fuel-type"
     ),
@@ -53,7 +51,7 @@ object PurchaseSubCategoryType {
       "9.3" -> "cost-for-publicity-purposes"
     ),
     "other" -> Map(
-      "10.5" -> "property-purchase-type",
+      "10.5"  -> "property-purchase-type",
       "10.17" -> "property-cost-type"
     )
   )
@@ -61,19 +59,15 @@ object PurchaseSubCategoryType {
   def slugFor(parentKey: String, parentCode: String): Option[String] =
     mapping.get(parentKey).flatMap(_.get(parentCode))
 
-  /**
-   * Returns the first available slug for a parent key, if any.
-   * Used as a sensible default when a specific parent code does not
-   * have an explicit mapping.
-   */
+  /** Returns the first available slug for a parent key, if any. Used as a sensible default when a specific parent code does not have an explicit
+    * mapping.
+    */
   def firstSlugFor(parentKey: String): Option[String] =
     // Choose a deterministic first slug by sorting parent codes numerically/alphabetically
     mapping.get(parentKey).flatMap(m => m.toSeq.sortBy(_._1).headOption.map(_._2))
 
-  /**
-   * Builds a friendly path fragment for a parent. Falls back to a generic
-   * `parentKey-parentCode` form when no explicit mapping exists.
-   */
+  /** Builds a friendly path fragment for a parent. Falls back to a generic `parentKey-parentCode` form when no explicit mapping exists.
+    */
   def pathFor(parentKey: String, parentCode: String): String =
     // Prefer an exact slug mapping. If none exists for the given parentCode
     // and the parentCode is a top-level code (e.g. "1"), try to find a
@@ -86,5 +80,5 @@ object PurchaseSubCategoryType {
           mapping.get(parentKey).flatMap(m => m.toSeq.filter { case (k, _) => k.startsWith(parentCode + ".") }.sortBy(_._1).headOption.map(_._2))
         else None
       )
-      .getOrElse(s"${parentKey}-${parentCode.replace('.', '-')}")
+      .getOrElse(s"$parentKey-${parentCode.replace('.', '-')}")
 }

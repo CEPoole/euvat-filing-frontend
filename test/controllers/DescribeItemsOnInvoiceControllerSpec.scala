@@ -61,7 +61,9 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
         val view = application.injector.instanceOf[DescribeItemsOnInvoiceView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request, messages(application)).toString
+        contentAsString(result) mustEqual view(form, NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request,
+                                                                                                                       messages(application)
+                                                                                                                      ).toString
       }
     }
 
@@ -79,30 +81,39 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form.fill("Fuel and transport costs"), NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request, messages(application)).toString
+        contentAsString(result) mustEqual view(form.fill("Fuel and transport costs"),
+                                               NormalMode,
+                                               routes.PurchaseTypeController.onPageLoad(NormalMode)
+                                              )(request, messages(application)).toString
       }
     }
 
-      "must show backlink to PurchaseSubCategory when PurchaseSubCategoryPage present but PurchaseSubTypePage missing" in {
+    "must show backlink to PurchaseSubCategory when PurchaseSubCategoryPage present but PurchaseSubTypePage missing" in {
 
-        val child = "1.2"
-        val userAnswers = emptyUserAnswers
-          .set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
-          .set(pages.PurchaseSubCategoryPage, child).success.value
+      val child = "1.2"
+      val userAnswers = emptyUserAnswers
+        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .success
+        .value
+        .set(pages.PurchaseSubCategoryPage, child)
+        .success
+        .value
 
-        val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
-        running(application) {
-          val request = FakeRequest(GET, describeItemsOnInvoiceRoute)
+      running(application) {
+        val request = FakeRequest(GET, describeItemsOnInvoiceRoute)
 
-          val view = application.injector.instanceOf[DescribeItemsOnInvoiceView]
+        val view = application.injector.instanceOf[DescribeItemsOnInvoiceView]
 
-          val result = route(application, request).value
+        val result = route(application, request).value
 
-          status(result) mustEqual OK
-          normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, Call("GET", "/file-eu-vat/fuel-type-or-vehicle"))(request, messages(application)).toString)
-        }
+        status(result) mustEqual OK
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(form, NormalMode, Call("GET", "/file-eu-vat/fuel-type-or-vehicle"))(request, messages(application)).toString
+        )
       }
+    }
 
     "must redirect to the next page when valid data is submitted" in {
 
@@ -145,7 +156,9 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request, messages(application)).toString
+        contentAsString(result) mustEqual view(boundForm, NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request,
+                                                                                                                            messages(application)
+                                                                                                                           ).toString
       }
     }
 
@@ -170,9 +183,15 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
       }
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "BE").success.value
-        .set(pages.PurchaseTypePage, models.PurchaseType.Other).success.value
-        .set(pages.PurchaseSubTypePage, "10.99").success.value
+        .set(pages.RefundingCountryPage, "BE")
+        .success
+        .value
+        .set(pages.PurchaseTypePage, models.PurchaseType.Other)
+        .success
+        .value
+        .set(pages.PurchaseSubTypePage, "10.99")
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers)).overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig)).build()
 
@@ -183,7 +202,12 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Other), NormalMode))(request, messages(application)).toString)
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(form,
+               NormalMode,
+               controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Other), NormalMode)
+              )(request, messages(application)).toString
+        )
       }
     }
 
