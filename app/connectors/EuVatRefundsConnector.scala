@@ -16,8 +16,8 @@
 
 package connectors
 
-import models.requests.{ApplicationRequest, LatestApplicationRequest}
-import models.responses.{ApplicationResponse, LatestApplicationResponse, TraderKnownFactsResponse}
+import models.requests.{AddPurchaseRequest, ApplicationRequest, LatestApplicationRequest}
+import models.responses.{AddPurchaseResponse, ApplicationResponse, LatestApplicationResponse, TraderKnownFactsResponse}
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
@@ -61,5 +61,11 @@ class EuVatRefundsConnector @Inject() (config: ServicesConfig, http: HttpClientV
       .withBody(Json.toJson(request))
       .execute[ApplicationResponse]
   }
+
+  def addPurchase(request: AddPurchaseRequest)(implicit hc: HeaderCarrier): Future[AddPurchaseResponse] =
+    http
+      .post(url"$euVatRefundsBaseUrl/add-purchase")
+      .withBody(Json.toJson(request))
+      .execute[AddPurchaseResponse]
 
 }

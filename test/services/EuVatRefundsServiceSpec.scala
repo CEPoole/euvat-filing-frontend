@@ -19,8 +19,8 @@ package services
 import base.SpecBase
 import config.FrontendAppConfig
 import connectors.EuVatRefundsConnector
-import models.requests.LatestApplicationRequest
-import models.responses.{LatestApplicationResponse, TraderKnownFactsResponse}
+import models.requests.{AddPurchaseRequest, LatestApplicationRequest}
+import models.responses.{AddPurchaseResponse, LatestApplicationResponse, TraderKnownFactsResponse}
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.*
 import org.scalatest.concurrent.ScalaFutures
@@ -90,6 +90,50 @@ class EuVatRefundsServiceSpec extends SpecBase with MockitoSugar with ScalaFutur
       val result = service.getLatestApplications(request)
 
       whenReady(result.failed) { ex =>
+        ex mustEqual failure
+      }
+    }
+  }
+
+  "EuVatRefundsService.addPurchase" - {
+
+    val request = AddPurchaseRequest(
+      applicationId              = 123456,
+      goodsDescriptionCategory   = "1",
+      goodsDescriptionText       = Some("Fuel"),
+      purchaseSubcategory        = None,
+      simplifiedInvoiceIndicator = None,
+      supplierName               = None,
+      supplierAddress1           = None,
+      supplierAddress2           = None,
+      supplierAddress3           = None,
+      supplierVatRegNumber       = None,
+      supplierTaxIdentifier      = None,
+      invoiceDate                = None,
+      invoiceNumber              = None,
+      currencyCode               = None,
+      taxableAmount              = None,
+      vatAmount                  = None,
+      deductibleVatAmount        = None,
+      updateSequenceNumber       = 1
+    )
+
+    val expectedResponse = AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)
+
+    "should return the add purchase response from the connector" in {
+      when(mockConnector.addPurchase(any())(any()))
+        .thenReturn(Future.successful(expectedResponse))
+
+      service.addPurchase(request)(hc).futureValue mustEqual expectedResponse
+    }
+
+    "should propagate an exception from the connector" in {
+      val failure = new RuntimeException("Connector failed")
+
+      when(mockConnector.addPurchase(any())(any()))
+        .thenReturn(Future.failed(failure))
+
+      whenReady(service.addPurchase(request).failed) { ex =>
         ex mustEqual failure
       }
     }

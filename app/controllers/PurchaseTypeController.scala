@@ -17,17 +17,21 @@
 package controllers
 
 import controllers.actions.*
-import models.requests.DataRequest
+import models.requests.{AddPurchaseRequest, DataRequest}
 import forms.PurchaseTypeFormProvider
-import models.{Mode, PurchaseType}
+import models.{Mode, PurchaseType, PurchaseTypeCode, UserAnswers}
 import navigation.Navigator
-import pages.{CountryChangedPage, PurchaseTypePage}
+import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, CountryChangedPage, PurchaseTypePage}
+import play.api.Logging
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents, RequestHeader}
+import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents, Result}
 import repositories.SessionRepository
+import services.EuVatRefundsService
+import uk.gov.hmrc.http.HeaderCarrier
 import utils.MountPrefix
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import views.html.PurchaseTypeView
 
 import javax.inject.Inject
@@ -42,10 +46,12 @@ class PurchaseTypeController @Inject() (
   requireData: DataRequiredAction,
   formProvider: PurchaseTypeFormProvider,
   val controllerComponents: MessagesControllerComponents,
+  euVatRefundsService: EuVatRefundsService,
   view: PurchaseTypeView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
-    with I18nSupport {
+    with I18nSupport
+    with Logging {
 
   val form: Form[PurchaseType] = formProvider()
 
@@ -87,7 +93,7 @@ class PurchaseTypeController @Inject() (
       .bindFromRequest()
       .fold(
         formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode)))),
-        value =>
+        value => {
           val saved = request.userAnswers.get(PurchaseTypePage) match {
             case Some(prev) if prev != value =>
               for {
@@ -104,14 +110,73 @@ class PurchaseTypeController @Inject() (
           for {
             updatedAnswers <- Future.fromTry(saved)
             _              <- sessionRepository.set(updatedAnswers)
-          } yield {
-            val call = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)
-            val prefix = MountPrefix.get
-            if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
-            else Redirect(Call(call.method, s"$prefix${call.url}"))
-          }
+            result         <- addPurchaseAndPersist(updatedAnswers, value, mode)
+          } yield result
+        }
       )
   }
 
+  private def addPurchaseAndPersist(
+    answers: UserAnswers,
+    purchaseType: PurchaseType,
+    mode: Mode
+  )(implicit request: DataRequest[?]): Future[Result] = {
+
+    implicit val hc: HeaderCarrier =
+      HeaderCarrierConverter.fromRequestAndSession(request, request.session)
+
+    answers
+      .get(ClaimApplicationResponsePage)
+      .fold {
+        logger.warn("Missing applicationId for addPurchase")
+        Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
+      } { claimResponse =>
+
+        val purchaseRequest = AddPurchaseRequest(
+          applicationId              = claimResponse.applicationId.toLong,
+          goodsDescriptionCategory   = PurchaseTypeCode.codeFor(purchaseType),
+          goodsDescriptionText       = None,
+          purchaseSubcategory        = None,
+          simplifiedInvoiceIndicator = None,
+          supplierName               = None,
+          supplierAddress1           = None,
+          supplierAddress2           = None,
+          supplierAddress3           = None,
+          supplierVatRegNumber       = None,
+          supplierTaxIdentifier      = None,
+          invoiceDate                = None,
+          invoiceNumber              = None,
+          currencyCode               = None,
+          taxableAmount              = None,
+          vatAmount                  = None,
+          deductibleVatAmount        = None,
+          updateSequenceNumber       = claimResponse.updateSeqNumber
+        )
+
+        euVatRefundsService
+          .addPurchase(purchaseRequest)
+          .flatMap { response =>
+            for {
+              updatedAnswers <- Future.fromTry(
+                                  answers.set(AddPurchaseResponsePage, response)
+                                )
+              _ <- sessionRepository.set(updatedAnswers)
+            } yield {
+              val call = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)
+              val prefix = MountPrefix.get
+
+              if (prefix.isEmpty || call.url.startsWith(prefix)) {
+                Redirect(call)
+              } else {
+                Redirect(Call(call.method, s"$prefix${call.url}"))
+              }
+            }
+          }
+          .recover { case ex =>
+            logger.error("Error while adding the purchase", ex)
+            Redirect(routes.JourneyRecoveryController.onPageLoad())
+          }
+      }
+  }
   // mount prefix is provided by utils.MountPrefix
 }
