@@ -394,10 +394,10 @@ class PurchaseTypeController @Inject() (
   }
 
   private def addPurchaseAndPersist(
-    answers: UserAnswers,
-    purchaseType: PurchaseType,
-    mode: Mode
-   )(implicit request: DataRequest[?]): Future[Result] = {
+                                     answers: UserAnswers,
+                                     purchaseType: PurchaseType,
+                                     mode: Mode
+                                   )(implicit request: DataRequest[?]): Future[Result] = {
 
     // Build an implicit HeaderCarrier from the request/session for the
     // downstream HTTP client used by `euVatRefundsService`.
@@ -413,57 +413,52 @@ class PurchaseTypeController @Inject() (
         Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
       } { claimResponse =>
 
-        // Build a minimal AddPurchaseRequest using the available information
-        val purchaseRequest = AddPurchaseRequest(
-          applicationId              = claimResponse.applicationId.toLong,
-          goodsDescriptionCategory   = PurchaseTypeCode.codeFor(purchaseType),
-          goodsDescriptionText       = None,
-          purchaseSubcategory        = None,
-          simplifiedInvoiceIndicator = None,
-          supplierName               = None,
-          supplierAddress1           = None,
-          supplierAddress2           = None,
-          supplierAddress3           = None,
-          supplierVatRegNumber       = None,
-          supplierTaxIdentifier      = None,
-          invoiceDate                = None,
-          invoiceNumber              = None,
-          currencyCode               = None,
-          taxableAmount              = None,
-          vatAmount                  = None,
-          deductibleVatAmount        = None,
-          updateSequenceNumber       = claimResponse.updateSeqNumber
-        )
+      // Build a minimal AddPurchaseRequest using the available informationval purchaseRequest = AddPurchaseRequest(
+        applicationId              = claimResponse.applicationId.toLong,
+        goodsDescriptionCategory   = PurchaseTypeCode.codeFor(purchaseType),
+        goodsDescriptionText       = None,
+        purchaseSubcategory        = None,
+        simplifiedInvoiceIndicator = None,
+        supplierName               = None,
+        supplierAddress1           = None,
+        supplierAddress2           = None,
+        supplierAddress3           = None,
+        supplierVatRegNumber       = None,
+        supplierTaxIdentifier      = None,
+        invoiceDate                = None,
+        invoiceNumber              = None,
+        currencyCode               = None,
+        taxableAmount              = None,
+        vatAmount                  = None,
+        deductibleVatAmount        = None,
+        updateSequenceNumber       = claimResponse.updateSeqNumber
+      )
 
-        // Call the external service, persist its response and redirect
+      // Call the external service, persist its response and redirect
         // according to the navigator. Failures are logged and redirect to
-        // journey recovery to avoid leaving the user in an inconsistent state.
-        euVatRefundsService
-          .addPurchase(purchaseRequest)
-          .flatMap { response =>
-            for {
-              // persist the API response in session
-              updatedAnswers <- Future.fromTry(
-                                  answers.set(AddPurchaseResponsePage, response)
-                                )
-              _ <- sessionRepository.set(updatedAnswers)
-            } yield {
-              // Navigate to the next page, applying mount prefix when needed
-              val call = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)
-              val prefix = MountPrefix.get
+        // journey recovery to avoid leaving the user in an inconsistent state.euVatRefundsService
+        .addPurchase(purchaseRequest)
+        .flatMap { response =>
+          for {
+            // persist the API response in sessionupdatedAnswers <- Future.fromTry(
+              answers.set(AddPurchaseResponsePage, response)
+            )
+            _              <- sessionRepository.set(updatedAnswers)
+          } yield {// Navigate to the next page, applying mount prefix when needed
+            val call   = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)
+            val prefix = MountPrefix.get
 
-              if (prefix.isEmpty || call.url.startsWith(prefix)) {
-                Redirect(call)
-              } else {
-                Redirect(Call(call.method, s"$prefix${call.url}"))
-              }
+            if (prefix.isEmpty || call.url.startsWith(prefix)) {
+              Redirect(call)
+            } else {
+              Redirect(Call(call.method, s"$prefix${call.url}"))
             }
           }
-          .recover { case ex =>
-            // Log unexpected errors and redirect to recovery
-            logger.error("Error while adding the purchase", ex)
-            Redirect(routes.JourneyRecoveryController.onPageLoad())
-          }
-      }
+        }
+        .recover { case ex =>
+          // Log unexpected errors and redirect to recoverylogger.error("Error while adding the purchase", ex)
+          Redirect(routes.JourneyRecoveryController.onPageLoad())
+        }
+    }
   }
 }
