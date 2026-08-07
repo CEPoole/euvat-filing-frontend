@@ -50,7 +50,14 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
   val form: Form[BigDecimal] = formProvider()
 
   private def backLink(mode: Mode)(userAnswers: UserAnswers) = userAnswers.get(RefundingCountryPage) match {
-    case Some("DE") => routes.SupplierTaxNumberController.onPageLoad(mode)
+    case Some("DE") =>
+      if (userAnswers.get(SupplierVatRegistrationNumberPage).isDefined) {
+        routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
+      } else if (userAnswers.get(SupplierTaxIdentifierNumberPage).isDefined) {
+        routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)
+      } else {
+        routes.SupplierTaxNumberController.onPageLoad(mode)
+      }
     case _ =>
       userAnswers.get(SupplierVatRegistrationNumberPage) match {
         case Some(_) => routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
@@ -59,7 +66,6 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
   }
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-
     val preparedForm = request.userAnswers.get(TotalPurchaseAmountBeforeVatPage) match {
       case None        => form
       case Some(value) => form.fill(value)
@@ -70,7 +76,6 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-
     form
       .bindFromRequest()
       .fold(
