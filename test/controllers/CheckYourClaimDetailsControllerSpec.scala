@@ -372,6 +372,54 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
       }
     }
 
+    "must NOT call createApplication or sessionRepository when post-submission and not amended" in {
+      val mockSessionRepository = mock[SessionRepository]
+      val ua = emptyUserAnswers.set(pages.ClaimDetailsCompletedPage, true).success.value
+
+      val application = applicationBuilder(userAnswers = Some(ua))
+        .overrides(
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        ).build()
+
+      running(application) {
+        val result = route(application, FakeRequest(POST, routes.CheckYourClaimDetailsController.onSubmit().url)).value
+        status(result) mustEqual SEE_OTHER
+        verify(mockEuVatRefundsService, never()).createApplication(any())(any())
+        verify(mockSessionRepository, never()).set(any())
+      }
+    }
+
+    "must call createApplication when post-submission and amended" in {
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+      when(mockEuVatRefundsService.createApplication(any())(any()))
+        .thenReturn(Future.successful(ApplicationResponse(123, "GB123456789", 10)))
+
+      val ua = emptyUserAnswers
+        .set(pages.ClaimDetailsCompletedPage, true).success.value
+        .set(pages.ClaimDetailsAmendedPage, true).success.value
+        .set(pages.RefundingCountryPage, "DE").success.value
+        .set(pages.RefundingCurrencyPage, "eur").success.value
+        .set(pages.RefundingLanguagePage, RefundingLanguage.English).success.value
+        .set(pages.RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10))).success.value
+        .set(pages.ContactDetailsPage, ContactDetails("test@email.com", Some("07123456789"))).success.value
+        .set(pages.BusinessActivityCodePage, "9999").success.value
+
+      val application = applicationBuilder(userAnswers = Some(ua))
+        .overrides(
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.CheckYourClaimDetailsController.onSubmit().url)
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        verify(mockEuVatRefundsService, times(1)).createApplication(any())(any())
+      }
+    }
+
     "must clear ClaimDetailsAmendedPage on submit when post submission" in {
       val mockSessionRepository = mock[SessionRepository]
 
