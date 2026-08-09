@@ -23,7 +23,7 @@ import navigation.Navigator
 import pages.*
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
+import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import utils.ConfigCurrencyMapping
@@ -49,20 +49,27 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
 
   val form: Form[BigDecimal] = formProvider()
 
-  private def backLink(mode: Mode)(userAnswers: UserAnswers) = userAnswers.get(RefundingCountryPage) match {
-    case Some("DE") =>
-      if (userAnswers.get(SupplierVatRegistrationNumberPage).isDefined) {
-        routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
-      } else if (userAnswers.get(SupplierTaxIdentifierNumberPage).isDefined) {
-        routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)
-      } else {
-        routes.SupplierTaxNumberController.onPageLoad(mode)
-      }
-    case _ =>
-      userAnswers.get(SupplierVatRegistrationNumberPage) match {
-        case Some(_) => routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
-        case None    => routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(mode)
-      }
+  private def backLink(mode: Mode)(userAnswers: UserAnswers): Call = {
+    // if this country requires currency selection, the currency was shown right before this page
+    // so Back should return there, matching the forward navigation built for DTR-6982
+    userAnswers.get(RefundingCountryPage) match {
+      case Some(countryCode) if configCurrencyMapping.requiresCurrencySelection(countryCode) =>
+        routes.RefundingCurrencyController.onPageLoad(mode)
+
+      case Some("DE") =>
+        if (userAnswers.get(SupplierVatRegistrationNumberPage).isDefined) {
+          routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
+        } else if (userAnswers.get(SupplierTaxIdentifierNumberPage).isDefined) {
+          routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)
+        } else {
+          routes.SupplierTaxNumberController.onPageLoad(mode)
+        }
+      case _ =>
+        userAnswers.get(SupplierVatRegistrationNumberPage) match {
+          case Some(_) => routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
+          case None    => routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(mode)
+        }
+    }
   }
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>

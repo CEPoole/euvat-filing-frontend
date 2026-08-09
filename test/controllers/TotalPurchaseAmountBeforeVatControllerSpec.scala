@@ -327,7 +327,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
 
         status(result) mustEqual OK
         normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
-          view(form, NormalMode, routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(NormalMode), "€", "Euro")(
+          view(form, NormalMode, routes.RefundingCurrencyController.onPageLoad(NormalMode), "€", "Euro")(
             request,
             messages(application)
           ).toString
