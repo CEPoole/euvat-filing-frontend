@@ -558,7 +558,7 @@ class NavigatorSpec extends SpecBase {
           .success
           .value
         navigator.nextPage(SupplierTaxIdentifierNumberPage, CheckMode, ua) mustBe
-          routes.RefundingCurrencyController.onPageLoad(CheckMode)
+          routes.TotalPurchaseAmountBeforeVatController.onPageLoad(CheckMode)
       }
 
       "must go from SupplierTaxIdentifierNumberPage to RefundingCurrencyController if tax identifier number is selected and country has more than one currency" in {
