@@ -17,17 +17,21 @@
 package controllers
 
 import controllers.actions.*
-import models.requests.DataRequest
+import models.requests.{AddPurchaseRequest, DataRequest}
 import forms.PurchaseTypeFormProvider
-import models.{Mode, PurchaseType}
+import models.{Mode, PurchaseType, PurchaseTypeCode, UserAnswers}
 import navigation.Navigator
-import pages.PurchaseTypePage
-import pages.SimplifiedInvoiceVatRegCheckPage
+import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, CountryChangedPage, PurchaseTypePage}
+import play.api.Logging
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
+import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents, Result}
 import repositories.SessionRepository
+import services.EuVatRefundsService
+import uk.gov.hmrc.http.HeaderCarrier
+import utils.MountPrefix
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import views.html.PurchaseTypeView
 
 import javax.inject.Inject
@@ -42,20 +46,46 @@ class PurchaseTypeController @Inject() (
   requireData: DataRequiredAction,
   formProvider: PurchaseTypeFormProvider,
   val controllerComponents: MessagesControllerComponents,
+  euVatRefundsService: EuVatRefundsService,
   view: PurchaseTypeView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
-    with I18nSupport {
+    with I18nSupport
+    with Logging {
 
   val form: Form[PurchaseType] = formProvider()
 
-  private def backLink(mode: Mode)(implicit request: DataRequest[_]) =
+  private def backLink(mode: Mode)(implicit request: DataRequest[?]) =
     routes.BeforeYouStartPurchaseController.onPageLoad()
 
-  def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    val preparedForm = request.userAnswers.get(PurchaseTypePage).fold(form)(form.fill)
+  def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
+    // If the country was changed, clear the whole purchase chain
+    if (request.userAnswers.get(pages.CountryChangedPage).contains(true)) {
+      // Clear the full purchase chain when the user changed the country so
+      // subsequent steps are re-evaluated for the new country.
+      val clearedTry = for {
+        afterRemovedPurchaseType        <- request.userAnswers.remove(pages.PurchaseTypePage)
+        afterRemovedPurchaseSubType     <- afterRemovedPurchaseType.remove(pages.PurchaseSubTypePage)
+        afterRemovedPurchaseSubTypeLbl  <- afterRemovedPurchaseSubType.remove(pages.PurchaseSubTypeLabelPage)
+        afterRemovedPurchaseSubCategory <- afterRemovedPurchaseSubTypeLbl.remove(pages.PurchaseSubCategoryPage)
+        afterRemovedPurchaseSubCatLbl   <- afterRemovedPurchaseSubCategory.remove(pages.PurchaseSubCategoryLabelPage)
+        afterClearedFlag                <- afterRemovedPurchaseSubCatLbl.remove(pages.CountryChangedPage)
+      } yield afterClearedFlag
 
-    Ok(view(preparedForm, mode, backLink(mode)))
+      Future
+        .fromTry(clearedTry)
+        .flatMap(updated =>
+          sessionRepository
+            .set(updated)
+            .map(_ => {
+              val preparedForm = updated.get(PurchaseTypePage).fold(form)(form.fill)
+              Ok(view(preparedForm, mode, backLink(mode)))
+            })
+        )
+    } else {
+      val preparedForm = request.userAnswers.get(PurchaseTypePage).fold(form)(form.fill)
+      Future.successful(Ok(view(preparedForm, mode, backLink(mode))))
+    }
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
@@ -63,11 +93,90 @@ class PurchaseTypeController @Inject() (
       .bindFromRequest()
       .fold(
         formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode)))),
-        value =>
+        value => {
+          val saved = request.userAnswers.get(PurchaseTypePage) match {
+            case Some(prev) if prev != value =>
+              for {
+                afterRemovedSubType        <- request.userAnswers.remove(pages.PurchaseSubTypePage)
+                afterRemovedSubTypeLabel   <- afterRemovedSubType.remove(pages.PurchaseSubTypeLabelPage)
+                afterRemovedSubCategory    <- afterRemovedSubTypeLabel.remove(pages.PurchaseSubCategoryPage)
+                afterRemovedSubCategoryLbl <- afterRemovedSubCategory.remove(pages.PurchaseSubCategoryLabelPage)
+                afterRemovedDescribe       <- afterRemovedSubCategoryLbl.remove(pages.DescribeItemsOnInvoicePage)
+                afterSetPurchaseType       <- afterRemovedDescribe.set(PurchaseTypePage, value)
+              } yield afterSetPurchaseType
+            case _ => request.userAnswers.set(PurchaseTypePage, value)
+          }
+
           for {
-            updatedAnswers <- Future.fromTry(request.userAnswers.set(PurchaseTypePage, value))
+            updatedAnswers <- Future.fromTry(saved)
             _              <- sessionRepository.set(updatedAnswers)
-          } yield Redirect(navigator.nextPage(PurchaseTypePage, mode, updatedAnswers))
+            result         <- addPurchaseAndPersist(updatedAnswers, value, mode)
+          } yield result
+        }
       )
   }
+
+  private def addPurchaseAndPersist(
+    answers: UserAnswers,
+    purchaseType: PurchaseType,
+    mode: Mode
+  )(implicit request: DataRequest[?]): Future[Result] = {
+
+    implicit val hc: HeaderCarrier =
+      HeaderCarrierConverter.fromRequestAndSession(request, request.session)
+
+    answers
+      .get(ClaimApplicationResponsePage)
+      .fold {
+        logger.warn("Missing applicationId for addPurchase")
+        Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
+      } { claimResponse =>
+
+        val purchaseRequest = AddPurchaseRequest(
+          applicationId              = claimResponse.applicationId.toLong,
+          goodsDescriptionCategory   = PurchaseTypeCode.codeFor(purchaseType),
+          goodsDescriptionText       = None,
+          purchaseSubcategory        = None,
+          simplifiedInvoiceIndicator = None,
+          supplierName               = None,
+          supplierAddress1           = None,
+          supplierAddress2           = None,
+          supplierAddress3           = None,
+          supplierVatRegNumber       = None,
+          supplierTaxIdentifier      = None,
+          invoiceDate                = None,
+          invoiceNumber              = None,
+          currencyCode               = None,
+          taxableAmount              = None,
+          vatAmount                  = None,
+          deductibleVatAmount        = None,
+          updateSequenceNumber       = claimResponse.updateSeqNumber
+        )
+
+        euVatRefundsService
+          .addPurchase(purchaseRequest)
+          .flatMap { response =>
+            for {
+              updatedAnswers <- Future.fromTry(
+                                  answers.set(AddPurchaseResponsePage, response)
+                                )
+              _ <- sessionRepository.set(updatedAnswers)
+            } yield {
+              val call = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)
+              val prefix = MountPrefix.get
+
+              if (prefix.isEmpty || call.url.startsWith(prefix)) {
+                Redirect(call)
+              } else {
+                Redirect(Call(call.method, s"$prefix${call.url}"))
+              }
+            }
+          }
+          .recover { case ex =>
+            logger.error("Error while adding the purchase", ex)
+            Redirect(routes.JourneyRecoveryController.onPageLoad())
+          }
+      }
+  }
+  // mount prefix is provided by utils.MountPrefix
 }

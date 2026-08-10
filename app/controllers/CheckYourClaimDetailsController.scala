@@ -19,13 +19,10 @@ package controllers
 import com.google.inject.Inject
 import controllers.actions.{DataRequiredAction, DataRetrievalAction, IdentifierAction}
 import models.UserAnswers
-import models.requests.ApplicationRequest
+import models.requests.{ApplicationRequest, LatestApplicationRequest}
 import models.responses.ApplicationResponse
 import pages.*
 import play.api.Logging
-import play.api.libs.json.Json
-import uk.gov.hmrc.play.http.HeaderCarrierConverter
-import models.requests.LatestApplicationRequest
 import play.api.i18n.{I18nSupport, Messages, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import repositories.SessionRepository
@@ -62,9 +59,10 @@ class CheckYourClaimDetailsController @Inject() (
 
   def onSubmit(): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
     val isPostSubmission = request.userAnswers.get(pages.ClaimDetailsCompletedPage).contains(true)
+    val isAmended = request.userAnswers.get(pages.ClaimDetailsAmendedPage).contains(true)
 
-    (
-      for {
+    if (!isPostSubmission || isAmended) {
+      (for {
         flaggedAnswers <- Future.fromTry {
                             if (!isPostSubmission) {
                               request.userAnswers.set(ClaimDetailsCompletedPage, true)
@@ -72,47 +70,59 @@ class CheckYourClaimDetailsController @Inject() (
                               request.userAnswers.remove(pages.ClaimDetailsAmendedPage)
                             }
                           }
-        appRequest     <- buildAppRequest(flaggedAnswers)
-        result         <- service.retrieveTraderKnownFacts().flatMap { traderFacts =>
-                            implicit val hc = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
-                            val latestReq = LatestApplicationRequest(
-                              applicantVatRegNumber = traderFacts.vatRegNumber.toString,
-                              refundingCountry = flaggedAnswers.get(pages.RefundingCountryPage),
-                              startDate = None,
-                              endDate = None,
-                              representativeId = None,
-                              maxNumber = 10000,
-                              orderBy = Some(0),
-                              sortOrder = Some("DESC"),
-                              startAt = Some(0)
-                            )
-
-                            service.getLatestApplications(latestReq).flatMap { latestResp =>
-                              val isDuplicate = latestResp.applications.exists { app =>
-                                val statusIsD = app.applicationStatus.exists(_.equalsIgnoreCase("D"))
-                                val submissionIsNull = app.submissionStatus.isEmpty
-                                statusIsD || submissionIsNull
-                              }
-
-                              if (isDuplicate) Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
-                              else {
-                                for {
-                                  claimResponse  <- service.createApplication(appRequest)
-                                  updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
-                                  _              <- sessionRepository.set(updatedAnswers)
-                                } yield {
-                                  if (claimResponse.applicationId > 0) Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
-                                  else Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
-                                }
-                              }
-                            }
-                          }
-      } yield result
-    )
-      .recover { case ex: Exception =>
+        appRequest  <- buildAppRequest(flaggedAnswers)
+        traderFacts <- service.retrieveTraderKnownFacts()
+        latestReq = LatestApplicationRequest(
+                      applicantVatRegNumber = traderFacts.vatRegNumber.toString,
+                      refundingCountry      = flaggedAnswers.get(pages.RefundingCountryPage),
+                      startDate             = None,
+                      endDate               = None,
+                      representativeId      = None,
+                      maxNumber             = 10000,
+                      orderBy               = Some(0),
+                      sortOrder             = Some("DESC"),
+                      startAt               = Some(0)
+                    )
+        latestResp <- service.getLatestApplications(latestReq)
+        result <- {
+          if (!isPostSubmission) {
+            val isDuplicate = latestResp.applications.exists { app =>
+              val statusIsD = app.applicationStatus.exists(_.equalsIgnoreCase("D"))
+              val submissionIsNull = app.submissionStatus.isEmpty
+              statusIsD || submissionIsNull
+            }
+            if (isDuplicate) Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
+            else
+              for {
+                claimResponse  <- service.createApplication(appRequest)
+                updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
+                _              <- sessionRepository.set(updatedAnswers)
+              } yield {
+                if (claimResponse.applicationId > 0)
+                  Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
+                else
+                  Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
+              }
+          } else {
+            for {
+              claimResponse  <- service.createApplication(appRequest)
+              updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
+              _              <- sessionRepository.set(updatedAnswers)
+            } yield {
+              if (claimResponse.applicationId > 0)
+                Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
+              else
+                Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
+            }
+          }
+        }
+      } yield result).recover { case ex: Exception =>
         logger.error("Error while saving the refund application", ex)
         Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
       }
+    } else {
+      Future.successful(Redirect(controllers.routes.TaskListDashboardController.onPageLoad()))
+    }
   }
 
   private def buildSummaryList(
@@ -124,15 +134,6 @@ class CheckYourClaimDetailsController @Inject() (
       }
     }
 
-    val maybeCurrencyDisplayName: Option[String] =
-      answers.get(pages.RefundingCurrencyPage).map { code =>
-        maybeCountryCode.toSeq
-          .flatMap(configCurrencyMapping.currenciesFor)
-          .find(_._2 == code)
-          .map(c => messages(s"refundingCurrency.${c._1}", c._3))
-          .getOrElse(code)
-      }
-
     val languageSection: Seq[(String, Seq[(String, Option[String], Seq[(String, String, String)])])] =
       maybeCountryCode match {
         case Some(code) if configLanguageMapping.languagesFor(code).size > 1 =>
@@ -140,16 +141,8 @@ class CheckYourClaimDetailsController @Inject() (
         case _ => Seq.empty
       }
 
-    val currencySection: Seq[(String, Seq[(String, Option[String], Seq[(String, String, String)])])] =
-      maybeCountryCode match {
-        case Some(code) if configCurrencyMapping.requiresCurrencySelection(code) =>
-          Seq(("checkYourClaimDetails.refundingCurrency.label", Seq(CheckYourClaimDetailsSummary.rowCurrency(maybeCurrencyDisplayName)).flatten))
-        case _ => Seq.empty
-      }
-
     Seq(("checkYourClaimDetails.refundingCountry.label", Seq(CheckYourClaimDetailsSummary.rowCountry(answers)).flatten)) ++
       languageSection ++
-      currencySection ++
       Seq(
         ("checkYourClaimDetails.refundingPeriod.label",
          Seq(CheckYourClaimDetailsSummary.rowRefundStart(answers), CheckYourClaimDetailsSummary.rowRefundEnd(answers)).flatten
@@ -171,9 +164,6 @@ class CheckYourClaimDetailsController @Inject() (
     val countryCode = userAnswers
       .get(RefundingCountryPage)
       .getOrElse(throw new RuntimeException("Country code missing"))
-    val currencyCode = userAnswers
-      .get(RefundingCurrencyPage)
-      .getOrElse(throw new RuntimeException("Currency code missing"))
     val languageCode = userAnswers
       .get(RefundingLanguagePage)
       .map(_.code)

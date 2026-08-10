@@ -25,9 +25,10 @@
     govukButton: GovukButton
 )
 
-@(form: Form[_], mode: Mode, call: Call)(implicit request: Request[_], messages: Messages)
+@(form: Form[_], mode: Mode, call: Call, isGermany: Boolean)(implicit request: Request[_], messages: Messages)
 
 @isError = @{form.error("value").isDefined}
+@hintKey = @{ if (isGermany) "supplierVatRegistrationNumber.hint.germany" else "supplierVatRegistrationNumber.hint" }
 
 @layout(pageTitle = title(form, messages("supplierVatRegistrationNumber.title")), backLinkUrl = Some(call.url)) {
 
@@ -48,7 +49,7 @@
                 )
                 .withCssClass("govuk-input--width-10")
                 .withAutocomplete("off")
-                .withHint(HintViewModel(Text(messages("supplierVatRegistrationNumber.hint"))))
+                .withHint(HintViewModel(Text(messages(hintKey))))
             )
 
         </div>

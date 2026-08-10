@@ -22,7 +22,7 @@ import forms.SupplierTaxIdentifierNumberFormProvider
 import javax.inject.Inject
 import models.Mode
 import navigation.Navigator
-import pages.SupplierTaxIdentifierNumberPage
+import pages.{SupplierTaxIdentifierNumberPage, SupplierVatRegistrationNumberPage}
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
@@ -51,6 +51,10 @@ class SupplierTaxIdentifierNumberController @Inject() (
   private def backLink(mode: Mode) = routes.SupplierTaxNumberController.onPageLoad(mode)
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
+    for {
+      updatedAnswers <- Future.fromTry(request.userAnswers.remove(SupplierVatRegistrationNumberPage))
+      _              <- sessionRepository.set(updatedAnswers)
+    } yield None
     val preparedForm = request.userAnswers.get(SupplierTaxIdentifierNumberPage).fold(form)(form.fill)
     Ok(view(preparedForm, mode, backLink(mode)))
   }

@@ -20,10 +20,7 @@ import controllers.routes
 import models.{CheckMode, UserAnswers}
 import pages.*
 import play.api.i18n.{Lang, Messages}
-import uk.gov.hmrc.govukfrontend.views.viewmodels.summarylist.SummaryListRow
 import utils.DateTimeFormats.shortMonthYearFormat
-import viewmodels.govuk.summarylist.*
-import viewmodels.implicits.*
 
 object CheckYourClaimDetailsSummary {
 
@@ -32,10 +29,11 @@ object CheckYourClaimDetailsSummary {
   def rowCountry(answers: UserAnswers)(implicit messages: Messages): Option[Row] =
     answers.get(RefundingCountryNamePage).map { countryName =>
       val changeUrl =
-        if (answers.get(ClaimDetailsCompletedPage).contains(true))
+        if (answers.get(ClaimDetailsCompletedPage).contains(true)) {
           routes.CheckYourStateDetailsController.onPageLoad(CheckMode).url
-        else
+        } else {
           routes.RefundingCountryController.onPageLoad(CheckMode).url
+        }
       (
         messages("checkYourClaimDetails.refundingCountry.subLabel"),
         Some(countryName),
@@ -49,15 +47,6 @@ object CheckYourClaimDetailsSummary {
         messages("checkYourClaimDetails.refundingLanguage.subLabel"),
         Some(messages(s"refundingLanguage.${answer.toString}")),
         Seq((routes.RefundingLanguageController.onPageLoad(CheckMode).url, "site.change", "checkYourClaimDetails.refundingLanguage.change.hidden"))
-      )
-    }
-
-  def rowCurrency(displayName: Option[String])(implicit messages: Messages): Option[Row] =
-    displayName.map { name =>
-      (
-        messages("checkYourClaimDetails.refundingCurrency.subLabel"),
-        Some(name),
-        Seq((routes.RefundingCurrencyController.onPageLoad(CheckMode).url, "site.change", "checkYourClaimDetails.refundingCurrency.change.hidden"))
       )
     }
 

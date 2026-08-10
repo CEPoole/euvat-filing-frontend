@@ -23,7 +23,7 @@ import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import pages.{RefundingCountryPage, RefundingCurrencyPage, TotalVatClaimPage}
+import pages.{RefundingCountryPage, RefundingCurrencyPage, TotalVatClaimPage, TotalVatPaidPage}
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
@@ -36,13 +36,11 @@ import play.api.data.Form
 import scala.concurrent.Future
 
 class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
-
   val formProvider = new TotalVatClaimFormProvider()
   val form: Form[BigDecimal] = formProvider()
 
-  def onwardRoute = Call("GET", "/foo")
-
-  val validAnswer = BigDecimal("123.45")
+  def onwardRoute: Call = Call("GET", "/foo")
+  val validAnswer: BigDecimal = BigDecimal("123.45")
 
   lazy val totalVatClaimRoute: String = routes.TotalVatClaimController.onPageLoad(NormalMode).url
 
@@ -51,7 +49,6 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
   "TotalVatClaim Controller" - {
 
     "must return OK and the correct view for a GET" in {
-
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
       running(application) {
@@ -62,12 +59,11 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
         val view = application.injector.instanceOf[TotalVatClaimView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, backLink, "€")(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLink, "€")(request, messages(application)).toString)
       }
     }
 
     "must populate the view correctly on a GET when the question has previously been answered" in {
-
       val userAnswers = UserAnswers(userAnswersId).set(TotalVatClaimPage, validAnswer).success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
@@ -80,18 +76,20 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form.fill(validAnswer), NormalMode, backLink, "€")(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(form.fill(validAnswer), NormalMode, backLink, "€")(request, messages(application)).toString
+        )
       }
     }
 
     "must redirect to the next page when valid data is submitted" in {
-
+      val userAnswers = emptyUserAnswers.set(TotalVatPaidPage, BigDecimal(200)).success.value
       val mockSessionRepository = mock[SessionRepository]
 
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
       val application =
-        applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        applicationBuilder(userAnswers = Some(userAnswers))
           .overrides(
             bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
             bind[SessionRepository].toInstance(mockSessionRepository)
@@ -107,6 +105,32 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual onwardRoute.url
+      }
+    }
+
+    "must redirect to the warning page if total vat paid is less than total vat claim" in {
+      val userAnswers = emptyUserAnswers.set(TotalVatPaidPage, BigDecimal("100")).success.value
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, totalVatClaimRoute)
+            .withFormUrlEncodedBody(("value", validAnswer.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.VatClaimWarningController.onPageLoad(NormalMode).url
       }
     }
 
@@ -126,7 +150,9 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, NormalMode, backLink, "€")(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(boundForm, NormalMode, backLink, "€")(request, messages(application)).toString
+        )
       }
     }
 
@@ -194,7 +220,9 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, backLink, "kr")(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(form, NormalMode, backLink, "kr")(request, messages(application)).toString
+        )
       }
     }
 
@@ -218,7 +246,7 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, backLink, "€")(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLink, "€")(request, messages(application)).toString)
       }
     }
 
@@ -244,7 +272,9 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, NormalMode, backLink, "kr")(request, messages(application)).toString
+        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+          view(boundForm, NormalMode, backLink, "kr")(request, messages(application)).toString
+        )
       }
     }
   }

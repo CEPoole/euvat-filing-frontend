@@ -1,0 +1,80 @@
+GET        /fuel-use                                   controllers.purchase.PurchaseSubTypeController.onPageLoad(purchaseTypeSlug: String = "fuel-use", mode: Mode = NormalMode)
+POST       /fuel-use                                   controllers.purchase.PurchaseSubTypeController.onSubmit(purchaseTypeSlug: String = "fuel-use", mode: Mode = NormalMode)
+GET        /change-fuel-use                            controllers.purchase.PurchaseSubTypeController.onPageLoad(purchaseTypeSlug: String = "fuel-use", mode: Mode = CheckMode)
+POST       /change-fuel-use                            controllers.purchase.PurchaseSubTypeController.onSubmit(purchaseTypeSlug: String = "fuel-use", mode: Mode = CheckMode)
+
+
+GET        /transport-cost                              controllers.purchase.PurchaseSubTypeController.onPageLoad(purchaseTypeSlug: String = "transport-cost", mode: Mode = NormalMode)
+POST       /transport-cost                              controllers.purchase.PurchaseSubTypeController.onSubmit(purchaseTypeSlug: String = "transport-cost", mode: Mode = NormalMode)
+GET        /change-transport-cost                       controllers.purchase.PurchaseSubTypeController.onPageLoad(purchaseTypeSlug: String = "transport-cost", mode: Mode = CheckMode)
+POST       /change-transport-cost                       controllers.purchase.PurchaseSubTypeController.onSubmit(purchaseTypeSlug: String = "transport-cost", mode: Mode = CheckMode)
+
+
+GET        /food-drink-restaurant-cost                  controllers.purchase.PurchaseSubTypeController.onPageLoad(purchaseTypeSlug: String = "food-drink-restaurant-cost", mode: Mode = NormalMode)
+POST       /food-drink-restaurant-cost                  controllers.purchase.PurchaseSubTypeController.onSubmit(purchaseTypeSlug: String = "food-drink-restaurant-cost", mode: Mode = NormalMode)
+GET        /change-food-drink-restaurant-cost           controllers.purchase.PurchaseSubTypeController.onPageLoad(purchaseTypeSlug: String = "food-drink-restaurant-cost", mode: Mode = CheckMode)
+POST       /change-food-drink-restaurant-cost           controllers.purchase.PurchaseSubTypeController.onSubmit(purchaseTypeSlug: String = "food-drink-restaurant-cost", mode: Mode = CheckMode)
+
+
+GET        /luxury-entertainment-hospitality-cost       controllers.purchase.PurchaseSubTypeController.onPageLoad(purchaseTypeSlug: String = "luxury-entertainment-hospitality-cost", mode: Mode = NormalMode)
+POST       /luxury-entertainment-hospitality-cost       controllers.purchase.PurchaseSubTypeController.onSubmit(purchaseTypeSlug: String = "luxury-entertainment-hospitality-cost", mode: Mode = NormalMode)
+GET        /change-luxury-entertainment-hospitality-cost controllers.purchase.PurchaseSubTypeController.onPageLoad(purchaseTypeSlug: String = "luxury-entertainment-hospitality-cost", mode: Mode = CheckMode)
+POST       /change-luxury-entertainment-hospitality-cost controllers.purchase.PurchaseSubTypeController.onSubmit(purchaseTypeSlug: String = "luxury-entertainment-hospitality-cost", mode: Mode = CheckMode)
+
+
+# Friendly single-path route for luxuries 9.3 -> cost-for-publicity-purposes
+GET        /cost-for-publicity-purposes                 controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = NormalMode)
+POST       /cost-for-publicity-purposes                 controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = NormalMode)
+GET        /change-cost-for-publicity-purposes          controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = CheckMode)
+POST       /change-cost-for-publicity-purposes          controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = CheckMode)
+
+# Slug-only routes derived from mapping table
+# Fuel slugs
+GET        /fuel-type                                   controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = NormalMode)
+POST       /fuel-type                                   controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = NormalMode)
+GET        /change-fuel-type                            controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = CheckMode)
+POST       /change-fuel-type                            controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = CheckMode)
+
+GET        /fuel-type-or-vehicle                        controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = NormalMode)
+POST       /fuel-type-or-vehicle                        controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = NormalMode)
+GET        /change-fuel-type-or-vehicle                 controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = CheckMode)
+POST       /change-fuel-type-or-vehicle                 controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = CheckMode)
+
+GET        /vehicle-use                                 controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = NormalMode)
+POST       /vehicle-use                                 controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = NormalMode)
+GET        /change-vehicle-use                          controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = CheckMode)
+POST       /change-vehicle-use                          controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = CheckMode)
+
+# Transport slug
+GET        /what-transport-cost                          controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = NormalMode)
+POST       /what-transport-cost                          controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = NormalMode)
+GET        /change-what-transport-cost                   controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = CheckMode)
+POST       /change-what-transport-cost                   controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = CheckMode)
+
+# Food and drink
+GET        /who-food-drink-for                           controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = NormalMode)
+POST       /who-food-drink-for                           controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = NormalMode)
+GET        /change-who-food-drink-for                    controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = CheckMode)
+POST       /change-who-food-drink-for                    controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = CheckMode)
+
+# Property purchase
+GET        /property-purchase-type                       controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = NormalMode)
+POST       /property-purchase-type                       controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = NormalMode)
+GET        /change-property-purchase-type                controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = CheckMode)
+POST       /change-property-purchase-type                controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = CheckMode)
+
+GET        /property-cost-type                           controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = NormalMode)
+POST       /property-cost-type                           controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = NormalMode)
+GET        /change-property-cost-type                    controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = CheckMode)
+POST       /change-property-cost-type                    controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = CheckMode)
+
+# Describe items (fallback for 'other' catch-all)
+GET        /describe-items                               controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = NormalMode)
+POST       /describe-items                               controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = NormalMode)
+GET        /change-describe-items                        controllers.purchase.PurchaseSubCategoryController.onPageLoad(mode: Mode = CheckMode)
+POST       /change-describe-items                        controllers.purchase.PurchaseSubCategoryController.onSubmit(mode: Mode = CheckMode)
+
+GET        /purchase-type-other                         controllers.purchase.PurchaseSubTypeController.onPageLoad(purchaseTypeSlug: String = "purchase-type-other", mode: Mode = NormalMode)
+POST       /purchase-type-other                         controllers.purchase.PurchaseSubTypeController.onSubmit(purchaseTypeSlug: String = "purchase-type-other", mode: Mode = NormalMode)
+GET        /change-purchase-type-other                  controllers.purchase.PurchaseSubTypeController.onPageLoad(purchaseTypeSlug: String = "purchase-type-other", mode: Mode = CheckMode)
+POST       /change-purchase-type-other                  controllers.purchase.PurchaseSubTypeController.onSubmit(purchaseTypeSlug: String = "purchase-type-other", mode: Mode = CheckMode)

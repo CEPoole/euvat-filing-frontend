@@ -14,6 +14,7 @@ site.signIn = Sign in
 site.govuk = GOV.UK
 site.save.continue = Save and continue
 
+
 date.day = Day
 date.month = Month
 date.year = Year
@@ -46,7 +47,6 @@ unauthorised.heading = You can’t access this service with this account
 unauthorised.guidance = You do not have access to this service.
 
 claim.caption = Claim details
-caption.hidden.text = This section is:
 purchase.caption = Purchase details
 
 taskListDashboard.title = Make a claim for an EU VAT refund
@@ -122,6 +122,13 @@ refundPeriod.rule.1 = be in the past
 refundPeriod.rule.2 = be within the same calendar year
 refundPeriod.rule.3 = be at least 3 months long, unless it ends in December (for example, 10 2025 to 12 2025 counts as 3 months)
 refundPeriod.rule.4 = not overlap with a period you''ve already made a claim for
+
+refundPeriod.error.beforeEarliest.start = Refund period must be after {0}
+refundPeriod.error.beforeEarliest.end = Refund period must be after {0}
+refundPeriod.error.beforeEarliest.both = Refund period must be after {0}
+refundPeriod.error.afterLatest.start = Refund period must be before {0}
+refundPeriod.error.afterLatest.end = Refund period must be before {0}
+refundPeriod.error.afterLatest.both = Refund period must be before {0}
 refundPeriod.start.heading = When is the refund period start date?
 refundPeriod.start.hint = For example, 10 2025
 refundPeriod.start.error.required = Enter the start date
@@ -148,6 +155,13 @@ refundPeriod.error.startDateNotAfterEndDate = Refund period start date must be e
 refundPeriod.error.startAndEndInSameYear = Refund period start date and end date must be in the same calendar year
 refundPeriod.error.overlap = Refund period cannot overlap with another claim for the same EU member state.
 refundPeriod.error.periodNotLessThan3Months = Refund period must be at least 3 months long unless the period ends in December
+
+periodOverlapWarning.title = Are you sure the refund period is correct?
+periodOverlapWarning.heading = Are you sure the refund period is correct?
+periodOverlapWarning.p = You’ve told us the refund period is the same used for another claim. The refund period must not overlap with another claim for the same EU member state.
+periodOverlapWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
+periodOverlapWarning.correct = Yes, this is correct
+periodOverlapWarning.backLink = No, change the refund period
 
 contactDetails.title = How should we contact you about this claim?
 contactDetails.heading = How should we contact you about this claim?
@@ -287,6 +301,7 @@ supplierTaxNumber.neither = I do not have any of these on the invoice
 supplierVatRegistrationNumber.title = What is the supplier’s VAT registration number?
 supplierVatRegistrationNumber.heading = What is the supplier’s VAT registration number?
 supplierVatRegistrationNumber.hint = This can be up to 12 characters and may start with a 2-letter EU country code. For example, FR123456789
+supplierVatRegistrationNumber.hint.germany = Enter the supplier’s VAT registration number as it appears on the invoice. Do not include the 2-letter country code, for example 123456789
 supplierVatRegistrationNumber.error.required = Enter the supplier’s VAT registration number
 supplierVatRegistrationNumber.error.invalid = Enter the supplier’s VAT registration number in the correct format
 supplierVatRegistrationNumber.error.length = Supplier’s VAT registration number must be 12 characters or less
@@ -400,3 +415,18 @@ describeItemsOnInvoice.heading = Describe the items on your invoice
 describeItemsOnInvoice.hint = List each item and the exact amount you paid for it. Include the currency shown on the invoice. For example, an invoice including €150 for fuel and €50 for transport costs.
 describeItemsOnInvoice.error.required = Enter a description of the items on your invoice
 describeItemsOnInvoice.error.length = Item description must be 255 characters or less
+
+# Warning messages
+vatPaidWarning.title = Are you sure the amount of VAT you paid is correct?
+vatPaidWarning.heading = Are you sure the amount of VAT you paid is correct?
+vatPaidWarning.p = The amount of VAT you paid must be less than the purchase amount before VAT.
+vatPaidWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
+vatPaidWarning.yes = Yes, this is correct
+vatPaidWarning.no = No, change the VAT amount
+
+vatClaimWarning.title = Are you sure the amount of VAT you''re claiming is correct?
+vatClaimWarning.heading = Are you sure the amount of VAT you''re claiming is correct?
+vatClaimWarning.p = You''ve told us the amount of VAT you''re claiming is {0}. The amount you''re claiming cannot be more than the amount of VAT you paid.
+vatClaimWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
+vatClaimWarning.yes = Yes, this is correct
+vatClaimWarning.no = No, change the VAT claim amount

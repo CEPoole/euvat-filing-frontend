@@ -18,19 +18,18 @@ package controllers
 
 import controllers.actions.*
 import forms.TotalPurchaseAmountBeforeVatFormProvider
-
-import javax.inject.Inject
-import models.Mode
+import models.{Mode, UserAnswers}
 import navigation.Navigator
-import utils.ConfigCurrencyMapping
-import pages.RefundingCurrencyPage
-import pages.TotalPurchaseAmountBeforeVatPage
+import pages.*
+import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
+import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import utils.ConfigCurrencyMapping
 import views.html.TotalPurchaseAmountBeforeVatView
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class TotalPurchaseAmountBeforeVatController @Inject() (
@@ -48,29 +47,48 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
     extends FrontendBaseController
     with I18nSupport {
 
-  val form = formProvider()
+  val form: Form[BigDecimal] = formProvider()
 
-  private def backLink(mode: Mode) = routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
+  private def backLink(mode: Mode)(userAnswers: UserAnswers): Call = {
+    // if this country requires currency selection, the currency was shown right before this page
+    // so Back should return there, matching the forward navigation built for DTR-6982
+    userAnswers.get(RefundingCountryPage) match {
+      case Some(countryCode) if configCurrencyMapping.requiresCurrencySelection(countryCode) =>
+        routes.RefundingCurrencyController.onPageLoad(mode)
+
+      case Some("DE") =>
+        if (userAnswers.get(SupplierVatRegistrationNumberPage).isDefined) {
+          routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
+        } else if (userAnswers.get(SupplierTaxIdentifierNumberPage).isDefined) {
+          routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)
+        } else {
+          routes.SupplierTaxNumberController.onPageLoad(mode)
+        }
+      case _ =>
+        userAnswers.get(SupplierVatRegistrationNumberPage) match {
+          case Some(_) => routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
+          case None    => routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(mode)
+        }
+    }
+  }
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-
     val preparedForm = request.userAnswers.get(TotalPurchaseAmountBeforeVatPage) match {
       case None        => form
       case Some(value) => form.fill(value)
     }
 
     val (currencyName, prefix) = resolveCurrency(request.userAnswers)
-    Ok(view(preparedForm, mode, backLink(mode), prefix, currencyName))
+    Ok(view(preparedForm, mode, backLink(mode)(request.userAnswers), prefix, currencyName))
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-
     form
       .bindFromRequest()
       .fold(
         formWithErrors => {
           val (currencyName, prefix) = resolveCurrency(request.userAnswers)
-          Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode), prefix, currencyName)))
+          Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode)(request.userAnswers), prefix, currencyName)))
         },
         value =>
           for {

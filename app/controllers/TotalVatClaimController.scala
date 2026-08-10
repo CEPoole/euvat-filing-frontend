@@ -22,7 +22,8 @@ import forms.TotalVatClaimFormProvider
 import javax.inject.Inject
 import models.Mode
 import navigation.Navigator
-import pages.{RefundingCurrencyPage, TotalVatClaimPage}
+import pages.{RefundingCurrencyPage, TotalVatClaimPage, TotalVatPaidPage}
+import play.api.data.Form
 import utils.ConfigCurrencyMapping
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
@@ -47,7 +48,7 @@ class TotalVatClaimController @Inject() (
     extends FrontendBaseController
     with I18nSupport {
 
-  val form = formProvider()
+  val form: Form[BigDecimal] = formProvider()
 
   private def backLink(mode: Mode): Call = routes.TotalVatPaidController.onPageLoad(mode)
 
@@ -95,7 +96,14 @@ class TotalVatClaimController @Inject() (
           for {
             updatedAnswers <- Future.fromTry(request.userAnswers.set(TotalVatClaimPage, value))
             _              <- sessionRepository.set(updatedAnswers)
-          } yield Redirect(navigator.nextPage(TotalVatClaimPage, mode, updatedAnswers))
+          } yield {
+            val totalVatPaid = request.userAnswers.get(TotalVatPaidPage).getOrElse(BigDecimal(0))
+            if (value > totalVatPaid) {
+              Redirect(routes.VatClaimWarningController.onPageLoad(mode))
+            } else {
+              Redirect(navigator.nextPage(TotalVatClaimPage, mode, updatedAnswers))
+            }
+          }
       )
   }
 }

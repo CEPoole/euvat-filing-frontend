@@ -22,9 +22,10 @@ import org.mockito.Mockito.{times, verify, when}
 import org.scalatestplus.mockito.MockitoSugar
 import navigation.FakeNavigator
 import play.api.test.FakeRequest
-import models.responses.{LatestApplicationResponse, LatestApplication, TraderKnownFactsResponse}
+import models.responses.{LatestApplication, LatestApplicationResponse, TraderKnownFactsResponse}
 import java.time.LocalDateTime
 import org.mockito.ArgumentMatchers.any
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.Helpers.*
 import play.api.inject.bind
 import utils.CountryList
@@ -32,6 +33,8 @@ import pages.RefundingCountryNamePage
 import play.api.mvc.Call
 
 class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
+
+  // Use `normalizeHtml` from SpecBase to normalize CSRF and nonce differences
 
   val onwardRoute: Call = Call("GET", "/foo")
 
@@ -56,9 +59,12 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val body = contentAsString(result)
         val backUrl = application.configuration.get[String]("urls.loginContinue") + controllers.routes.TaskListDashboardController.onPageLoad().url
         body must not include s"href=\"$backUrl\""
-        body mustEqual view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(request,
-                                                                                                                             messages(application)
-                                                                                                                            ).toString
+        val viewRequest = request.withCSRFToken
+        normalizeHtml(body) mustEqual normalizeHtml(
+          view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
+                                                                                                                messages(application)
+                                                                                                               ).toString
+        )
       }
     }
 
@@ -96,9 +102,12 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val body = contentAsString(result)
         val backUrl = application.configuration.get[String]("urls.loginContinue") + controllers.routes.TaskListDashboardController.onPageLoad().url
         body must not include s"href=\"$backUrl\""
-        body mustEqual view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(request,
-                                                                                                                             messages(application)
-                                                                                                                            ).toString
+        val viewRequest = request.withCSRFToken
+        normalizeHtml(body) mustEqual normalizeHtml(
+          view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
+                                                                                                                messages(application)
+                                                                                                               ).toString
+        )
       }
     }
 
@@ -127,118 +136,128 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
-      "must show duplicate application error when duplicate exists" in {
-        val mockSessionRepository = mock[repositories.SessionRepository]
-        when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+    "must show duplicate application error when duplicate exists" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
+        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
 
-        // with new rule: duplicate applies when applicationStatus == "D" or submissionStatus == null
-        val sampleApp = LatestApplication(1L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("D"), Some("R"), LocalDateTime.now())
-        when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
+      // with new rule: duplicate applies when applicationStatus == "D" or submissionStatus == null
+      val sampleApp = LatestApplication(1L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("D"), Some("R"), LocalDateTime.now())
+      when(mockEuVatRefundsService.getLatestApplications(any())(any()))
+        .thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
 
-        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
-          .overrides(
-            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
-          )
-          .build()
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        .overrides(
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
 
-        running(application) {
-          val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
-            .withFormUrlEncodedBody(("value", "DE"))
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "DE"))
 
-          val result = route(application, request).value
+        val result = route(application, request).value
 
-          status(result) mustEqual BAD_REQUEST
-          contentAsString(result) must include(messages(application)("refundingCountry.error.duplicate"))
+        status(result) mustEqual BAD_REQUEST
+        contentAsString(result) must include(messages(application)("refundingCountry.error.duplicate"))
+      }
+    }
+
+    "must escalate 5xx backend errors" in {
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
+        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any()))
+        .thenReturn(scala.concurrent.Future.failed(new uk.gov.hmrc.http.UpstreamErrorResponse("boom", 500, 500, Map.empty)))
+
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "DE"))
+
+        val result = route(application, request)
+        whenReady(result.value.failed) { ex =>
+          ex.getMessage must include("boom")
         }
       }
+    }
 
-      "must escalate 5xx backend errors" in {
-        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
-        when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(scala.concurrent.Future.failed(new uk.gov.hmrc.http.UpstreamErrorResponse("boom", 500, 500, Map.empty)))
+    "must escalate 4xx backend errors" in {
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
+        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
+      when(mockEuVatRefundsService.getLatestApplications(any())(any()))
+        .thenReturn(scala.concurrent.Future.failed(new uk.gov.hmrc.http.UpstreamErrorResponse("boom400", 400, 400, Map.empty)))
 
-        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
-        running(application) {
-          val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
-            .withFormUrlEncodedBody(("value", "DE"))
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "DE"))
 
-          val result = route(application, request)
-          whenReady(result.value.failed) { ex =>
-            ex.getMessage must include("boom")
-          }
+        val result = route(application, request)
+        whenReady(result.value.failed) { ex =>
+          ex.getMessage must include("boom400")
         }
       }
+    }
 
-      "must escalate 4xx backend errors" in {
-        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
-        when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(scala.concurrent.Future.failed(new uk.gov.hmrc.http.UpstreamErrorResponse("boom400", 400, 400, Map.empty)))
+    "must bypass validation when application status is A" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
+        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
 
-        running(application) {
-          val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
-            .withFormUrlEncodedBody(("value", "DE"))
+      // under new rule, applicationStatus == D triggers validation (isDuplicate true), so to test bypass we use non-D and non-null submissionStatus
+      val sampleApp = LatestApplication(2L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("A"), Some("s"), LocalDateTime.now())
+      when(mockEuVatRefundsService.getLatestApplications(any())(any()))
+        .thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
 
-          val result = route(application, request)
-          whenReady(result.value.failed) { ex =>
-            ex.getMessage must include("boom400")
-          }
-        }
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        .overrides(
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "DE"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
       }
+    }
 
-      "must bypass validation when application status is A" in {
-        val mockSessionRepository = mock[repositories.SessionRepository]
-        when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+    "must treat submissionStatus 'S' case-insensitively and be treated as duplicate when applicationStatus is D" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
+      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
+        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
 
-        // under new rule, applicationStatus == D triggers validation (isDuplicate true), so to test bypass we use non-D and non-null submissionStatus
-        val sampleApp = LatestApplication(2L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("A"), Some("s"), LocalDateTime.now())
-        when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
+      val sampleApp = LatestApplication(3L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("D"), Some("S"), LocalDateTime.now())
+      when(mockEuVatRefundsService.getLatestApplications(any())(any()))
+        .thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
 
-        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
-          .overrides(
-            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
-          )
-          .build()
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        .overrides(
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
 
-        running(application) {
-          val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
-            .withFormUrlEncodedBody(("value", "DE"))
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "DE"))
 
-          val result = route(application, request).value
+        val result = route(application, request).value
 
-          status(result) mustEqual SEE_OTHER
-        }
+        status(result) mustEqual BAD_REQUEST
+        contentAsString(result) must include(messages(application)("refundingCountry.error.duplicate"))
       }
-
-      "must treat submissionStatus 'S' case-insensitively and be treated as duplicate when applicationStatus is D" in {
-        val mockSessionRepository = mock[repositories.SessionRepository]
-        when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
-
-        when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
-
-        val sampleApp = LatestApplication(3L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("D"), Some("S"), LocalDateTime.now())
-        when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
-
-        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
-          .overrides(
-            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
-          )
-          .build()
-
-        running(application) {
-          val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
-            .withFormUrlEncodedBody(("value", "DE"))
-
-          val result = route(application, request).value
-
-          status(result) mustEqual BAD_REQUEST
-          contentAsString(result) must include(messages(application)("refundingCountry.error.duplicate"))
-        }
-      }
+    }
 
     "must skip RefundingLanguage and set default language when country has single language" in {
 
@@ -306,6 +325,58 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "must clear purchase selections when country is changed" in {
+
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+
+      // Start with a saved country and various purchase selections
+      val starting = emptyUserAnswers
+        .set(pages.RefundingCountryPage, "BG")
+        .success
+        .value
+        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .success
+        .value
+        .set(pages.PurchaseSubTypePage, "1.1")
+        .success
+        .value
+        .set(pages.PurchaseSubTypeLabelPage, "Fuel label")
+        .success
+        .value
+        .set(pages.PurchaseSubCategoryPage, "1.1.1")
+        .success
+        .value
+        .set(pages.PurchaseSubCategoryLabelPage, "Fuel sub label")
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(starting))
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        // Submit a different country
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "DE"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+
+        import org.mockito.ArgumentCaptor
+        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        val saved = captor.getValue
+
+        saved.get(pages.PurchaseTypePage).isDefined mustBe false
+        saved.get(pages.PurchaseSubTypePage).isDefined mustBe false
+        saved.get(pages.PurchaseSubTypeLabelPage).isDefined mustBe false
+        saved.get(pages.PurchaseSubCategoryPage).isDefined mustBe false
+        saved.get(pages.PurchaseSubCategoryLabelPage).isDefined mustBe false
+      }
+    }
+
     "must pre-fill the form when arriving from the task list and a saved value exists" in {
 
       val userAnswers = emptyUserAnswers.set(RefundingCountryNamePage, "DE").success.value
@@ -328,9 +399,12 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val body = contentAsString(result)
         val backUrl = application.configuration.get[String]("urls.loginContinue") + controllers.routes.TaskListDashboardController.onPageLoad().url
         body must not include s"href=\"$backUrl\""
-        body mustEqual view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(request,
-                                                                                                                             messages(application)
-                                                                                                                            ).toString
+        val viewRequest = request.withCSRFToken
+        normalizeHtml(body) mustEqual normalizeHtml(
+          view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
+                                                                                                                messages(application)
+                                                                                                               ).toString
+        )
       }
 
     }
@@ -357,9 +431,12 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val body = contentAsString(result)
         val backUrl = application.configuration.get[String]("urls.loginContinue") + controllers.routes.TaskListDashboardController.onPageLoad().url
         body must not include s"href=\"$backUrl\""
-        body mustEqual view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(request,
-                                                                                                                             messages(application)
-                                                                                                                            ).toString
+        val viewRequest = request.withCSRFToken
+        normalizeHtml(body) mustEqual normalizeHtml(
+          view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
+                                                                                                                messages(application)
+                                                                                                               ).toString
+        )
       }
     }
 
@@ -483,6 +560,52 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val rawInvalidBody = contentAsString(rawInvalidResult)
         rawInvalidBody must include(messages(application)("refundingCountry.error.invalid"))
         rawInvalidBody must include(messages(application)("refundingCountry.error.invalid.summary"))
+      }
+    }
+
+    "must save both code and name when a code is submitted" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        .overrides(
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "AT"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+
+        import org.mockito.ArgumentCaptor
+        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        val saved = captor.getValue
+
+        saved.get(pages.RefundingCountryPage) mustBe Some("AT")
+        saved.get(pages.RefundingCountryNamePage) mustBe Some("Austria")
+      }
+    }
+
+    "must recover and return Bad Request when session save fails" in {
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.failed(new RuntimeException("boom"))
+
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+          .withFormUrlEncodedBody(("value", "DE"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual BAD_REQUEST
       }
     }
   }

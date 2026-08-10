@@ -22,7 +22,7 @@ import forms.SupplierVatRegistrationNumberFormProvider
 import javax.inject.Inject
 import models.Mode
 import navigation.Navigator
-import pages.SupplierVatRegistrationNumberPage
+import pages.{RefundingCountryPage, SupplierTaxIdentifierNumberPage, SupplierVatRegistrationNumberPage}
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
@@ -48,18 +48,24 @@ class SupplierVatRegistrationNumberController @Inject() (
 
   val form: Form[String] = formProvider()
 
-  private def backLink(mode: Mode) = routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(mode)
+  private def backLink(mode: Mode) = routes.SupplierTaxNumberController.onPageLoad(mode)
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
+    for {
+      updatedAnswers <- Future.fromTry(request.userAnswers.remove(SupplierTaxIdentifierNumberPage))
+      _              <- sessionRepository.set(updatedAnswers)
+    } yield None
     val preparedForm = request.userAnswers.get(SupplierVatRegistrationNumberPage).fold(form)(form.fill)
-    Ok(view(preparedForm, mode, backLink(mode)))
+    val isGermany = request.userAnswers.get(RefundingCountryPage).exists(_.equalsIgnoreCase("DE"))
+    Ok(view(preparedForm, mode, backLink(mode), isGermany))
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
+    val isGermany = request.userAnswers.get(RefundingCountryPage).exists(_.equalsIgnoreCase("DE"))
     form
       .bindFromRequest()
       .fold(
-        formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode)))),
+        formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode), isGermany))),
         value =>
           for {
             updatedAnswers <- Future.fromTry(request.userAnswers.set(SupplierVatRegistrationNumberPage, value))
