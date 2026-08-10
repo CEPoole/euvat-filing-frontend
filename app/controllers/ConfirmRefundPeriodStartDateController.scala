@@ -40,7 +40,9 @@ class ConfirmRefundPeriodStartDateController @Inject() (
 ) extends FrontendBaseController
     with I18nSupport {
 
-  private[controllers] def earliestPermittedStartDate(today: LocalDate = LocalDate.now()): YearMonth = {
+  protected def today: LocalDate = LocalDate.now()
+
+  private[controllers] def earliestPermittedStartDate(): YearMonth = {
     val cutoff = MonthDay.of(9, 30).atYear(today.getYear)
     if (!today.isAfter(cutoff)) {
       YearMonth.of(today.getYear - 1, 1)
@@ -55,7 +57,7 @@ class ConfirmRefundPeriodStartDateController @Inject() (
       case Some(refundPeriod) =>
         val startDate = refundPeriod.startDate.format(java.time.format.DateTimeFormatter.ofPattern("MM/yyyy"))
         val minDate = earliestPermittedStartDate().format(DateTimeFormatter.ofPattern("MM/yyyy"))
-        val call = routes.RefundPeriodController.onPageLoad(CheckMode)
+        val call = routes.RefundPeriodController.onPageLoad(mode)
         Ok(view(startDate, minDate, call, mode))
     }
   }

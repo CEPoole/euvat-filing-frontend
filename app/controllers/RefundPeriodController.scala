@@ -167,7 +167,9 @@ class RefundPeriodController @Inject() (
     } yield Redirect(navigator.nextPage(RefundPeriodPage, mode, updatedUserAnswers))
   }
 
-  private[controllers] def earliestPermittedStartDate(today: LocalDate = LocalDate.now()): YearMonth = {
+  protected def today: LocalDate = LocalDate.now()
+
+  private[controllers] def earliestPermittedStartDate(): YearMonth = {
     val cutoff = MonthDay.of(9, 30).atYear(today.getYear)
     if (!today.isAfter(cutoff)) {
       YearMonth.of(today.getYear - 1, 1)
