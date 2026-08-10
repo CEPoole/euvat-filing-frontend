@@ -18,7 +18,7 @@ package controllers
 
 import controllers.actions.*
 import models.requests.DataRequest
-import models.{CheckMode, NormalMode, RefundPeriod}
+import models.{CheckMode, Mode, NormalMode, RefundPeriod}
 import pages.RefundPeriodPage
 
 import javax.inject.Inject
@@ -49,18 +49,21 @@ class ConfirmRefundPeriodStartDateController @Inject() (
     }
   }
 
-  def onPageLoad: Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
+  def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     request.userAnswers.get(RefundPeriodPage) match {
       case None => Redirect(routes.JourneyRecoveryController.onPageLoad())
       case Some(refundPeriod) =>
         val startDate = refundPeriod.startDate.format(java.time.format.DateTimeFormatter.ofPattern("MM/yyyy"))
         val minDate = earliestPermittedStartDate().format(DateTimeFormatter.ofPattern("MM/yyyy"))
         val call = routes.RefundPeriodController.onPageLoad(CheckMode)
-        Ok(view(startDate, minDate, call))
+        Ok(view(startDate, minDate, call, mode))
     }
   }
 
-  def onSubmit(): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    Redirect(routes.ContactDetailsController.onPageLoad(NormalMode))
+  def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
+    mode match {
+      case NormalMode => Redirect(routes.ContactDetailsController.onPageLoad(NormalMode))
+      case CheckMode  => Redirect(routes.CheckYourClaimDetailsController.onPageLoad())
+    }
   }
 }
