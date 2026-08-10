@@ -40,7 +40,7 @@ class ConfirmRefundPeriodStartDateController @Inject() (
 ) extends FrontendBaseController
     with I18nSupport {
 
-  private def earliestPermittedStartDate(today: LocalDate = LocalDate.now()): YearMonth = {
+  private[controllers] def earliestPermittedStartDate(today: LocalDate = LocalDate.now()): YearMonth = {
     val cutoff = MonthDay.of(9, 30).atYear(today.getYear)
     if (!today.isAfter(cutoff)) {
       YearMonth.of(today.getYear - 1, 1)
