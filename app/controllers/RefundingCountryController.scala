@@ -101,15 +101,6 @@ class RefundingCountryController @Inject() (
         value => {
           val maybePrevCode = CountryCode.findCountryCode(baseAnswers)
 
-          def continueWithSave(updatedAnswers: UserAnswers) =
-            sessionRepository
-              .set(updatedAnswers)
-              .map(_ => Redirect(navigator.nextPage(RefundingCountryPage, mode, updatedAnswers)))
-              .recover { case NonFatal(_) =>
-                // On session save failure return BadRequest so controller tests can assert recovery
-                BadRequest(view(form.fill(value), countries, routes.TaskListDashboardController.onPageLoad(), mode))
-              }
-
           euVatRefundsService
             .retrieveTraderKnownFacts()
             .flatMap { traderFacts =>
