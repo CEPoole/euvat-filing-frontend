@@ -17,20 +17,22 @@
 package controllers
 
 import base.SpecBase
+import models.NormalMode
+import models.responses.{LatestApplication, LatestApplicationResponse, TraderKnownFactsResponse}
+import navigation.FakeNavigator
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatestplus.mockito.MockitoSugar
-import navigation.FakeNavigator
-import play.api.test.FakeRequest
-import models.responses.{LatestApplication, LatestApplicationResponse, TraderKnownFactsResponse}
-import java.time.LocalDateTime
-import org.mockito.ArgumentMatchers.any
-import play.api.test.CSRFTokenHelper.*
-import play.api.test.Helpers.*
-import play.api.inject.bind
-import utils.CountryList
 import pages.RefundingCountryNamePage
+import play.api.inject.bind
 import play.api.mvc.Call
+import play.api.test.CSRFTokenHelper.*
+import play.api.test.FakeRequest
+import play.api.test.Helpers.*
+import utils.CountryList
+
+import java.time.LocalDateTime
+import scala.concurrent.Future
 
 class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
 
@@ -203,15 +205,15 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
 
     "must bypass validation when application status is A" in {
       val mockSessionRepository = mock[repositories.SessionRepository]
-      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
       when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
-        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
+        .thenReturn(Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
 
-      // under new rule, applicationStatus == D triggers validation (isDuplicate true), so to test bypass we use non-D and non-null submissionStatus
+      // Stored procedure itself checks if app status is D and sub status is null then return latest application which also returns the total application count
       val sampleApp = LatestApplication(2L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("A"), Some("s"), LocalDateTime.now())
       when(mockEuVatRefundsService.getLatestApplications(any())(any()))
-        .thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
+        .thenReturn(Future.successful(LatestApplicationResponse(List(sampleApp), 0)))
 
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
         .overrides(
@@ -220,7 +222,7 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         .build()
 
       running(application) {
-        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+        val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(NormalMode).url)
           .withFormUrlEncodedBody(("value", "DE"))
 
         val result = route(application, request).value
