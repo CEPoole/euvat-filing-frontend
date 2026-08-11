@@ -47,7 +47,7 @@ class RefundingCurrencyControllerSpec extends SpecBase with MockitoSugar {
 
   "RefundingCurrency Controller" - {
 
-    "must show back link to country when language page is skipped for single-language country" in {
+    "must show back link to the supplier VAT registration number page" in {
 
       val application = applicationBuilder(userAnswers = Some(userAnswersWithCzech)).build()
 
@@ -56,8 +56,7 @@ class RefundingCurrencyControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        // back link should point to RefundingCountry when language is skipped
-        contentAsString(result) must include(routes.RefundingCountryController.onPageLoad(NormalMode).url)
+        contentAsString(result) must include(routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode).url)
       }
     }
 

@@ -19,8 +19,6 @@ package controllers
 import base.SpecBase
 import forms.RefundPeriodFormProvider
 import models.responses.{LatestApplication, LatestApplicationResponse, TraderKnownFactsResponse}
-import queries.TraderKnownFactsQuery
-import models.responses.TraderKnownFactsResponse
 import models.{NormalMode, RefundPeriod}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
@@ -32,6 +30,7 @@ import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import queries.TraderKnownFactsQuery
 import services.EuVatRefundsService
 
 import java.time.LocalDateTime
@@ -119,19 +118,6 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
               Map.empty[String, String]
             )(request, msgs).toString
           )
-        }
-      }
-
-      "must use RefundingCurrencyController as back link when country has two currencies" in {
-        val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "EE").success.value
-        val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
-
-        running(application) {
-          val request = FakeRequest(GET, routes.RefundPeriodController.onPageLoad(models.NormalMode).url)
-          val result = route(application, request).value
-
-          status(result) mustEqual OK
-          contentAsString(result) must include(routes.RefundingCurrencyController.onPageLoad(models.NormalMode).url)
         }
       }
 

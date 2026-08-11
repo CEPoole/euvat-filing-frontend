@@ -22,12 +22,10 @@ import models.requests.{DataRequest, LatestApplicationRequest}
 import models.responses.TraderKnownFactsResponse
 import models.{Mode, RefundPeriod}
 import navigation.Navigator
-import pages.RefundPeriodPage
-import play.api.Logging
-import play.api.libs.json.Json
+import pages.{RefundPeriodPage, RefundingCountryNamePage, RefundingCountryPage}
+import play.api.{Configuration, Logging}
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, Messages, MessagesApi}
-import play.api.Configuration
 import play.api.mvc.*
 import queries.TraderKnownFactsQuery
 import repositories.SessionRepository
@@ -58,6 +56,23 @@ class RefundPeriodController @Inject() (
     extends FrontendBaseController
     with I18nSupport
     with Logging {
+
+  private def backLink(mode: Mode)(implicit request: DataRequest[?]): Call = {
+    val maybeCountryCode = request.userAnswers
+      .get(RefundingCountryPage)
+      .orElse(
+        request.userAnswers
+          .get(RefundingCountryNamePage)
+          .map(stored => stored.split(",", 2).headOption.getOrElse(stored))
+      )
+    maybeCountryCode match {
+      case Some(code) =>
+        if (configLanguageMapping.languagesFor(code).size <= 1) {
+          controllers.routes.RefundingCountryController.onPageLoad(mode)
+        } else { controllers.routes.RefundingLanguageController.onPageLoad(mode) }
+      case None => controllers.routes.RefundingLanguageController.onPageLoad(mode)
+    }
+  }
 
   private def errorMessage(form: Form[RefundPeriodData], keys: Seq[String])(implicit messages: Messages): Option[String] = {
     val errors = form.errors.filter(e => keys.contains(e.key))
@@ -100,13 +115,7 @@ class RefundPeriodController @Inject() (
     val startMsg = errorMessage(mappedForm, Seq("start", "start.month", "start.year"))
     val endMsg = errorMessage(mappedForm, Seq("end", "end.month", "end.year"))
 
-    logger.debug(s"RefundPeriodController.renderError: form.errors=${form.errors.map(e => s"${e.key}->${e.message}").mkString(",")}")
-
-    Future.successful(
-      BadRequest(
-        view(mappedForm, mode, backLink(mode), startMsg, endMsg, highlighted, errorLinkOverrides(mappedForm))
-      )
-    )
+    Future.successful(BadRequest(view(mappedForm, mode, backLink(mode), startMsg, endMsg, highlighted, errorLinkOverrides(mappedForm))))
   }
 
   // Business Function F6 check
@@ -337,20 +346,4 @@ class RefundPeriodController @Inject() (
     (earliest, latest, isExempt)
   }
 
-  private def backLink(mode: Mode)(implicit request: DataRequest[?]): Call = {
-    val maybeCountryCode = request.userAnswers.get(pages.RefundingCountryPage).orElse {
-      request.userAnswers.get(pages.RefundingCountryNamePage).map { stored =>
-        stored.split(",", 2).headOption.getOrElse(stored)
-      }
-    }
-    maybeCountryCode match {
-      case Some(code) if configCurrencyMapping.requiresCurrencySelection(code) =>
-        controllers.routes.RefundingCurrencyController.onPageLoad(mode)
-      case Some(code) =>
-        val langs = configLanguageMapping.languagesFor(code)
-        if (langs.size <= 1) controllers.routes.RefundingCountryController.onPageLoad(mode)
-        else controllers.routes.RefundingLanguageController.onPageLoad(mode)
-      case None => controllers.routes.RefundingLanguageController.onPageLoad(mode)
-    }
-  }
 }

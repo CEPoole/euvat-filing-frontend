@@ -26,7 +26,6 @@ import play.api.inject.bind
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import repositories.SessionRepository
-import services.EuVatRefundsService
 import viewmodels.govuk.SummaryListFluency
 
 import java.time.LocalDateTime
@@ -262,27 +261,6 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
       }
     }
 
-    "must include currency section when country has multiple currencies" in {
-      val ua = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "EE")
-        .success
-        .value
-        .set(pages.RefundingCurrencyPage, "EEK")
-        .success
-        .value
-
-      val application = applicationBuilder(userAnswers = Some(ua)).build()
-
-      running(application) {
-        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
-        val result = route(application, request).value
-        val html = contentAsString(result)
-
-        html must include(messages(application)("checkYourClaimDetails.refundingCurrency.label"))
-        html must include(routes.RefundingCurrencyController.onPageLoad(models.CheckMode).url)
-      }
-    }
-
     "must NOT include currency section when country has only one currency" in {
       val ua = emptyUserAnswers
         .set(pages.RefundingCountryPage, "AT")
@@ -379,7 +357,8 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
       val application = applicationBuilder(userAnswers = Some(ua))
         .overrides(
           bind[SessionRepository].toInstance(mockSessionRepository)
-        ).build()
+        )
+        .build()
 
       running(application) {
         val result = route(application, FakeRequest(POST, routes.CheckYourClaimDetailsController.onSubmit().url)).value
@@ -396,14 +375,30 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
         .thenReturn(Future.successful(ApplicationResponse(123, "GB123456789", 10)))
 
       val ua = emptyUserAnswers
-        .set(pages.ClaimDetailsCompletedPage, true).success.value
-        .set(pages.ClaimDetailsAmendedPage, true).success.value
-        .set(pages.RefundingCountryPage, "DE").success.value
-        .set(pages.RefundingCurrencyPage, "eur").success.value
-        .set(pages.RefundingLanguagePage, RefundingLanguage.English).success.value
-        .set(pages.RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10))).success.value
-        .set(pages.ContactDetailsPage, ContactDetails("test@email.com", Some("07123456789"))).success.value
-        .set(pages.BusinessActivityCodePage, "9999").success.value
+        .set(pages.ClaimDetailsCompletedPage, true)
+        .success
+        .value
+        .set(pages.ClaimDetailsAmendedPage, true)
+        .success
+        .value
+        .set(pages.RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(pages.RefundingCurrencyPage, "eur")
+        .success
+        .value
+        .set(pages.RefundingLanguagePage, RefundingLanguage.English)
+        .success
+        .value
+        .set(pages.RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10)))
+        .success
+        .value
+        .set(pages.ContactDetailsPage, ContactDetails("test@email.com", Some("07123456789")))
+        .success
+        .value
+        .set(pages.BusinessActivityCodePage, "9999")
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(ua))
         .overrides(
