@@ -483,6 +483,13 @@ confirmRefundPeriodStartDate.warning = If you submit a claim with inaccurate inf
 confirmRefundPeriodStartDate.button = Yes, this is correct
 confirmRefundPeriodStartDate.link = No, change the start date
 
+confirmRefundPeriodEndDate.title = Are you sure the refund period end date is correct?
+confirmRefundPeriodEndDate.heading = Are you sure the refund period end date is correct?
+confirmRefundPeriodEndDate.paragraph = You’ve told us the refund period end date is [MM/YY]. The refund period end date must be in the past.
+confirmRefundPeriodEndDate.warning = If you submit a claim with inaccurate information, it may be rejected.
+confirmRefundPeriodEndDate.button = Yes, this is correct
+confirmRefundPeriodEndDate.link = No, change the end date
+
 periodOverlapWarning.title = Are you sure the refund period is correct?
 periodOverlapWarning.heading = Are you sure the refund period is correct?
 periodOverlapWarning.p = You’ve told us the refund period is the same used for another claim. The refund period must not overlap with another claim for the same EU member state.
