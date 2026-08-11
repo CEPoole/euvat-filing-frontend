@@ -20,8 +20,8 @@ import controllers.actions.*
 import forms.BusinessActivityCodeTwoFormProvider
 import models.{CheckMode, Mode, NormalMode, UserAnswers}
 import navigation.Navigator
-import pages.{BusinessActivityCodePage, BusinessActivityCodeThreePage, BusinessActivityCodeTwoPage, BusinessActivityThreePage, ClaimDetailsAmendedPage, ClaimDetailsCompletedPage}
-import play.api.Configuration
+import pages.*
+import play.api.{Configuration, Logger}
 import play.api.data.FormError
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
@@ -32,8 +32,6 @@ import views.html.BusinessActivityCodeTwoView
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
-import play.api.Logger
-
 import scala.util.control.NonFatal
 
 class BusinessActivityCodeTwoController @Inject() (

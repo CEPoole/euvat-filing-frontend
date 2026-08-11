@@ -22,16 +22,16 @@ import models.requests.{DataRequest, LatestApplicationRequest}
 import models.responses.TraderKnownFactsResponse
 import models.{Mode, RefundPeriod}
 import navigation.Navigator
-import pages.{RefundPeriodPage, RefundingCountryNamePage, RefundingCountryPage}
-import play.api.{Configuration, Logging}
+import pages.RefundPeriodPage
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, Messages, MessagesApi}
 import play.api.mvc.*
+import play.api.{Configuration, Logging}
 import queries.TraderKnownFactsQuery
 import repositories.SessionRepository
 import services.EuVatRefundsService
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import utils.{ConfigCurrencyMapping, ConfigLanguageMapping}
+import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, CountryCode}
 import views.html.RefundPeriodView
 
 import java.time.{LocalDateTime, YearMonth}
@@ -58,14 +58,7 @@ class RefundPeriodController @Inject() (
     with Logging {
 
   private def backLink(mode: Mode)(implicit request: DataRequest[?]): Call = {
-    val maybeCountryCode = request.userAnswers
-      .get(RefundingCountryPage)
-      .orElse(
-        request.userAnswers
-          .get(RefundingCountryNamePage)
-          .map(stored => stored.split(",", 2).headOption.getOrElse(stored))
-      )
-    maybeCountryCode match {
+    CountryCode.findCountryCode(request.userAnswers) match {
       case Some(code) =>
         if (configLanguageMapping.languagesFor(code).size <= 1) {
           controllers.routes.RefundingCountryController.onPageLoad(mode)
@@ -168,11 +161,7 @@ class RefundPeriodController @Inject() (
     if (endDate.getMonthValue == 12) {
       saveAndRedirect(traderResponse, startDate, endDate, mode)
     } else {
-      val refundingCountry = request.userAnswers.get(pages.RefundingCountryPage).orElse {
-        request.userAnswers.get(pages.RefundingCountryNamePage).map { stored =>
-          stored.split(",", 2).headOption.getOrElse(stored)
-        }
-      }
+      val refundingCountry = CountryCode.findCountryCode(request.userAnswers)
       val latestApplicationRequest = LatestApplicationRequest(
         applicantVatRegNumber = traderResponse.vatRegNumber.toString,
         refundingCountry      = refundingCountry,

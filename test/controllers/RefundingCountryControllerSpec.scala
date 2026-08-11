@@ -177,10 +177,9 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
           .withFormUrlEncodedBody(("value", "DE"))
 
-        val result = route(application, request)
-        whenReady(result.value.failed) { ex =>
-          ex.getMessage must include("boom")
-        }
+        val result = route(application, request).value
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
       }
     }
 
@@ -196,10 +195,10 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
           .withFormUrlEncodedBody(("value", "DE"))
 
-        val result = route(application, request)
-        whenReady(result.value.failed) { ex =>
-          ex.getMessage must include("boom400")
-        }
+        val result = route(application, request).value
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
+
       }
     }
 

@@ -17,21 +17,21 @@
 package controllers
 
 import controllers.actions.*
-import models.requests.{AddPurchaseRequest, DataRequest}
 import forms.PurchaseTypeFormProvider
+import models.requests.{AddPurchaseRequest, DataRequest}
 import models.{Mode, PurchaseType, PurchaseTypeCode, UserAnswers}
 import navigation.Navigator
-import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, CountryChangedPage, PurchaseTypePage}
+import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, PurchaseTypePage}
 import play.api.Logging
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents, Result}
+import play.api.mvc.*
 import repositories.SessionRepository
 import services.EuVatRefundsService
 import uk.gov.hmrc.http.HeaderCarrier
-import utils.MountPrefix
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
+import utils.MountPrefix
 import views.html.PurchaseTypeView
 
 import javax.inject.Inject
