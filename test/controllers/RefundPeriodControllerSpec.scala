@@ -54,12 +54,12 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
   private val safeFutureYear: Int = baseToday.plusYears(5).getYear
   private val safePastYear: Int = baseToday.getYear - 3
 
-  val formProviderBeforeSept30: RefundPeriodFormProvider = new forms.RefundPeriodFormProvider() {
-    override protected def today: LocalDate = beforeSept30Today
+  val formProviderBeforeSept30: RefundPeriodFormProvider = new RefundPeriodFormProvider() {
+    override protected def today: java.time.LocalDate = java.time.LocalDate.of(2024, 6, 1)
   }
 
-  val formProviderAfterSept30: RefundPeriodFormProvider = new forms.RefundPeriodFormProvider() {
-    override protected def today: LocalDate = afterSept30Today
+  val formProviderAfterSept30: RefundPeriodFormProvider = new RefundPeriodFormProvider() {
+    override protected def today: java.time.LocalDate = java.time.LocalDate.of(2024, 10, 1)
   }
 
   val onwardRoute: Call = Call("GET", "/foo")
@@ -238,9 +238,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         }
       }
 
-      "must redirect to ConfirmRefundPeriodStartDateController if start date is before the earliest permitted date" in {
+      "must show September cutoff error when start and end are in different years and start is before cutoff" in {
         val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
-          .overrides(bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
+          .overrides(bind[RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
           .build()
 
         running(application) {
