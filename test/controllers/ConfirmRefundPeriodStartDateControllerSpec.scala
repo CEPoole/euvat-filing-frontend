@@ -1,15 +1,31 @@
 package controllers
 
 import base.SpecBase
+import controllers.actions.{DataRequiredAction, DataRetrievalAction, IdentifierAction}
 import models.{CheckMode, NormalMode, RefundPeriod}
 import pages.RefundPeriodPage
+import play.api.i18n.MessagesApi
+import play.api.mvc.MessagesControllerComponents
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import views.html.ConfirmRefundPeriodStartDateView
 
 import java.time.{LocalDate, LocalDateTime, YearMonth}
+import scala.language.postfixOps
 
 class ConfirmRefundPeriodStartDateControllerSpec extends SpecBase {
+
+  private def controllerWithFixedToday(fixedToday: LocalDate)(implicit application: play.api.Application): ConfirmRefundPeriodStartDateController =
+    new ConfirmRefundPeriodStartDateController(
+      messagesApi          = application.injector.instanceOf[MessagesApi],
+      identify             = application.injector.instanceOf[IdentifierAction],
+      getData              = application.injector.instanceOf[DataRetrievalAction],
+      requireData          = application.injector.instanceOf[DataRequiredAction],
+      controllerComponents = application.injector.instanceOf[MessagesControllerComponents],
+      view                 = application.injector.instanceOf[ConfirmRefundPeriodStartDateView]
+    ) {
+      override protected def today: LocalDate = fixedToday
+    }
 
   "ConfirmRefundPeriodStartDate Controller" - {
 
@@ -113,6 +129,35 @@ class ConfirmRefundPeriodStartDateControllerSpec extends SpecBase {
       }
     }
 
-    
+    "earliestPermittedStartDate must return January of the previous year if today is on or before 30 September" in {
+
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+
+      running(application) {
+        implicit val app: play.api.Application = application
+        controllerWithFixedToday(LocalDate.of(2029, 9, 30)).earliestPermittedStartDate() mustEqual YearMonth.of(2028, 1)
+      }
+    }
+
+    "earliestPermittedStartDate must return January of the previous year if today is after 30 September" in {
+
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+
+      running(application) {
+        implicit val app: play.api.Application = application
+        controllerWithFixedToday(LocalDate.of(2029, 10, 1)).earliestPermittedStartDate() mustEqual YearMonth.of(2029, 1)
+      }
+    }
+
+    "earliestPermittedStartDate must return January of the previous year exactly on the 30 September boundary" in {
+
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+
+      running(application) {
+        implicit val app: play.api.Application = application
+        controllerWithFixedToday(LocalDate.of(2030, 9, 30)).earliestPermittedStartDate() mustEqual YearMonth.of(2029, 1)
+      }
+    }
+
   }
 }
