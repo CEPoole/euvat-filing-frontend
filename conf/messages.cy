@@ -13,6 +13,7 @@ site.startAgain = Start again
 site.signIn = Sign in
 site.govuk = GOV.UK
 site.save.continue = Save and continue
+site.warning = Warning
 
 
 date.day = Day

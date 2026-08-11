@@ -34,22 +34,6 @@ class RefundPeriodFormProvider @Inject() extends Mappings {
 
   private def currentYearMonth: YearMonth = YearMonth.of(today.getYear, today.getMonthValue)
 
-//  private val septemberCutoffConstraint: Constraint[RefundPeriodData] =
-//    Constraint { data =>
-//      if (!data.start.isBefore(currentYearMonth) || !data.end.isBefore(currentYearMonth)) { Valid }
-//      else {
-//        val (cutoff, errorKey) =
-//          if (today.isAfter(LocalDate.of(today.getYear, 9, 30))) {
-//            (YearMonth.of(today.getYear, 1), "refundPeriod.start.error.after30Sept")
-//          } else {
-//            (YearMonth.of(today.getYear - 1, 1), "refundPeriod.start.error.30SeptOrEarlier")
-//          }
-//
-//        if (!data.start.isBefore(cutoff)) { Valid }
-//        else { Invalid(errorKey, cutoff.getYear.toString) }
-//      }
-//    }
-
   private def fieldsForError(message: String): Set[String] = message match {
     case "refundPeriod.start.error.required" | "refundPeriod.start.error.after30Sept" | "refundPeriod.start.error.30SeptOrEarlier" |
         "refundPeriod.start.error.beforeVatRegDate.remainingQuarter" | "refundPeriod.start.error.beforeVatRegDate.firstQuarter" =>
@@ -211,8 +195,6 @@ class RefundPeriodFormProvider @Inject() extends Mappings {
           }
         }
       )
-
-//    if (!skipSeptemberCutoff) mapped = mapped.verifying(septemberCutoffConstraint)
 
     Form(mapped)
   }
