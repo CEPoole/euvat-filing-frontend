@@ -29,6 +29,7 @@ import play.api.{Configuration, Logging}
 import repositories.SessionRepository
 import services.EuVatRefundsService
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, CountryCode, CountryList}
 import views.html.RefundingCountryView
 
