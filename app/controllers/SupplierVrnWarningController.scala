@@ -30,15 +30,16 @@ import views.html.SupplierVrnWarningView
 import scala.concurrent.{ExecutionContext, Future}
 
 class SupplierVrnWarningController @Inject() (
-                                               override val messagesApi: MessagesApi,
-                                               sessionRepository: SessionRepository,
-                                               identify: IdentifierAction,
-                                               getData: DataRetrievalAction,
-                                               requireData: DataRequiredAction,
-                                               val controllerComponents: MessagesControllerComponents,
-                                               view: SupplierVrnWarningView
-                                             )(implicit ec: ExecutionContext) extends FrontendBaseController
-  with I18nSupport {
+  override val messagesApi: MessagesApi,
+  sessionRepository: SessionRepository,
+  identify: IdentifierAction,
+  getData: DataRetrievalAction,
+  requireData: DataRequiredAction,
+  val controllerComponents: MessagesControllerComponents,
+  view: SupplierVrnWarningView
+)(implicit ec: ExecutionContext)
+    extends FrontendBaseController
+    with I18nSupport {
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
     for {

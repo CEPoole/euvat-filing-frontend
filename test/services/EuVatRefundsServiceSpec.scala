@@ -99,8 +99,8 @@ class EuVatRefundsServiceSpec extends SpecBase with MockitoSugar with ScalaFutur
 
     val request = SupplierVrnCountRequest(
       applicationId = 133,
-      itemNumber = 4,
-      vatNumber = "500000881",
+      itemNumber    = 4,
+      vatNumber     = "500000881",
       invoiceNumber = "a444"
     )
 

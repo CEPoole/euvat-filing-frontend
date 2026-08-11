@@ -46,9 +46,15 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
   lazy val supplierVatRegistrationNumberRoute: String = routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode).url
 
   val seededAnswers = emptyUserAnswers
-    .set(ClaimApplicationResponsePage, ApplicationResponse(134, "GB123134", 1)).success.value
-    .set(AddPurchaseResponsePage, AddPurchaseResponse(1, 2)).success.value
-    .set(InvoiceNumberPage, "INV123").success.value
+    .set(ClaimApplicationResponsePage, ApplicationResponse(134, "GB123134", 1))
+    .success
+    .value
+    .set(AddPurchaseResponsePage, AddPurchaseResponse(1, 2))
+    .success
+    .value
+    .set(InvoiceNumberPage, "INV123")
+    .success
+    .value
 
   "SupplierVatRegistrationNumber Controller" - {
     "must return OK and the correct view for a GET" in {
@@ -60,7 +66,7 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val view = application.injector.instanceOf[SupplierVatRegistrationNumberView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode), false)(
+        contentAsString(result) mustEqual view(form, NormalMode, routes.SupplierAddressController.onPageLoad(NormalMode), false)(
           request,
           messages(application)
         ).toString
@@ -94,7 +100,7 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val view = application.injector.instanceOf[SupplierVatRegistrationNumberView]
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form, NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode), false)(
+        contentAsString(result) mustEqual view(form, NormalMode, routes.SupplierAddressController.onPageLoad(NormalMode), false)(
           request,
           messages(application)
         ).toString

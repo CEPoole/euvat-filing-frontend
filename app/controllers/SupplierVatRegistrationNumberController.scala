@@ -19,19 +19,17 @@ package controllers
 import controllers.actions.*
 import forms.SupplierVatRegistrationNumberFormProvider
 import models.requests.{DataRequest, SupplierVrnCountRequest}
-
-import javax.inject.Inject
-import models.{Mode, CheckMode, UserAnswers}
+import models.{Mode, CheckMode, UserAnswers, InvoiceType}
 import navigation.Navigator
-import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, InvoiceNumberPage, SupplierVatRegistrationNumberPage, VrnWarningFlowPage}
-import pages.{PurchaseTypePage, RefundingCountryPage, SupplierTaxIdentifierNumberPage, SupplierVatRegistrationNumberPage}
+import pages.*
 import play.api.data.Form
 import play.api.i18n.Lang.logger
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, MessagesControllerComponents, Result}
+import play.api.mvc.*
 import repositories.SessionRepository
 import services.EuVatRefundsService
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import utils.CheckModeShortCircuit
@@ -51,7 +49,7 @@ class SupplierVatRegistrationNumberController @Inject() (
   requireData: DataRequiredAction,
   formProvider: SupplierVatRegistrationNumberFormProvider,
   val controllerComponents: MessagesControllerComponents,
-  euVatRefundsService : EuVatRefundsService,
+  euVatRefundsService: EuVatRefundsService,
   view: SupplierVatRegistrationNumberView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
@@ -59,7 +57,18 @@ class SupplierVatRegistrationNumberController @Inject() (
 
   val form: Form[String] = formProvider()
 
-  private def backLink(mode: Mode) = routes.SupplierTaxNumberController.onPageLoad(mode)
+  private def backLink(mode: Mode)(implicit request: DataRequest[?]): Call = {
+    val warningActive = request.userAnswers.get(VrnWarningFlowPage).isDefined
+    val isGermany     = request.userAnswers.get(RefundingCountryPage).contains("DE")
+    val isSimplified  = request.userAnswers.get(InvoiceTypePage).contains(InvoiceType.SimplifiedInvoice)
+
+    (warningActive, isGermany, isSimplified) match {
+      case (true, _, _)     => routes.InvoiceNumberController.onPageLoad(mode)
+      case (_, true, _)     => routes.SupplierTaxNumberController.onPageLoad(mode)
+      case (_, false, true) => routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(mode)
+      case _                => routes.SupplierAddressController.onPageLoad(mode)
+    }
+  }
 
   // TODO: Add a supplier-VAT-registration-number warning flow analogous to
   // `SupplierTaxIdentifierWarningController`. When the user arrives from the
@@ -105,12 +114,12 @@ class SupplierVatRegistrationNumberController @Inject() (
               updated <- Future.fromTry(request.userAnswers.set(SupplierVatRegistrationNumberPage, value))
               // 7224: clear the VRN warning marker when the VRN genuinely changes
               withFlag <- Future.fromTry(
-                if (request.userAnswers.get(VrnWarningFlowPage).isDefined && changed)
-                  updated.set(VrnWarningFlowPage, false)
-                else
-                  scala.util.Success(updated)
-              )
-              // his refactor: drop the transient arrived-from-invoice flag before persisting
+                              if (request.userAnswers.get(VrnWarningFlowPage).isDefined && changed)
+                                updated.set(VrnWarningFlowPage, false)
+                              else
+                                scala.util.Success(updated)
+                            )
+            // his refactor: drop the transient arrived-from-invoice flag before persisting
               finalAnswers <- Future.fromTry(withFlag.remove(pages.SupplierVatRegistrationArrivedFromInvoicePage))
               _            <- sessionRepository.set(finalAnswers)
               result       <- checkDuplicate(value, finalAnswers, mode)
@@ -142,7 +151,7 @@ class SupplierVatRegistrationNumberController @Inject() (
     }
   }
 
-  private def checkDuplicate(vatNumber: String, answers: UserAnswers, mode: Mode)(implicit request: DataRequest[_]): Future[Result] = {
+  private def checkDuplicate(vatNumber: String, answers: UserAnswers, mode: Mode)(implicit request: DataRequest[?]): Future[Result] = {
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
 
     val maybeRequest = for {
@@ -153,19 +162,24 @@ class SupplierVatRegistrationNumberController @Inject() (
 
     maybeRequest match {
       case Some(req) =>
-        euVatRefundsService.getSupplierVrnCount(req).map { response =>
-          if (response.duplicateCount > 0)
-            Redirect(routes.SupplierVrnWarningController.onPageLoad(mode))
-          else
-            Redirect(navigator.nextPage(SupplierVatRegistrationNumberPage, mode, answers))
-        }.recover { case ex: Exception =>
-          logger.error("Error retrieving supplier VRN count", ex)
-          Redirect(routes.JourneyRecoveryController.onPageLoad())
-        }
+        euVatRefundsService
+          .getSupplierVrnCount(req)
+          .flatMap { response =>
+            if (response.duplicateCount > 0)
+              Future.successful(Redirect(routes.SupplierVrnWarningController.onPageLoad(mode)))
+            else
+              for {
+                cleared <- Future.fromTry(answers.remove(VrnWarningFlowPage))
+                _       <- sessionRepository.set(cleared)
+              } yield Redirect(navigator.nextPage(SupplierVatRegistrationNumberPage, mode, cleared))
+          }
+          .recover { case ex: Exception =>
+            logger.error("Error retrieving supplier VRN count", ex)
+            Redirect(routes.JourneyRecoveryController.onPageLoad())
+          }
       case None =>
         logger.warn("Missing data for duplicate VRN check")
         Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
     }
   }
-
 }

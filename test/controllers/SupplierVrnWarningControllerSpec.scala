@@ -46,7 +46,7 @@ class SupplierVrnWarningControllerSpec extends SpecBase {
           view(routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode), NormalMode)(request, messages(application)).toString
       }
     }
-    
+
     "must set the session on page load" in {
       val mockSessionRepository = mock[SessionRepository]
       when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))

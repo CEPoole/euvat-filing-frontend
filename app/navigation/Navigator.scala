@@ -303,9 +303,9 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
 
   private def navigateFromInvoiceNumberPage(mode: Mode)(answers: UserAnswers): Call =
     answers.get(VrnWarningFlowPage) match {
-      case Some(true) => routes.SupplierVrnWarningController.onPageLoad(mode)
+      case Some(true)  => routes.SupplierVrnWarningController.onPageLoad(mode)
       case Some(false) => routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
-      case None => routes.InvoiceDateController.onPageLoad(mode)
+      case None        => routes.InvoiceDateController.onPageLoad(mode)
     }
 
 }

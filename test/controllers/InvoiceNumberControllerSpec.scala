@@ -356,8 +356,12 @@ class InvoiceNumberControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
       val userAnswers = emptyUserAnswers
-        .set(InvoiceNumberPage, "SAME-INV").success.value
-        .set(VrnWarningFlowPage, true).success.value
+        .set(InvoiceNumberPage, "SAME-INV")
+        .success
+        .value
+        .set(VrnWarningFlowPage, true)
+        .success
+        .value
 
       val application =
         applicationBuilder(userAnswers = Some(userAnswers))
@@ -379,8 +383,12 @@ class InvoiceNumberControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
       val userAnswers = emptyUserAnswers
-        .set(InvoiceNumberPage, "OLD-INV").success.value
-        .set(VrnWarningFlowPage, true).success.value
+        .set(InvoiceNumberPage, "OLD-INV")
+        .success
+        .value
+        .set(VrnWarningFlowPage, true)
+        .success
+        .value
 
       val application =
         applicationBuilder(userAnswers = Some(userAnswers))
