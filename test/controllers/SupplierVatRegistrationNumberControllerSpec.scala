@@ -129,6 +129,7 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         }
       }
     }
+
     "must populate the view correctly on a GET when the question has previously been answered" in {
       val userAnswers = UserAnswers(userAnswersId).set(SupplierVatRegistrationNumberPage, "answer").success.value
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
@@ -139,7 +140,7 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val result = route(application, request).value
 
         status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form.fill("answer"), NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode), false)(
+        contentAsString(result) mustEqual view(form.fill("answer"), NormalMode, routes.SupplierAddressController.onPageLoad(NormalMode), false)(
           request,
           messages(application)
         ).toString
@@ -255,7 +256,7 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode), false)(
+        contentAsString(result) mustEqual view(boundForm, NormalMode, routes.SupplierAddressController.onPageLoad(NormalMode), false)(
           request,
           messages(application)
         ).toString
@@ -275,7 +276,7 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, NormalMode, routes.SupplierTaxNumberController.onPageLoad(NormalMode), false)(
+        contentAsString(result) mustEqual view(boundForm, NormalMode, routes.SupplierAddressController.onPageLoad(NormalMode), false)(
           request,
           messages(application)
         ).toString
@@ -295,7 +296,7 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val result = route(application, request).value
 
         status(result) mustEqual BAD_REQUEST
-        contentAsString(result) mustEqual view(boundForm, CheckMode, routes.SupplierTaxNumberController.onPageLoad(CheckMode), false)(
+        contentAsString(result) mustEqual view(boundForm, CheckMode, routes.SupplierAddressController.onPageLoad(CheckMode), false)(
           request,
           messages(application)
         ).toString

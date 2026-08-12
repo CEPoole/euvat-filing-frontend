@@ -59,7 +59,7 @@ class SupplierVatRegistrationNumberController @Inject() (
 
   private def backLink(mode: Mode)(implicit request: DataRequest[?]): Call = {
     val warningActive = request.userAnswers.get(VrnWarningFlowPage).isDefined
-    val isGermany     = request.userAnswers.get(RefundingCountryPage).contains("DE")
+    val isGermany     = request.userAnswers.get(RefundingCountryPage).exists(_.equalsIgnoreCase("DE"))
     val isSimplified  = request.userAnswers.get(InvoiceTypePage).contains(InvoiceType.SimplifiedInvoice)
 
     (warningActive, isGermany, isSimplified) match {
