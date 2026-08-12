@@ -16,10 +16,12 @@
 
 package queries
 
-import models.responses.TraderKnownFactsResponse
+import models.ContactDetails
+import models.responses.ApplicationResponse
+import pages.QuestionPage
 import play.api.libs.json.JsPath
 
-case object TraderKnownFactsQuery extends Gettable[TraderKnownFactsResponse] with Settable[TraderKnownFactsResponse] {
-
-  override def path: JsPath = JsPath \ "traderKnownFactsResponse"
+case object ClaimApplicationResponseQuery extends QuestionPage[ApplicationResponse] {
+  override def path: JsPath = JsPath \ toString
+  override def toString: String = "claimApplicationResponse"
 }

@@ -21,11 +21,12 @@ import forms.PurchaseTypeFormProvider
 import models.requests.{AddPurchaseRequest, DataRequest}
 import models.{Mode, PurchaseType, PurchaseTypeCode, UserAnswers}
 import navigation.Navigator
-import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, PurchaseTypePage}
+import pages.{AddPurchaseResponsePage, PurchaseTypePage}
 import play.api.Logging
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.*
+import queries.ClaimApplicationResponseQuery
 import repositories.SessionRepository
 import services.EuVatRefundsService
 import uk.gov.hmrc.http.HeaderCarrier
@@ -126,7 +127,7 @@ class PurchaseTypeController @Inject() (
       HeaderCarrierConverter.fromRequestAndSession(request, request.session)
 
     answers
-      .get(ClaimApplicationResponsePage)
+      .get(ClaimApplicationResponseQuery)
       .fold {
         logger.warn("Missing applicationId for addPurchase")
         Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
