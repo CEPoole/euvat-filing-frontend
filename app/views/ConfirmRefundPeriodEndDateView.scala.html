@@ -31,7 +31,7 @@
     @formHelper(action = routes.ConfirmRefundPeriodEndDateController.onSubmit(mode)) {
 
         <h1 class="govuk-heading-l">@messages("confirmRefundPeriodEndDate.heading")</h1>
-        <p class="govuk-body">@messages("confirmRefundPeriodEndDate.paragraph", startDate, minDate)</p>
+        <p class="govuk-body">@messages("confirmRefundPeriodEndDate.paragraph", endDate)</p>
 
     @govukWarningText(WarningText(
         iconFallbackText = Some(messages("site.warning")),
