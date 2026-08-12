@@ -16,24 +16,44 @@
 
 package controllers
 
-import controllers.actions._
+import controllers.actions.*
+import models.requests.DataRequest
+import models.{CheckMode, Mode, NormalMode, RefundPeriod}
+import pages.RefundPeriodPage
+
 import javax.inject.Inject
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import views.html.ConfirmRefundPeriodEndDateView
 
-class ConfirmRefundPeriodEndDateController @Inject()(
-                                       override val messagesApi: MessagesApi,
-                                       identify: IdentifierAction,
-                                       getData: DataRetrievalAction,
-                                       requireData: DataRequiredAction,
-                                       val controllerComponents: MessagesControllerComponents,
-                                       view: ConfirmRefundPeriodEndDateView
-                                     ) extends FrontendBaseController with I18nSupport {
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, MonthDay, YearMonth}
 
-  def onPageLoad: Action[AnyContent] = (identify andThen getData andThen requireData) {
-    implicit request =>
-      Ok(view())
+class ConfirmRefundPeriodEndDateController @Inject() (
+  override val messagesApi: MessagesApi,
+  identify: IdentifierAction,
+  getData: DataRetrievalAction,
+  requireData: DataRequiredAction,
+  val controllerComponents: MessagesControllerComponents,
+  view: ConfirmRefundPeriodEndDateView
+) extends FrontendBaseController
+    with I18nSupport {
+
+  def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
+    request.userAnswers.get(RefundPeriodPage) match {
+      case None => Redirect(routes.JourneyRecoveryController.onPageLoad())
+      case Some(refundPeriod) =>
+        val endDate = refundPeriod.endDate.format(DateTimeFormatter.ofPattern("MM/yyyy"))
+        val call = routes.RefundPeriodController.onPageLoad(mode)
+        Ok(view(endDate, call, mode))
+    }
+  }
+
+  def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
+    mode match {
+      case NormalMode => Redirect(routes.ContactDetailsController.onPageLoad(NormalMode))
+      case CheckMode  => Redirect(routes.CheckYourClaimDetailsController.onPageLoad())
+    }
   }
 }
