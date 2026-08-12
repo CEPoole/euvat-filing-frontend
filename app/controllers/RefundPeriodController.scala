@@ -197,6 +197,9 @@ class RefundPeriodController @Inject() (
     }
   }
 
+  private[controllers] def isEndDateInPast(endDate: LocalDateTime): Boolean =
+    YearMonth.from(endDate).isBefore(YearMonth.now())
+
   private def checkOverlappingPeriod(
     vrn: String,
     traderResponse: TraderKnownFactsResponse,
