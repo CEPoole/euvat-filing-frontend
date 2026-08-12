@@ -29,6 +29,7 @@ import play.api.{Configuration, Logging}
 import repositories.SessionRepository
 import services.EuVatRefundsService
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, CountryCode, CountryList}
 import views.html.RefundingCountryView
 
@@ -116,13 +117,13 @@ class RefundingCountryController @Inject() (
 
               euVatRefundsService.getLatestApplications(latestReq).flatMap { response =>
                 // Validation applies when applicationStatus == "D" OR submissionStatus is null
-                val isDuplicate = response.applications.exists { app =>
-                  val statusIsD = app.applicationStatus.exists(_.equalsIgnoreCase("D"))
-                  val submissionIsNull = app.submissionStatus.isEmpty
-                  statusIsD || submissionIsNull
-                }
+//                val isDuplicate = response.applications.exists { app =>
+//                  val statusIsD = app.applicationStatus.exists(_.equalsIgnoreCase("D"))
+//                  val submissionIsNull = app.submissionStatus.isEmpty
+//                  statusIsD || submissionIsNull
+//                }
 
-                if (isDuplicate) {
+                if (response.totalApplication > 0) {
                   // duplicate application - show error on the form
                   val formWithError = form.fill(value).withError("value", "refundingCountry.error.duplicate")
                   Future.successful(BadRequest(view(formWithError, countries, routes.TaskListDashboardController.onPageLoad(), mode)))

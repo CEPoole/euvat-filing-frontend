@@ -20,7 +20,7 @@ import controllers.actions.*
 import forms.{RefundPeriodData, RefundPeriodFormProvider}
 import models.requests.{DataRequest, LatestApplicationRequest}
 import models.responses.TraderKnownFactsResponse
-import models.{Mode, RefundPeriod}
+import models.{Mode, RefundPeriod, UserAnswers}
 import navigation.Navigator
 import pages.{RefundPeriodPage, RefundingCountryNamePage, RefundingCountryPage}
 import play.api.{Configuration, Logging}
@@ -133,6 +133,13 @@ class RefundPeriodController @Inject() (
     }
   }
 
+  private def isChanged(userAnswers: UserAnswers, startDate: LocalDateTime, endDate: LocalDateTime) = {
+    userAnswers.get(RefundPeriodPage) match {
+      case Some(existing) => existing.startDate != startDate || existing.endDate != endDate
+      case None           => true
+    }
+  }
+
   private def saveAndRedirect(
     traderResponse: TraderKnownFactsResponse,
     startDate: LocalDateTime,
@@ -141,16 +148,11 @@ class RefundPeriodController @Inject() (
   )(using request: DataRequest[?], ec: ExecutionContext): Future[Result] = {
     val refundPeriod = RefundPeriod(startDate, endDate)
 
-    val isChanged = request.userAnswers.get(RefundPeriodPage) match {
-      case Some(existing) => existing.startDate != startDate || existing.endDate != endDate
-      case None           => true
-    }
-
     for {
       updatedAnswer1 <- Future.fromTry(request.userAnswers.set(TraderKnownFactsQuery, traderResponse))
       updatedAnswer2 <- Future.fromTry(updatedAnswer1.set(RefundPeriodPage, refundPeriod))
       updatedAnswer3 <- Future.fromTry(updatedAnswer2.remove(pages.CountryChangedPage))
-      updatedAnswer4 <- if (isChanged && updatedAnswer3.get(pages.ClaimDetailsCompletedPage).contains(true)) {
+      updatedAnswer4 <- if (isChanged(request.userAnswers, startDate, endDate) && updatedAnswer3.get(pages.ClaimDetailsCompletedPage).contains(true)) {
                           Future.fromTry(updatedAnswer3.set(pages.ClaimDetailsAmendedPage, true))
                         } else {
                           Future.successful(updatedAnswer3)
@@ -191,7 +193,13 @@ class RefundPeriodController @Inject() (
           for {
             updatedAnswer1 <- Future.fromTry(request.userAnswers.set(TraderKnownFactsQuery, traderResponse))
             updatedAnswer2 <- Future.fromTry(updatedAnswer1.set(RefundPeriodPage, refundPeriod))
-            _              <- sessionRepository.set(updatedAnswer2)
+            updatedAnswer3 <-
+              if (isChanged(request.userAnswers, startDate, endDate) && updatedAnswer2.get(pages.ClaimDetailsCompletedPage).contains(true)) {
+                Future.fromTry(updatedAnswer2.set(pages.ClaimDetailsAmendedPage, true))
+              } else {
+                Future.successful(updatedAnswer2)
+              }
+            _ <- sessionRepository.set(updatedAnswer3)
           } yield Redirect(controllers.routes.PeriodOverlapWarningController.onPageLoad(mode))
         } else {
           logger.info(s"F5 overlap check: no overlapping applications found, startDate=$startDate, endDate=$endDate")
