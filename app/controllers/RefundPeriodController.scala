@@ -200,7 +200,7 @@ class RefundPeriodController @Inject() (
   private[controllers] def isEndDateInPast(endDate: LocalDateTime): Boolean =
     YearMonth.from(endDate).isBefore(YearMonth.now())
 
-  private def checkEndDateInThePast(
+  private def checkEndDateInPast(
     traderResponse: TraderKnownFactsResponse,
     startDate: LocalDateTime,
     endDate: LocalDateTime,
