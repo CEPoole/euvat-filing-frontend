@@ -81,10 +81,8 @@ class AuthenticatedIdentifierAction @Inject() (
         }
       case _ => Future.failed(new UnauthorizedException("Unable to retrieve affinity, enrolments or credentials"))
     } recover {
-      case _: NoActiveSession =>
-        Redirect(config.loginUrl, Map("continue" -> Seq(config.loginContinueUrl)))
-      case _: AuthorisationException =>
-        Redirect(routes.UnauthorisedController.onPageLoad())
+      case _: NoActiveSession        => Redirect(config.loginUrl, Map("continue" -> Seq(config.loginContinueUrl)))
+      case _: AuthorisationException => Redirect(routes.UnauthorisedController.onPageLoad())
     }
   }
 }
@@ -98,10 +96,8 @@ class SessionIdentifierAction @Inject() (
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
 
     hc.sessionId match {
-      case Some(session) =>
-        block(IdentifierRequest(request, session.value))
-      case None =>
-        Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
+      case Some(session) => block(IdentifierRequest(request, session.value))
+      case None          => Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
     }
   }
 }

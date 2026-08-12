@@ -24,7 +24,7 @@ import models.responses.ApplicationResponse
 import pages.*
 import play.api.Logging
 import play.api.i18n.{I18nSupport, Messages, MessagesApi}
-import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
+import play.api.mvc.{Action, AnyContent, MessagesControllerComponents, RequestHeader, Result}
 import repositories.SessionRepository
 import services.EuVatRefundsService
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
@@ -86,34 +86,13 @@ class CheckYourClaimDetailsController @Inject() (
         latestResp <- service.getLatestApplications(latestReq)
         result <- {
           if (!isPostSubmission) {
-            val isDuplicate = latestResp.applications.exists { app =>
-              val statusIsD = app.applicationStatus.exists(_.equalsIgnoreCase("D"))
-              val submissionIsNull = app.submissionStatus.isEmpty
-              statusIsD || submissionIsNull
+            if (latestResp.totalApplication > 0) {
+              Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
+            } else {
+              SaveClaimResponseAndRedirect(flaggedAnswers, appRequest)
             }
-            if (isDuplicate) Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
-            else
-              for {
-                claimResponse  <- service.createApplication(appRequest)
-                updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
-                _              <- sessionRepository.set(updatedAnswers)
-              } yield {
-                if (claimResponse.applicationId > 0)
-                  Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
-                else
-                  Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
-              }
           } else {
-            for {
-              claimResponse  <- service.createApplication(appRequest)
-              updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
-              _              <- sessionRepository.set(updatedAnswers)
-            } yield {
-              if (claimResponse.applicationId > 0)
-                Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
-              else
-                Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
-            }
+            SaveClaimResponseAndRedirect(flaggedAnswers, appRequest)
           }
         }
       } yield result).recover { case ex: Exception =>
@@ -122,6 +101,20 @@ class CheckYourClaimDetailsController @Inject() (
       }
     } else {
       Future.successful(Redirect(controllers.routes.TaskListDashboardController.onPageLoad()))
+    }
+  }
+
+  private def SaveClaimResponseAndRedirect(flaggedAnswers: UserAnswers, appRequest: ApplicationRequest)(using hc: RequestHeader): Future[Result] = {
+    for {
+      claimResponse  <- service.createApplication(appRequest)
+      updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
+      _              <- sessionRepository.set(updatedAnswers)
+    } yield {
+      if (claimResponse.applicationId > 0) {
+        Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
+      } else {
+        Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
+      }
     }
   }
 

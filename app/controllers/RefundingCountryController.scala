@@ -28,9 +28,7 @@ import play.api.mvc.*
 import play.api.{Configuration, Logging}
 import repositories.SessionRepository
 import services.EuVatRefundsService
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, CountryCode, CountryList}
 import views.html.RefundingCountryView
 
@@ -104,8 +102,6 @@ class RefundingCountryController @Inject() (
           euVatRefundsService
             .retrieveTraderKnownFacts()
             .flatMap { traderFacts =>
-              implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
-
               val latestReq = LatestApplicationRequest(
                 applicantVatRegNumber = traderFacts.vatRegNumber.toString,
                 refundingCountry      = Some(value),
@@ -119,21 +115,14 @@ class RefundingCountryController @Inject() (
               )
 
               euVatRefundsService.getLatestApplications(latestReq).flatMap { response =>
-                // Validation applies when applicationStatus == "D" OR submissionStatus is null
-                val isDuplicate = response.applications.exists { app =>
-                  val statusIsD = app.applicationStatus.exists(_.equalsIgnoreCase("D"))
-                  val submissionIsNull = app.submissionStatus.isEmpty
-                  statusIsD || submissionIsNull
-                }
-
-                if (isDuplicate) {
+                // This SP returns total application > 0 if there is any record for the vrn and country.
+                if (response.totalApplication > 0) {
                   // duplicate application - show error on the form
                   val formWithError = form.fill(value).withError("value", "refundingCountry.error.duplicate")
                   Future.successful(BadRequest(view(formWithError, countries, routes.TaskListDashboardController.onPageLoad(), mode)))
                 } else {
                   val countryName = countries.find(_._2.equalsIgnoreCase(value)).map(_._1).getOrElse(value)
                   val languages = configLanguageMapping.languagesFor(value).map(_.toLowerCase)
-
                   // no duplicates - proceed with save flow (note: on country change only clear language/currency)
                   for {
                     updatedAnswers0 <- Future.fromTry(baseAnswers.set(RefundingCountryPage, value))

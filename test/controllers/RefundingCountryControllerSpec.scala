@@ -17,20 +17,20 @@
 package controllers
 
 import base.SpecBase
+import models.responses.{LatestApplication, LatestApplicationResponse, TraderKnownFactsResponse}
+import navigation.FakeNavigator
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatestplus.mockito.MockitoSugar
-import navigation.FakeNavigator
-import play.api.test.FakeRequest
-import models.responses.{LatestApplication, LatestApplicationResponse, TraderKnownFactsResponse}
-import java.time.LocalDateTime
-import org.mockito.ArgumentMatchers.any
-import play.api.test.CSRFTokenHelper.*
-import play.api.test.Helpers.*
-import play.api.inject.bind
-import utils.CountryList
 import pages.RefundingCountryNamePage
+import play.api.inject.bind
 import play.api.mvc.Call
+import play.api.test.CSRFTokenHelper.*
+import play.api.test.FakeRequest
+import play.api.test.Helpers.*
+import utils.CountryList
+
+import java.time.LocalDateTime
 
 class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
 
@@ -209,10 +209,8 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
       when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
         .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
 
-      // under new rule, applicationStatus == D triggers validation (isDuplicate true), so to test bypass we use non-D and non-null submissionStatus
-      val sampleApp = LatestApplication(2L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("A"), Some("s"), LocalDateTime.now())
       when(mockEuVatRefundsService.getLatestApplications(any())(any()))
-        .thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
+        .thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List.empty, 0)))
 
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
         .overrides(
