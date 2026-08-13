@@ -140,16 +140,18 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
-    "must return a Bad Request and errors when invalid data is submitted" in {
+    "must return a Bad Request and errors when data exceeding the max length is submitted" in {
 
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
       running(application) {
+        val tooLong = "a" * 256
+
         val request =
           FakeRequest(POST, describeItemsOnInvoiceRoute)
-            .withFormUrlEncodedBody(("value", ""))
+            .withFormUrlEncodedBody(("value", tooLong))
 
-        val boundForm = form.bind(Map("value" -> ""))
+        val boundForm = form.bind(Map("value" -> tooLong))
 
         val view = application.injector.instanceOf[DescribeItemsOnInvoiceView]
 
@@ -159,6 +161,22 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
         contentAsString(result) mustEqual view(boundForm, NormalMode, routes.PurchaseTypeController.onPageLoad(NormalMode))(request,
                                                                                                                             messages(application)
                                                                                                                            ).toString
+      }
+    }
+
+    "must redirect to PurchaseWarningController when empty data is submitted" in {
+
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, describeItemsOnInvoiceRoute)
+            .withFormUrlEncodedBody(("value", ""))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.PurchaseWarningController.onPageLoad(NormalMode).url
       }
     }
 

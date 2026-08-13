@@ -26,14 +26,14 @@ import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import views.html.PurchaseWarningView
 
 class PurchaseWarningController @Inject() (
-                                                 override val messagesApi: MessagesApi,
-                                                 identify: IdentifierAction,
-                                                 getData: DataRetrievalAction,
-                                                 requireData: DataRequiredAction,
-                                                 val controllerComponents: MessagesControllerComponents,
-                                                 view: PurchaseWarningView
-                                               ) extends FrontendBaseController
-  with I18nSupport {
+  override val messagesApi: MessagesApi,
+  identify: IdentifierAction,
+  getData: DataRetrievalAction,
+  requireData: DataRequiredAction,
+  val controllerComponents: MessagesControllerComponents,
+  view: PurchaseWarningView
+) extends FrontendBaseController
+    with I18nSupport {
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     Ok(view(routes.DescribeItemsOnInvoiceController.onPageLoad(mode), mode))
@@ -41,7 +41,7 @@ class PurchaseWarningController @Inject() (
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     mode match {
-      case NormalMode => Redirect(routes.InvoiceNumberController.onPageLoad(NormalMode))
+      case NormalMode => Redirect(routes.DescribeItemsOnInvoiceController.onPageLoad(NormalMode))
       case CheckMode  => Redirect(routes.JourneyRecoveryController.onPageLoad())
     }
   }
