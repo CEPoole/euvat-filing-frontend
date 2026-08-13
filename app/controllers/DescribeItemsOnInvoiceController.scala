@@ -105,7 +105,11 @@ class DescribeItemsOnInvoiceController @Inject() (
     form
       .bindFromRequest()
       .fold(
-        formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, computeBackTarget(mode)))),
+        formWithErrors =>
+          if (formWithErrors.errors.exists(_.message == "describeItemsOnInvoice.error.required"))
+            Future.successful(Redirect(routes.PurchaseWarningController.onPageLoad(mode)))
+          else
+            Future.successful(BadRequest(view(formWithErrors, mode, computeBackTarget(mode)))),
         value =>
           for {
             updatedAnswers <- Future.fromTry(request.userAnswers.set(DescribeItemsOnInvoicePage, value))

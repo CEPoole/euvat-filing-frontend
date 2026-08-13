@@ -152,11 +152,12 @@ class RefundPeriodController @Inject() (
       updatedAnswer1 <- Future.fromTry(request.userAnswers.set(TraderKnownFactsQuery, traderResponse))
       updatedAnswer2 <- Future.fromTry(updatedAnswer1.set(RefundPeriodPage, refundPeriod))
       updatedAnswer3 <- Future.fromTry(updatedAnswer2.remove(pages.CountryChangedPage))
-      updatedAnswer4 <- if (isChanged(request.userAnswers, startDate, endDate) && updatedAnswer3.get(pages.ClaimDetailsCompletedPage).contains(true)) {
-                          Future.fromTry(updatedAnswer3.set(pages.ClaimDetailsAmendedPage, true))
-                        } else {
-                          Future.successful(updatedAnswer3)
-                        }
+      updatedAnswer4 <-
+        if (isChanged(request.userAnswers, startDate, endDate) && updatedAnswer3.get(pages.ClaimDetailsCompletedPage).contains(true)) {
+          Future.fromTry(updatedAnswer3.set(pages.ClaimDetailsAmendedPage, true))
+        } else {
+          Future.successful(updatedAnswer3)
+        }
       _ <- sessionRepository.set(updatedAnswer4)
     } yield Redirect(navigator.nextPage(RefundPeriodPage, mode, updatedAnswer4))
   }

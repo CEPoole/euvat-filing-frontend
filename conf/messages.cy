@@ -156,13 +156,6 @@ refundPeriod.error.startAndEndInSameYear = Refund period start date and end date
 refundPeriod.error.overlap = Refund period cannot overlap with another claim for the same EU member state.
 refundPeriod.error.periodNotLessThan3Months = Refund period must be at least 3 months long unless the period ends in December
 
-periodOverlapWarning.title = Are you sure the refund period is correct?
-periodOverlapWarning.heading = Are you sure the refund period is correct?
-periodOverlapWarning.p = You’ve told us the refund period is the same used for another claim. The refund period must not overlap with another claim for the same EU member state.
-periodOverlapWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
-periodOverlapWarning.correct = Yes, this is correct
-periodOverlapWarning.backLink = No, change the refund period
-
 contactDetails.title = How should we contact you about this claim?
 contactDetails.heading = How should we contact you about this claim?
 contactDetails.contactEmail.label = Email address
@@ -417,6 +410,21 @@ describeItemsOnInvoice.error.required = Enter a description of the items on your
 describeItemsOnInvoice.error.length = Item description must be 255 characters or less
 
 # Warning messages
+
+periodOverlapWarning.title = Are you sure the refund period is correct?
+periodOverlapWarning.heading = Are you sure the refund period is correct?
+periodOverlapWarning.p = You’ve told us the refund period is the same used for another claim. The refund period must not overlap with another claim for the same EU member state.
+periodOverlapWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
+periodOverlapWarning.correct = Yes, this is correct
+periodOverlapWarning.backLink = No, change the refund period
+
+purchaseWarning.title = Are you sure the purchase details are correct?
+purchaseWarning.heading = Are you sure the purchase details are correct?
+purchaseWarning.p = You have not described the items on your invoice. List each item and the exact amount you paid for it.
+purchaseWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
+purchaseWarning.correct = Yes, this is correct
+purchaseWarning.backLink = No, change the purchase details
+
 vatPaidWarning.title = Are you sure the amount of VAT you paid is correct?
 vatPaidWarning.heading = Are you sure the amount of VAT you paid is correct?
 vatPaidWarning.p = The amount of VAT you paid must be less than the purchase amount before VAT.
