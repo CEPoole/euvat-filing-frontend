@@ -62,9 +62,15 @@ class SupplierVrnWarningControllerSpec extends SpecBase {
       }
     }
 
-    "must redirect to Total Purchase Amount on submit" in {
+    "must redirect to Total Purchase Amount on submit for a non-currency-selection country" in {
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
 
-      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "FR").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
+        .build()
 
       running(application) {
         val request = FakeRequest(POST, routes.SupplierVrnWarningController.onSubmit(NormalMode).url)
@@ -72,6 +78,25 @@ class SupplierVrnWarningControllerSpec extends SpecBase {
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode).url
+      }
+    }
+
+    "must redirect to Refunding Currency on submit for a currency-selection country (Estonia)" in {
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+
+      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "EE").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.SupplierVrnWarningController.onSubmit(NormalMode).url)
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.RefundingCurrencyController.onPageLoad(NormalMode).url
       }
     }
   }

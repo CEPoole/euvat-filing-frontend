@@ -18,7 +18,8 @@ package controllers
 
 import controllers.actions.*
 import models.{CheckMode, Mode, NormalMode}
-import pages.VrnWarningFlowPage
+import navigation.Navigator
+import pages.{SupplierVatRegistrationNumberPage, VrnWarningFlowPage}
 
 import javax.inject.Inject
 import play.api.i18n.{I18nSupport, MessagesApi}
@@ -35,6 +36,7 @@ class SupplierVrnWarningController @Inject() (
   identify: IdentifierAction,
   getData: DataRetrievalAction,
   requireData: DataRequiredAction,
+  navigator: Navigator,
   val controllerComponents: MessagesControllerComponents,
   view: SupplierVrnWarningView
 )(implicit ec: ExecutionContext)
@@ -48,7 +50,10 @@ class SupplierVrnWarningController @Inject() (
     } yield Ok(view(routes.SupplierVatRegistrationNumberController.onPageLoad(mode), mode))
   }
 
-  def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    Redirect(routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode))
+  def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
+    for {
+      cleared <- Future.fromTry(request.userAnswers.remove(VrnWarningFlowPage))
+      _       <- sessionRepository.set(cleared)
+    } yield Redirect(navigator.nextPage(SupplierVatRegistrationNumberPage, mode, cleared))
   }
 }
