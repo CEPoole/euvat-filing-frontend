@@ -26,6 +26,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import views.html.ConfirmRefundPeriodStartDateView
 
+import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, LocalDateTime, YearMonth}
 import scala.language.postfixOps
 
@@ -56,12 +57,18 @@ class ConfirmRefundPeriodStartDateControllerSpec extends SpecBase {
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
       running(application) {
+        implicit val app: play.api.Application = application
+
+        val fixedToday = LocalDate.now().plusYears(1).withMonth(6).withDayOfMonth(1)
+        val controller = controllerWithFixedToday(fixedToday)
+
         val request = FakeRequest(GET, routes.ConfirmRefundPeriodStartDateController.onPageLoad(NormalMode).url)
-        val result = route(application, request).value
+        val result = controller.onPageLoad(NormalMode)(request)
+
         val view = application.injector.instanceOf[ConfirmRefundPeriodStartDateView]
 
         val expectedStartDate = "10/2024"
-        val expectedMinDate = "01/2025" // correct as of today's real date
+        val expectedMinDate = controller.earliestPermittedStartDate().format(DateTimeFormatter.ofPattern("MM/yyyy"))
         val expectedCall = routes.RefundPeriodController.onPageLoad(NormalMode)
 
         status(result) mustEqual OK
@@ -80,12 +87,18 @@ class ConfirmRefundPeriodStartDateControllerSpec extends SpecBase {
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
       running(application) {
-        val request = FakeRequest(GET, routes.ConfirmRefundPeriodStartDateController.onPageLoad(CheckMode).url)
-        val result = route(application, request).value
+        implicit val app: play.api.Application = application
+
+        val fixedToday = LocalDate.now().plusYears(1).withMonth(6).withDayOfMonth(1)
+        val controller = controllerWithFixedToday(fixedToday)
+
+        val request = FakeRequest(GET, routes.ConfirmRefundPeriodStartDateController.onPageLoad(NormalMode).url)
+        val result = controller.onPageLoad(CheckMode)(request)
+
         val view = application.injector.instanceOf[ConfirmRefundPeriodStartDateView]
 
         val expectedStartDate = "10/2024"
-        val expectedMinDate = "01/2025"
+        val expectedMinDate = controller.earliestPermittedStartDate().format(DateTimeFormatter.ofPattern("MM/yyyy"))
         val expectedCall = routes.RefundPeriodController.onPageLoad(CheckMode)
 
         status(result) mustEqual OK
