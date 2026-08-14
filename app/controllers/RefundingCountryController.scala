@@ -64,14 +64,13 @@ class RefundingCountryController @Inject() (
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     val (countries, form) = buildFormAndCountries()
-    val maybeCode = CountryCode.findCountryCode(request.userAnswers)
-    val preparedForm = maybeCode.fold(form)(code => form.fill(code))
+    val countryCode = CountryCode.findCountryCode(request.userAnswers)
+    val preparedForm = countryCode.fold(form)(code => form.fill(code))
     Ok(view(preparedForm, countries, routes.TaskListDashboardController.onPageLoad(), mode))
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
     val (countries, form) = buildFormAndCountries()
-    val baseAnswers: UserAnswers = request.userAnswers
 
     form
       .bindFromRequest()
@@ -108,16 +107,17 @@ class RefundingCountryController @Inject() (
                 val formWithError = form.fill(value).withError("value", "refundingCountry.error.duplicate")
                 Future.successful(BadRequest(view(formWithError, countries, routes.TaskListDashboardController.onPageLoad(), mode)))
               } else {
+                val baseAnswers: UserAnswers = request.userAnswers
                 val countryName = countries.find(_._2.equalsIgnoreCase(value)).map(_._1).getOrElse(value)
                 val languages = configLanguageMapping.languagesFor(value).map(_.toLowerCase)
-                val maybePrevCode = CountryCode.findCountryCode(baseAnswers)
+                val prevCountryCode = CountryCode.findCountryCode(baseAnswers)
 
                 // no duplicates - proceed with save flow (note: on country change only clear language/currency)
                 for {
                   updatedAnswers  <- Future.fromTry(baseAnswers.set(RefundingCountryPage, value))
                   updatedAnswers0 <- Future.fromTry(updatedAnswers.set(LatestCountryResponseQuery, latestResponse))
                   updatedAnswers1 <- Future.fromTry(updatedAnswers0.set(RefundingCountryNamePage, countryName))
-                  updatedAnswers2 <- maybePrevCode match {
+                  updatedAnswers2 <- prevCountryCode match {
                                        case Some(prev) if !prev.equalsIgnoreCase(value) =>
                                          // If country changes, clear below data from session
                                          List(

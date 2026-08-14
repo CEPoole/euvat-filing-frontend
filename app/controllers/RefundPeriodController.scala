@@ -30,6 +30,7 @@ import play.api.{Configuration, Logging}
 import queries.TraderKnownFactsQuery
 import repositories.SessionRepository
 import services.EuVatRefundsService
+import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, CountryCode}
 import views.html.RefundPeriodView
@@ -106,11 +107,10 @@ class RefundPeriodController @Inject() (
     Ok(view(mappedForm, mode, backLink(mode), startMsg, endMsg, highlighted, errorLinkOverrides(mappedForm)))
   }
 
-  private def renderError(form: Form[RefundPeriodData], mode: Mode, traderVrnOverride: Option[String] = None)(implicit
+  private def renderError(form: Form[RefundPeriodData], mode: Mode, isExempt: Boolean)(implicit
     request: DataRequest[AnyContent],
     messages: Messages
   ): Future[Result] = {
-    val (_, _, isExempt) = computeEarliestAndLatest(request, traderVrnOverride)
     val (mappedForm, highlighted) = formProvider.withMappedErrors(form, suppressCutoff = isExempt)
     val startMsg = errorMessage(mappedForm, Seq("start", "start.month", "start.year"))
     val endMsg = errorMessage(mappedForm, Seq("end", "end.month", "end.year"))
@@ -213,11 +213,11 @@ class RefundPeriodController @Inject() (
     earliest.flatMap { min =>
       val startBefore = value.start.isBefore(min)
       val endBefore = value.end.isBefore(min)
+      val filledForm = form.fill(value)
       if (!startBefore && !endBefore) {
         None
       } else {
         val human = min.atDay(1).format(DateTimeFormatter.ofPattern("MMMM yyyy"))
-        val filledForm = form.fill(value)
         Some {
           (startBefore, endBefore) match {
             case (true, true) =>
@@ -306,21 +306,21 @@ class RefundPeriodController @Inject() (
           baseForm
             .bindFromRequest()
             .fold(
-              formWithErrors => renderError(formWithErrors, mode, Some(vrn)),
+              formWithErrors => renderError(formWithErrors, mode, isExemptForTrader),
               value =>
                 val startDate = YearMonth.of(value.start.getYear, value.start.getMonthValue).atDay(1).atStartOfDay()
                 val endDate = YearMonth.of(value.end.getYear, value.end.getMonthValue).atEndOfMonth().atTime(23, 59, 59, 999000000)
-                earliestDateValidation(value, earliestForTrader, baseForm)
+
+                val validationResult = earliestDateValidation(value, earliestForTrader, baseForm)
                   .orElse(latestDateValidation(value, latestForTrader, baseForm))
                   .orElse(vatDateValidation(value, startDate, endDate, traderResponse, baseForm))
-                  .fold(checkOverlappingPeriod(vrn, traderResponse, startDate, endDate, mode)) { formWithError =>
-                    renderError(formWithError, mode, Some(vrn))
-                  }
+
+                validationResult match {
+                  case None                => checkOverlappingPeriod(vrn, traderResponse, startDate, endDate, mode)
+                  case Some(formWithError) => renderError(formWithError, mode, isExemptForTrader)
+                }
             )
         }
-//        .getOrElse {
-//          // TODO
-//        }
         .recover { case NonFatal(e) =>
           logger.error("Failed to retrieve data from backend", e)
           Redirect(routes.JourneyRecoveryController.onPageLoad())
@@ -349,7 +349,6 @@ class RefundPeriodController @Inject() (
     val canAmend = configuration.getOptional[String]("settings.refund.can.amend.vrns").map(_.split(",").map(_.trim).toSet).getOrElse(Set.empty)
     val exemptSet = canCreate ++ canAmend
     val isExempt = traderVrnOpt.exists(exemptSet.contains)
-
     val earliest: Option[YearMonth] = if (isExempt) {
       Some(YearMonth.of(2020, 1))
     } else {

@@ -18,6 +18,7 @@ package controllers
 
 import base.SpecBase
 import models.NormalMode
+import models.requests.LatestApplicationRequest
 import models.responses.{LatestApplication, LatestApplicationResponse, TraderKnownFactsResponse}
 import navigation.FakeNavigator
 import org.mockito.ArgumentMatchers.any
@@ -29,25 +30,24 @@ import play.api.mvc.Call
 import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import repositories.SessionRepository
+import services.EuVatRefundsService
+import uk.gov.hmrc.http.HeaderCarrier
 import utils.CountryList
 
 import java.time.LocalDateTime
 import scala.concurrent.Future
 
 class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
-
   // Use `normalizeHtml` from SpecBase to normalize CSRF and nonce differences
-
   val onwardRoute: Call = Call("GET", "/foo")
 
   "RefundingCountry Controller" - {
-
     "must return OK and the correct view for a GET" in {
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
       running(application) {
         val request = FakeRequest(GET, routes.RefundingCountryController.onPageLoad(models.NormalMode).url)
-
         val result = route(application, request).value
 
         val view = application.injector.instanceOf[views.html.RefundingCountryView]
@@ -74,7 +74,6 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(GET, routes.RefundingCountryController.onPageLoad(models.NormalMode).url)
-
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
@@ -111,45 +110,37 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must redirect to the next page when valid data is submitted" in {
-      val mockSessionRepository = mock[repositories.SessionRepository]
-      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+      when(mockEuVatRefundsService.getLatestApplications(any[LatestApplicationRequest]())(any[HeaderCarrier]()))
+        .thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
 
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
         .overrides(
           bind[navigation.Navigator].toInstance(new FakeNavigator(onwardRoute)),
-          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+          bind[SessionRepository].toInstance(mockSessionRepository)
         )
         .build()
 
       running(application) {
         val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
           .withFormUrlEncodedBody(("value", "DE"))
-
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual onwardRoute.url
 
         verify(mockSessionRepository, times(1)).set(any())
+        verify(mockEuVatRefundsService, times(1)).getLatestApplications(any[LatestApplicationRequest]())(any[HeaderCarrier]())
       }
     }
 
     "must show duplicate application error when duplicate exists" in {
-      val mockSessionRepository = mock[repositories.SessionRepository]
-      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
-
-      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
-        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
-
-      // with new rule: duplicate applies when applicationStatus == "D" or submissionStatus == null
+      // with new rule: duplicate applies when applicationStatus == "D" or "A"
       val sampleApp = LatestApplication(1L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("D"), Some("R"), LocalDateTime.now())
       when(mockEuVatRefundsService.getLatestApplications(any())(any()))
         .thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
 
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
-        .overrides(
-          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
-        )
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
         .build()
 
       running(application) {
@@ -164,8 +155,6 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must escalate 5xx backend errors" in {
-      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
-        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
       when(mockEuVatRefundsService.getLatestApplications(any())(any()))
         .thenReturn(scala.concurrent.Future.failed(new uk.gov.hmrc.http.UpstreamErrorResponse("boom", 500, 500, Map.empty)))
 
@@ -182,8 +171,6 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must escalate 4xx backend errors" in {
-      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
-        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
       when(mockEuVatRefundsService.getLatestApplications(any())(any()))
         .thenReturn(scala.concurrent.Future.failed(new uk.gov.hmrc.http.UpstreamErrorResponse("boom400", 400, 400, Map.empty)))
 
@@ -200,12 +187,6 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must bypass validation when application status is A" in {
-      val mockSessionRepository = mock[repositories.SessionRepository]
-      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
-
-      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
-        .thenReturn(Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
-
       when(mockEuVatRefundsService.getLatestApplications(any())(any()))
         .thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List.empty, 0)))
 
@@ -226,12 +207,6 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must treat submissionStatus 'S' case-insensitively and be treated as duplicate when applicationStatus is D" in {
-      val mockSessionRepository = mock[repositories.SessionRepository]
-      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
-
-      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
-        .thenReturn(scala.concurrent.Future.successful(TraderKnownFactsResponse(123, Some("ABC"), Some("49200"))))
-
       val sampleApp = LatestApplication(3L, "DE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("D"), Some("S"), LocalDateTime.now())
       when(mockEuVatRefundsService.getLatestApplications(any())(any()))
         .thenReturn(scala.concurrent.Future.successful(LatestApplicationResponse(List(sampleApp), 1)))
@@ -254,9 +229,6 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must skip RefundingLanguage and set default language when country has single language" in {
-      val mockSessionRepository = mock[repositories.SessionRepository]
-      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
-
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
         .overrides(
           bind[repositories.SessionRepository].toInstance(mockSessionRepository)
@@ -282,9 +254,6 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must clear previously stored language when country is changed" in {
-      val mockSessionRepository = mock[repositories.SessionRepository]
-      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
-
       // Start with a saved country and language
       val starting = emptyUserAnswers
         .set(pages.RefundingCountryPage, "BG")
@@ -318,9 +287,6 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must clear purchase selections when country is changed" in {
-      val mockSessionRepository = mock[repositories.SessionRepository]
-      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
-
       // Start with a saved country and various purchase selections
       val starting = emptyUserAnswers
         .set(pages.RefundingCountryPage, "BG")
@@ -428,9 +394,6 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must set CountryChangedPage to true when country is changed in CheckMode" in {
-      val mockSessionRepository = mock[repositories.SessionRepository]
-      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
-
       val starting = emptyUserAnswers
         .set(pages.RefundingCountryPage, "BG")
         .success
@@ -459,9 +422,6 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must clear currency when country is changed" in {
-      val mockSessionRepository = mock[repositories.SessionRepository]
-      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
-
       val starting = emptyUserAnswers
         .set(pages.RefundingCountryPage, "BG")
         .success
@@ -490,9 +450,6 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must auto-set currency when country has single language and single currency" in {
-      val mockSessionRepository = mock[repositories.SessionRepository]
-      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
-
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
         .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
         .build()
@@ -550,13 +507,8 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must save both code and name when a code is submitted" in {
-      val mockSessionRepository = mock[repositories.SessionRepository]
-      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
-
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
-        .overrides(
-          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
-        )
+        .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
         .build()
 
       running(application) {
@@ -578,7 +530,6 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must recover and return Bad Request when session save fails" in {
-      val mockSessionRepository = mock[repositories.SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.failed(new RuntimeException("boom"))
 
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))

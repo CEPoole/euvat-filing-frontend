@@ -22,16 +22,16 @@ import models.requests.DataRequest
 import pages.{PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import play.api.mvc.Call
+import play.api.mvc.{AnyContent, AnyContentAsEmpty, Call}
 import controllers.helpers.PurchaseBackLinkHelper
+import play.api.i18n.Messages
 
 class PurchaseBackLinkHelperSpec extends SpecBase {
 
   "PurchaseBackLinkHelper.computeBackTarget" - {
-
+    implicit val messages: Messages = stubMessages()
     "should return PurchaseTypeController when no user answers available" in {
-      val userAnswers: models.UserAnswers = emptyUserAnswers
-      implicit val request = DataRequest(FakeRequest(GET, "/"), userAnswersId, userAnswers)
+      implicit val request: DataRequest[AnyContent] = DataRequest(FakeRequest(GET, "/"), userAnswersId, None, None, emptyUserAnswers)
 
       val result: Call = PurchaseBackLinkHelper.computeBackTarget(NormalMode)
 
@@ -39,7 +39,7 @@ class PurchaseBackLinkHelperSpec extends SpecBase {
     }
 
     "should return mounted slug when PurchaseType and PurchaseSubType present and no subcategory" in {
-      val userAnswers: models.UserAnswers = emptyUserAnswers
+      val userAnswers = emptyUserAnswers
         .set(PurchaseTypePage, PurchaseType.Fuel)
         .success
         .value
@@ -47,7 +47,7 @@ class PurchaseBackLinkHelperSpec extends SpecBase {
         .success
         .value
 
-      implicit val request = DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, userAnswers)
+      implicit val request: DataRequest[AnyContent] = DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, None, None, userAnswers)
 
       val result: Call = PurchaseBackLinkHelper.computeBackTarget(NormalMode)
 
@@ -64,7 +64,7 @@ class PurchaseBackLinkHelperSpec extends SpecBase {
         .success
         .value
 
-      implicit val request = DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, userAnswers)
+      implicit val request: DataRequest[AnyContent] = DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, None, None, userAnswers)
 
       val result: Call = PurchaseBackLinkHelper.computeBackTarget(NormalMode)
 
@@ -80,7 +80,8 @@ class PurchaseBackLinkHelperSpec extends SpecBase {
         .success
         .value
 
-      implicit val request = DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, userAnswers)
+      implicit val request: DataRequest[AnyContentAsEmpty.type] =
+        DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, None, None, userAnswers)
 
       val result: Call = PurchaseBackLinkHelper.computeBackTarget(NormalMode)
 
