@@ -14,25 +14,11 @@
  * limitations under the License.
  */
 
-package utils
+package pages
 
-import models.UserAnswers
-import pages.{RefundingCountryNamePage, RefundingCountryPage}
+import play.api.libs.json.JsPath
 
-object CountryCode {
-
-  def findCountryCode(userAnswers: UserAnswers): Option[String] = {
-    userAnswers
-      .get(RefundingCountryPage)
-      .orElse(
-        userAnswers
-          .get(RefundingCountryNamePage)
-          .map { stored =>
-            val parts = stored.split(",", 2).map(_.trim).filter(_.nonEmpty)
-            val isoLike = parts.find(p => p.matches("(?i)^[A-Z]{2}$"))
-            isoLike.map(_.toUpperCase).getOrElse(parts.lastOption.getOrElse(stored.trim))
-          }
-      )
-  }
-
+case object CurrencyChangedPage extends QuestionPage[Boolean] {
+  override def path: JsPath = JsPath \ toString
+  override def toString: String = "currencyChanged"
 }

@@ -16,23 +16,24 @@
 
 package utils
 
-import models.UserAnswers
+import base.SpecBase
 import pages.{RefundingCountryNamePage, RefundingCountryPage}
 
-object CountryCode {
+class CountryCodeSpec extends SpecBase {
 
-  def findCountryCode(userAnswers: UserAnswers): Option[String] = {
-    userAnswers
-      .get(RefundingCountryPage)
-      .orElse(
-        userAnswers
-          .get(RefundingCountryNamePage)
-          .map { stored =>
-            val parts = stored.split(",", 2).map(_.trim).filter(_.nonEmpty)
-            val isoLike = parts.find(p => p.matches("(?i)^[A-Z]{2}$"))
-            isoLike.map(_.toUpperCase).getOrElse(parts.lastOption.getOrElse(stored.trim))
-          }
-      )
+  "CountryCode" - {
+    "must return code from RefundingCountryPage when present" in {
+      val ua = emptyUserAnswers.set(RefundingCountryPage, "DE").success.value
+      CountryCode.findCountryCode(ua) mustBe Some("DE")
+    }
+
+    "must extract code from RefundingCountryNamePage when present" in {
+      val ua = emptyUserAnswers.set(RefundingCountryNamePage, "BG,Bulgaria").success.value
+      CountryCode.findCountryCode(ua) mustBe Some("BG")
+    }
+
+    "must return None when no country present" in {
+      CountryCode.findCountryCode(emptyUserAnswers) mustBe None
+    }
   }
-
 }

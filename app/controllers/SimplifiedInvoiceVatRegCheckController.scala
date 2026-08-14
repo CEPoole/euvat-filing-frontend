@@ -18,17 +18,19 @@ package controllers
 
 import controllers.actions.*
 import forms.SimplifiedInvoiceVatRegCheckFormProvider
-
-import javax.inject.Inject
-import models.{Mode, NormalMode}
+import models.requests.DataRequest
+import models.{CheckMode, Mode, NormalMode}
 import navigation.Navigator
-import pages.{SimplifiedInvoiceVatRegCheckPage, SupplierAddressPage}
+import pages.{PurchaseTypePage, SimplifiedInvoiceVatRegCheckPage, SupplierAddressPage, SupplierVatRegistrationNumberPage}
+import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
+import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import utils.{CheckModeShortCircuit, ControllerHelpers}
 import views.html.SimplifiedInvoiceVatRegCheckView
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class SimplifiedInvoiceVatRegCheckController @Inject() (
@@ -46,38 +48,83 @@ class SimplifiedInvoiceVatRegCheckController @Inject() (
     with I18nSupport {
 
   val form = formProvider()
-  private def backLink: play.api.mvc.Call = routes.SupplierAddressController.onPageLoad(NormalMode)
+  private def backLink: Call = routes.SupplierAddressController.onPageLoad(NormalMode)
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-
+    // Ensure a supplier address exists in session; otherwise recover journey
     request.userAnswers.get(SupplierAddressPage) match {
+      // If there's no supplier address we cannot continue; send user to recovery
       case None => Redirect(routes.JourneyRecoveryController.onPageLoad())
+      // When supplier address exists render the page (possibly pre-filled)
       case Some(_) =>
-        val preparedForm = request.userAnswers.get(SimplifiedInvoiceVatRegCheckPage) match {
-          case None        => form
-          case Some(value) => form.fill(value)
-        }
-        Ok(view(preparedForm, mode, backLink))
+        // Prepare the form value by reading the stored answer (if any)
+        val preparedForm = ControllerHelpers.preparedFormFromAnswers(_.get(SimplifiedInvoiceVatRegCheckPage), form)
+        // Render the page with an OK result using the shared helper
+        okView(preparedForm, mode)
     }
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-
+    // Bind the submitted form from the request and handle both branches
     form
       .bindFromRequest()
       .fold(
-        formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink))),
+        // Invalid form: render the page with validation errors using helper
+        formWithErrors => Future.successful(badRequestView(formWithErrors, mode)),
+
+        // Valid form submission: possibly short-circuit or persist once
         value =>
-          for {
-            updatedAnswers <- Future.fromTry(request.userAnswers.set(SimplifiedInvoiceVatRegCheckPage, value))
-            _              <- sessionRepository.set(updatedAnswers)
-          } yield {
-            if (value) {
-              Redirect(routes.SupplierVatRegistrationNumberController.onPageLoad(mode))
-            } else {
-              Redirect(routes.PurchaseTypeController.onPageLoad(mode: Mode))
-            }
+          // Use short-circuiting to avoid persisting when nothing changed
+          CheckModeShortCircuit.shortCircuitIfUnchanged(
+            SimplifiedInvoiceVatRegCheckPage,
+            value,
+            mode,
+            request.userAnswers,
+            controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+          ) match {
+            // If short-circuit produced a redirect result return it immediately
+            case Some(res) => Future.successful(res)
+            // Otherwise build the single Try[UserAnswers] and persist once
+            case None =>
+              // Compose the updated UserAnswers as a Try (do not persist yet)
+              val userAnswersTry = request.userAnswers.set(SimplifiedInvoiceVatRegCheckPage, value)
+
+              // Branch routing based on mode and whether we're in a purchase flow
+              (mode, request.userAnswers.get(PurchaseTypePage)) match {
+                // In a CheckMode purchase flow where answer is false: clear supplier VAT and go back to CYA
+                case (CheckMode, Some(_)) if !value =>
+                  for {
+                    afterSet     <- Future.fromTry(userAnswersTry)
+                    afterCleared <- Future.fromTry(afterSet.remove(SupplierVatRegistrationNumberPage))
+                    _            <- sessionRepository.set(afterCleared)
+                  } yield Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+
+                // In a CheckMode purchase flow where answer is true: persist and route to VAT number page
+                case (CheckMode, Some(_)) if value =>
+                  for {
+                    afterSet <- Future.fromTry(userAnswersTry)
+                    _        <- sessionRepository.set(afterSet)
+                  } yield Redirect(routes.SupplierVatRegistrationNumberController.onPageLoad(mode))
+
+                // Default: persist and continue normal navigation for non-check or non-purchase flows
+                case _ =>
+                  for {
+                    persistedAnswers <- Future.fromTry(userAnswersTry)
+                    _                <- sessionRepository.set(persistedAnswers)
+                  } yield {
+                    if (value) Redirect(routes.SupplierVatRegistrationNumberController.onPageLoad(mode))
+                    else Redirect(routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode))
+                  }
+              }
           }
       )
   }
+
+  // Render the page with an OK status using the shared view rendering helper
+  private def okView(formToRender: Form[?], mode: Mode)(implicit request: DataRequest[?]) =
+    Ok(view(formToRender, mode, backLink))
+
+  // Render the page with a BadRequest status (used for form errors)
+  private def badRequestView(formWithErrors: Form[?], mode: Mode)(implicit request: DataRequest[?]) =
+    BadRequest(view(formWithErrors, mode, backLink))
 }

@@ -272,10 +272,7 @@ class RefundingCurrencyControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
         status(result) mustEqual SEE_OTHER
 
-        import org.mockito.ArgumentCaptor
-        val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
-        verify(mockSessionRepository, times(1)).set(captor.capture())
-        captor.getValue.get(pages.ClaimDetailsAmendedPage).isDefined mustBe false
+        verify(mockSessionRepository, times(0)).set(any())
       }
     }
 

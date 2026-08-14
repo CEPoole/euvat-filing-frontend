@@ -18,8 +18,6 @@ package controllers
 
 import controllers.actions.*
 import forms.SupplierTaxIdentifierNumberFormProvider
-
-import javax.inject.Inject
 import models.Mode
 import models.requests.SupplierTaxIdentifierCountRequest
 import models.responses.SupplierTaxIdentifierCountResponse
@@ -37,6 +35,7 @@ import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import views.html.SupplierTaxIdentifierNumberView
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class SupplierTaxIdentifierNumberController @Inject() (

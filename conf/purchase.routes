@@ -74,3 +74,9 @@ GET        /purchase-type-other                             controllers.purchase
 POST       /purchase-type-other                             controllers.purchase.PurchaseSubTypeController.onSubmit(purchaseTypeSlug: String = "purchase-type-other", mode: Mode = NormalMode)
 GET        /change-purchase-type-other                      controllers.purchase.PurchaseSubTypeController.onPageLoad(purchaseTypeSlug: String = "purchase-type-other", mode: Mode = CheckMode)
 POST       /change-purchase-type-other                      controllers.purchase.PurchaseSubTypeController.onSubmit(purchaseTypeSlug: String = "purchase-type-other", mode: Mode = CheckMode)
+
+# Check your purchase details (Check Your Answers)
+GET        /check-your-purchase-details                     controllers.purchase.CheckYourPurchaseDetailsController.onPageLoad()
+POST       /check-your-purchase-details                     controllers.purchase.CheckYourPurchaseDetailsController.onSubmit()
+GET        /change-check-your-purchase-details              controllers.purchase.CheckYourPurchaseDetailsController.onPageLoad()
+POST       /change-check-your-purchase-details              controllers.purchase.CheckYourPurchaseDetailsController.onSubmit()

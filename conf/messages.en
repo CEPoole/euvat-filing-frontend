@@ -14,6 +14,8 @@ site.signIn = Sign in
 site.govuk = GOV.UK
 site.save.continue = Save and continue
 site.warning = Warning
+site.notProvided = Not provided
+
 
 date.day = Day
 date.month = Month
@@ -113,6 +115,13 @@ refundingCurrency.hint = You will use this currency for all the items you add to
 refundingCurrency.euro = Euro ({0})
 refundingCurrency.estonianKroon = Estonian Kroon ({0})
 refundingCurrency.bulgarianLev = Bulgarian Lev ({0})
+refundingCurrency.czechKoruna = Czech Koruna ({0})
+refundingCurrency.kuna = Kuna ({0})
+refundingCurrency.danishKrone = Danish Krone ({0})
+refundingCurrency.forint = Forint ({0})
+refundingCurrency.zloty = Zloty ({0})
+refundingCurrency.newLeu = Romanian Leu ({0})
+refundingCurrency.swedishKrona = Swedish Krona ({0})
 refundingCurrency.error.required = Select a currency for this claim
 
 refundPeriod.title = Refund period
@@ -232,7 +241,8 @@ checkYourClaimDetails.refundingCountry.subLabel = EU member state
 checkYourClaimDetails.refundingLanguage.label = Claim language
 checkYourClaimDetails.refundingLanguage.change.hidden = Change language
 checkYourClaimDetails.refundingLanguage.subLabel = Language
-checkYourClaimDetails.refundingCurrency.label = Claim currency
+checkYourClaimDetails.refundingCurrency.label = Currency
+refundingCurrency.checkYourAnswersLabel = Currency
 checkYourClaimDetails.refundingCurrency.subLabel = Currency
 checkYourClaimDetails.refundingCurrency.change.hidden = Change currency
 checkYourClaimDetails.refundingPeriod.label = Refund period
@@ -255,6 +265,10 @@ checkYourClaimDetails.businessActivity3.change.hidden = Change third SIC code
 checkYourClaimDetails.paragraph = You cannot change the refunding EU member state after you save and continue.
 checkYourClaimDetails.claimDetails.title = Claim details
 checkYourClaimDetails.claimDetails.heading = Claim details
+
+# Check your purchase details page
+checkYourPurchaseDetails.title = Check your purchase details
+checkYourPurchaseDetails.heading = Check your purchase details
 
 beforeYouStart.title = Before you start
 beforeYouStart.heading = Before you start
@@ -279,8 +293,8 @@ suppliersName.heading = What is the supplier’s name?
 suppliersName.hint = Find the supplier’s name on the invoice or receipt
 suppliersName.error.required = Enter a supplier’s name
 suppliersName.error.length = The supplier’s name must be 35 characters or less
-suppliersName.checkYourAnswersLabel = Supplier’s name
-suppliersName.change.hidden = Change supplier’s name
+suppliersName.checkYourAnswersLabel = Supplier name
+suppliersName.change.hidden = Change supplier name
 
 supplierTaxNumber.title = Select the supplier tax numbers shown on the invoice
 supplierTaxNumber.heading = Select the supplier tax numbers shown on the invoice
@@ -290,6 +304,8 @@ supplierTaxNumber.taxIdentifierNumber = Tax identifier number (also known as Ste
 supplierTaxNumber.taxIdentifierNumber.hint = This is 10 or 11 digits, for example 12/345/67890
 supplierTaxNumber.error.required = Select the supplier tax numbers shown on the invoice
 supplierTaxNumber.neither = I do not have any of these on the invoice
+supplierTaxNumber.checkYourAnswersLabel = Supplier tax number
+supplierTaxNumber.change.hidden = Change supplier tax number
 
 supplierVatRegistrationNumber.title = What is the supplier’s VAT registration number?
 supplierVatRegistrationNumber.heading = What is the supplier’s VAT registration number?
@@ -298,6 +314,8 @@ supplierVatRegistrationNumber.hint.germany = Enter the supplier’s VAT registra
 supplierVatRegistrationNumber.error.required = Enter the supplier’s VAT registration number
 supplierVatRegistrationNumber.error.invalid = Enter the supplier’s VAT registration number in the correct format
 supplierVatRegistrationNumber.error.length = Supplier’s VAT registration number must be 12 characters or less
+supplierVatRegistrationNumber.checkYourAnswersLabel = Supplier VAT registration number
+supplierVatRegistrationNumber.change.hidden = Change supplier VAT registration number
 
 supplierTaxIdentifierNumber.title = What is the supplier’s tax identifier number?
 supplierTaxIdentifierNumber.heading = What is the supplier’s tax identifier number?
@@ -313,6 +331,7 @@ totalPurchaseAmountBeforeVat.h2 = How much did the purchase cost before VAT?
 totalPurchaseAmountBeforeVat.inset = The currency for this claim is in {0} ({1}). For invoices in any other currency, you must convert the amounts before adding them to your claim. Use the <a href="https://data.ecb.europa.eu/currency-converter" class="govuk-link" rel="noreferrer noopener" target="_blank">European Central Bank currency converter (opens in a new tab).</a>
 totalPurchaseAmountBeforeVat.p1 = This is the purchase amount before VAT is added. If your invoice does not show this amount, you’ll need to <a href="https://www.gov.uk/charge-reclaim-record-vat" class="govuk-link" target="_blank" rel="noreferrer noopener">calculate it (opens in a new tab)</a>.
 totalPurchaseAmountBeforeVat.hint = For example, {0}150 or {0}120.45
+totalPurchaseAmountBeforeVat.checkYourAnswersLabel = Amount before VAT
 totalPurchaseAmountBeforeVat.change.hidden = Total purchase amount before VAT
 totalPurchaseAmountBeforeVat.error.nonNumeric = Enter the total purchase amount before VAT in the correct format
 totalPurchaseAmountBeforeVat.error.required = Enter the total purchase amount before VAT
@@ -328,16 +347,19 @@ totalVatPaid.error.required = Enter total VAT paid
 totalVatPaid.error.invalidNumeric = Enter total VAT paid in the correct format
 totalVatPaid.error.nonNumeric = Enter total VAT paid in the correct format
 totalVatPaid.error.aboveMaximum = Total VAT paid must be between -999,999,999.99 and 999,999,999.99
+totalVatPaid.checkYourAnswersLabel = VAT paid
 
 totalVatClaim.title = Total VAT claim
 totalVatClaim.heading = Total VAT claim
 totalVatClaim.p1 = This is the amount of VAT you are entitled to claim back. It may be less than the amount you paid.
+totalVatClaim.checkYourAnswersLabel=VAT Claim
 totalVatClaim.h2 = How much VAT are you claiming?
 totalVatClaim.hint = For example, {0}150 or {0}120.45
 totalVatClaim.error.required = Enter the total amount of VAT you’re claiming
 totalVatClaim.error.invalidNumeric = Enter total VAT claim in the correct format
 totalVatClaim.error.nonNumeric =  Enter total VAT claim in the correct format
 totalVatClaim.error.aboveMaximum = Total VAT claim must be between -999,999,999.99 and 999,999,999.99
+totalVatClaim.change.hidden = Change VAT claim
 
 supplierAddress.title = What is the supplier’s address?
 supplierAddress.heading = What is the supplier’s address?
@@ -348,6 +370,8 @@ supplierAddress.line3.label = Address line 3 (optional)
 supplierAddress.error.line1.required = Enter address line 1, typically the building and street
 supplierAddress.error.maxLength = must be 35 characters or less
 supplierAddress.error.maxLength.withLabel = {0} {1}
+supplierAddress.checkYourAnswersLabel=Supplier Address
+supplierAddress.change.hidden = Change supplier address
 
 invoiceDate.title = What is the invoice date?
 invoiceDate.heading = What is the invoice date?
@@ -380,6 +404,8 @@ simplifiedInvoiceVatRegCheck.title = Does the simplified invoice contain the sup
 simplifiedInvoiceVatRegCheck.heading = Does the simplified invoice contain the supplier’s VAT registration number?
 simplifiedInvoiceVatRegCheck.hint = This can be up to 12 characters and may start with a 2-letter EU country code. For example, FR123456789
 simplifiedInvoiceVatRegCheck.error.required = Select yes if the simplified invoice contains the supplier’s VAT registration number
+simplifiedInvoiceVatRegCheck.checkYourPurchaseDetails = Supplier VAT registration check
+simplifiedInvoiceVatRegCheck.checkYourPurchaseDetails.hidden = Change supplier VAT registration check
 
 purchaseType.title = Purchase type
 purchaseType.heading = Purchase type
@@ -393,6 +419,31 @@ purchaseType.foodAndDrink = Food, drink and restaurant services
 purchaseType.luxuries = Luxuries, entertainment and hospitality
 purchaseType.other = Other
 purchaseType.error.required = Select the type of purchase
+purchaseType.checkYourPurchaseDetails.hidden = Change purchase type
+
+purchase.checkYourPurchase.purchaseCategory = Purchase category
+purchase.checkYourPurchase.invoiceDetails = Invoice details
+purchase.checkYourPurchase.supplierDetails = Supplier details
+purchase.checkYourPurchase.purchaseAmounts = Purchase amounts
+
+# Purchase sub-type headings for Check Your Answers
+purchase.subType.fuel-use = Fuel use
+purchase.subType.transport-cost = Transport cost type
+purchase.subType.food-drink-restaurant-cost = Food, drink or restaurant cost type
+purchase.subType.luxury-entertainment-hospitality-cost = Luxury, entertainment or hospitality cost type
+purchase.subType.purchase-type-other = Other purchase type
+purchase.subType.checkYourPurchaseDetails.hidden = Change sub type
+
+# Purchase sub-category headings for Check Your Answers
+purchase.subCategory.fuel-type = Fuel type
+purchase.subCategory.fuel-type-or-vehicle = Fuel or vehicle type
+purchase.subCategory.vehicle-use = Vehicle use
+purchase.subCategory.what-transport-cost = Additional transport cost type
+purchase.subCategory.who-food-drink-for = Food and drink for
+purchase.subCategory.cost-for-publicity-purposes = Cost for publicity purposes
+purchase.subCategory.property-purchase-type = Property purchase type
+purchase.subCategory.property-cost-type = Property cost type
+purchase.subCategory.checkYourPurchaseDetails.change.hidden = Change sub category
 
 checkYourStateDetails.title = EU member state details
 checkYourStateDetails.heading = EU member state details
@@ -408,6 +459,8 @@ describeItemsOnInvoice.heading = Describe the items on your invoice
 describeItemsOnInvoice.hint = List each item and the exact amount you paid for it. Include the currency shown on the invoice. For example, an invoice including €150 for fuel and €50 for transport costs.
 describeItemsOnInvoice.error.required = Enter a description of the items on your invoice
 describeItemsOnInvoice.error.length = Item description must be 255 characters or less
+describeItemsOnInvoice.checkYourAnswersLabel = Purchase description
+describeItemsOnInvoice.change.hidden = Change purchase description
 
 # Warning messages
 

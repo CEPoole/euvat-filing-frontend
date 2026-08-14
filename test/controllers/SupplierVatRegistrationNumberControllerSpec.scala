@@ -23,7 +23,8 @@ import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import pages.{RefundingCountryPage, SupplierVatRegistrationNumberPage}
+import pages.{PurchaseTypePage, RefundingCountryPage, SupplierVatRegistrationNumberPage}
+import models.PurchaseType
 import play.api.data.Form
 import play.api.inject.bind
 import play.api.mvc.Call
@@ -264,6 +265,38 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val result = route(application, request).value
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
+      }
+    }
+
+    "must persist and redirect to purchase CYA when in CheckMode and part of purchase journey" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val userAnswers = emptyUserAnswers.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.SupplierVatRegistrationNumberController.onSubmit(CheckMode).url)
+            .withFormUrlEncodedBody(("value", "FR123456789"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+
+        val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        org.mockito.Mockito.verify(mockSessionRepository).set(captor.capture())
+        val saved = captor.getValue
+        saved.get(SupplierVatRegistrationNumberPage) mustBe Some("FR123456789")
       }
     }
   }

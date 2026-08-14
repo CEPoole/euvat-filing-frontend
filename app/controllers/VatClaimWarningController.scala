@@ -17,13 +17,15 @@
 package controllers
 
 import controllers.actions.*
-import models.{CheckMode, Mode, NormalMode, UserAnswers}
+import models.requests.DataRequest
+import models.{CheckMode, Mode, NormalMode}
 import pages.*
 import play.api.Logging
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
+import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import utils.ConfigCurrencyMapping
+import utils.ControllerHelpers.*
 import views.html.VatClaimWarningView
 
 import javax.inject.Inject
@@ -41,10 +43,16 @@ class VatClaimWarningController @Inject() (
     with Logging {
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
+    // Read the two required values from session: TotalVatPaid and TotalVatClaim
     (request.userAnswers.get(TotalVatPaidPage), request.userAnswers.get(TotalVatClaimPage)) match {
+      // Both values present: render the warning view with currency symbol
       case (Some(_), Some(totalVatClaiming)) =>
-        val currencySymbol = resolveCurrencyPrefix(request.userAnswers)
-        Ok(view(routes.TotalVatClaimController.onPageLoad(mode), mode, currencySymbol, totalVatClaiming))
+        // Resolve human-friendly currency symbol (fallback to Euro)
+        val currencySymbol = currencySymbolFromSession(request.userAnswers, configCurrencyMapping)
+        // Render the warning page, providing the return route and claim amount
+        okView(routes.TotalVatClaimController.onPageLoad(mode), mode, currencySymbol, totalVatClaiming)
+
+      // Missing required session data: log and recover the journey
       case _ =>
         logger.warn("Missing session data")
         Redirect(routes.JourneyRecoveryController.onPageLoad())
@@ -52,32 +60,19 @@ class VatClaimWarningController @Inject() (
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
+    // Handle post from the warning page; behavior currently stubbed (TODOs)
     mode match {
-      case NormalMode => Redirect(routes.JourneyRecoveryController.onPageLoad()) // TODO - redirect to next page
-      case CheckMode  => Redirect(routes.JourneyRecoveryController.onPageLoad()) // TODO - redirect to Check your purchase details
+      // NormalMode: currently redirect to journey recovery as a placeholder
+      case NormalMode => Redirect(routes.JourneyRecoveryController.onPageLoad())
+
+      // CheckMode: currently redirect to journey recovery (should route to CYA)
+      case CheckMode => Redirect(routes.JourneyRecoveryController.onPageLoad())
     }
   }
 
-  private def resolveCountry(userAnswers: UserAnswers): Option[String] =
-    userAnswers
-      .get(RefundingCountryPage)
-      .orElse(
-        userAnswers
-          .get(RefundingCountryNamePage)
-          .flatMap(_.split(",", 2).headOption)
-      )
-
-  private def resolveCurrencyPrefix(userAnswers: UserAnswers): String =
-    resolveCountry(userAnswers)
-      .flatMap { countryCode =>
-        val currencies = configCurrencyMapping.currenciesFor(countryCode)
-
-        userAnswers
-          .get(RefundingCurrencyPage)
-          .flatMap(currencyCode => currencies.find(_._2 == currencyCode))
-          .orElse(currencies.headOption)
-          .map(_._3)
-      }
-      .getOrElse("€")
-
+  // Render the OK view for the VatClaimWarning page with given return route
+  private def okView(returnCall: Call, mode: Mode, currencySymbol: String, totalVatClaiming: BigDecimal)(implicit
+    request: DataRequest[?]
+  ) =
+    Ok(view(returnCall, mode, currencySymbol, totalVatClaiming))
 }

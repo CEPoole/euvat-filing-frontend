@@ -19,6 +19,9 @@ package controllers
 import base.SpecBase
 import forms.TotalPurchaseAmountBeforeVatFormProvider
 import models.{CheckMode, NormalMode, SupplierTaxNumber, UserAnswers}
+import pages.PurchaseTypePage
+import models.PurchaseType
+import org.mockito.Mockito.verify
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
@@ -227,6 +230,53 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual onwardRoute.url
+      }
+    }
+
+    "must redirect to CYA when in CheckMode and amount unchanged for purchase journey" in {
+      val userAnswers = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(TotalPurchaseAmountBeforeVatPage, BigDecimal("123.45"))
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.TotalPurchaseAmountBeforeVatController.onSubmit(CheckMode).url)
+          .withFormUrlEncodedBody(("value", "123.45"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+      }
+    }
+
+    "must persist updated amount and redirect to CYA when in CheckMode and amount changed for purchase journey" in {
+      val userAnswers = emptyUserAnswers.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.TotalPurchaseAmountBeforeVatController.onSubmit(CheckMode).url)
+          .withFormUrlEncodedBody(("value", "200.00"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+        verify(mockSessionRepository).set(any())
       }
     }
 

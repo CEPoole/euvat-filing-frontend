@@ -21,7 +21,7 @@ import forms.InvoiceNumberFormProvider
 import models.{Mode, NormalMode, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
+import org.mockito.Mockito.{verify, when}
 import org.scalatestplus.mockito.MockitoSugar
 import pages.InvoiceNumberPage
 import play.api.inject.bind
@@ -111,6 +111,58 @@ class InvoiceNumberControllerSpec extends SpecBase with MockitoSugar {
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual onwardRoute.url
+      }
+    }
+
+    "must redirect to CYA when in CheckMode and value unchanged" in {
+
+      val userAnswers = emptyUserAnswers.set(InvoiceNumberPage, "INV-1").success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.InvoiceNumberController.onSubmit(models.CheckMode).url)
+            .withFormUrlEncodedBody(("value", "INV-1"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+      }
+    }
+
+    "must persist and redirect to CYA when in CheckMode and value changed" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val userAnswers = emptyUserAnswers.set(InvoiceNumberPage, "INV-1").success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.InvoiceNumberController.onSubmit(models.CheckMode).url)
+            .withFormUrlEncodedBody(("value", "INV-2"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+
+        val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository).set(captor.capture())
+        val saved = captor.getValue
+        saved.get(InvoiceNumberPage) mustBe Some("INV-2")
       }
     }
 

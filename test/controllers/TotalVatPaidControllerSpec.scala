@@ -18,7 +18,10 @@ package controllers
 
 import base.SpecBase
 import forms.TotalVatPaidFormProvider
-import models.{NormalMode, UserAnswers}
+import models.{CheckMode, NormalMode, UserAnswers}
+import pages.PurchaseTypePage
+import models.PurchaseType
+import org.mockito.Mockito.verify
 import pages.{TotalPurchaseAmountBeforeVatPage, TotalVatPaidPage}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
@@ -184,6 +187,50 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
+      }
+    }
+    "must redirect to CYA when in CheckMode and VAT paid unchanged for purchase journey" in {
+      val userAnswers = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(TotalVatPaidPage, BigDecimal("50.00"))
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.TotalVatPaidController.onSubmit(CheckMode).url).withFormUrlEncodedBody(("value", "50.00"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+      }
+    }
+
+    "must persist updated VAT paid and redirect to CYA when in CheckMode and VAT paid changed for purchase journey" in {
+      val userAnswers = emptyUserAnswers.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.TotalVatPaidController.onSubmit(CheckMode).url).withFormUrlEncodedBody(("value", "60.00"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+        verify(mockSessionRepository).set(any())
       }
     }
   }

@@ -21,9 +21,10 @@ import forms.SimplifiedInvoiceVatRegCheckFormProvider
 import models.{NormalMode, SupplierAddress, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
+import org.mockito.Mockito.{verify, when}
 import org.scalatestplus.mockito.MockitoSugar
-import pages.{SimplifiedInvoiceVatRegCheckPage, SupplierAddressPage}
+import pages.{PurchaseTypePage, SimplifiedInvoiceVatRegCheckPage, SupplierAddressPage, SupplierVatRegistrationNumberPage}
+import models.PurchaseType
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
@@ -135,6 +136,7 @@ class SimplifiedInvoiceVatRegCheckControllerSpec extends SpecBase with MockitoSu
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode).url
+        verify(mockSessionRepository).set(any())
       }
     }
 
@@ -159,7 +161,98 @@ class SimplifiedInvoiceVatRegCheckControllerSpec extends SpecBase with MockitoSu
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual routes.PurchaseTypeController.onPageLoad(NormalMode).url
+        redirectLocation(result).value mustEqual routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode).url
+        verify(mockSessionRepository).set(any())
+      }
+    }
+
+    "must redirect to Supplier VAT entry when in CheckMode and Yes selected for purchase journey" in {
+      val userAnswers = userAnswersWithAddress.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.SimplifiedInvoiceVatRegCheckController.onSubmit(models.CheckMode).url)
+          .withFormUrlEncodedBody(("value", "true"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.SupplierVatRegistrationNumberController.onPageLoad(models.CheckMode).url
+        verify(mockSessionRepository).set(any())
+      }
+    }
+
+    "must short-circuit to purchase CYA when in CheckMode and selection unchanged (true)" in {
+      val userAnswers = userAnswersWithAddress
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(SimplifiedInvoiceVatRegCheckPage, true)
+        .success
+        .value
+
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.SimplifiedInvoiceVatRegCheckController.onSubmit(models.CheckMode).url)
+          .withFormUrlEncodedBody(("value", "true"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+        // should not persist when unchanged
+        org.mockito.Mockito.verify(mockSessionRepository, org.mockito.Mockito.times(0)).set(any())
+      }
+    }
+
+    "must clear supplier VAT reg number and redirect to purchase CYA when No selected in CheckMode for purchase journey" in {
+      val userAnswers = userAnswersWithAddress
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(SupplierVatRegistrationNumberPage, "FR123")
+        .success
+        .value
+
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.SimplifiedInvoiceVatRegCheckController.onSubmit(models.CheckMode).url)
+          .withFormUrlEncodedBody(("value", "false"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+
+        val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        org.mockito.Mockito.verify(mockSessionRepository).set(captor.capture())
+        val saved = captor.getValue
+        saved.get(SupplierVatRegistrationNumberPage) mustBe None
+        saved.get(SimplifiedInvoiceVatRegCheckPage) mustBe Some(false)
       }
     }
 

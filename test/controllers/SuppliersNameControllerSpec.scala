@@ -111,6 +111,58 @@ class SuppliersNameControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "must short-circuit to purchase CYA in CheckMode when value unchanged" in {
+      val userAnswers = UserAnswers(userAnswersId)
+        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .success
+        .value
+        .set(SuppliersNamePage, "same")
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.SuppliersNameController.onSubmit(models.CheckMode).url)
+          .withFormUrlEncodedBody(("value", "same"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+      }
+    }
+
+    "must persist and redirect to CYA in CheckMode when value changed" in {
+      val userAnswers = UserAnswers(userAnswersId)
+        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .success
+        .value
+        .set(SuppliersNamePage, "old")
+        .success
+        .value
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.SuppliersNameController.onSubmit(models.CheckMode).url)
+          .withFormUrlEncodedBody(("value", "new"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+        org.mockito.Mockito.verify(mockSessionRepository).set(any())
+      }
+    }
+
     "must return a Bad Request and errors when invalid data is submitted" in {
 
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
