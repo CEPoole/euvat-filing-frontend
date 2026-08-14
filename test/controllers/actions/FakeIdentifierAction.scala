@@ -16,7 +16,7 @@
 
 package controllers.actions
 
-import com.google.inject.Inject
+import javax.inject.Inject
 import models.requests.IdentifierRequest
 import play.api.mvc.*
 

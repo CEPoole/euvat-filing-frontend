@@ -52,16 +52,6 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
   private val baCode1 = "4920"
   private val trader: TraderKnownFactsResponse = TraderKnownFactsResponse(999900108, tradeClass = Some(baCode1))
 
-//  override def beforeEach(): Unit = {
-//    super.beforeEach()
-//    reset(mockEuVatRefundsService)
-//    when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(trader))
-//    when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List.empty, 0)))
-//  }
-
-//  private def applicationBuilder(userAnswers: Option[models.UserAnswers] = None) =
-//    applicationBuilder(userAnswers)
-
   "RefundPeriod Controller" - {
 
     ".onPageLoad" - {
