@@ -18,8 +18,9 @@ package controllers
 
 import base.SpecBase
 import forms.DescribeItemsOnInvoiceFormProvider
-import models.{NormalMode, UserAnswers}
+import models.{CheckMode, NormalMode, UserAnswers}
 import org.mockito.ArgumentMatchers.any
+import org.mockito.{ArgumentCaptor, Mockito}
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import pages.DescribeItemsOnInvoicePage
@@ -30,7 +31,6 @@ import play.api.test.Helpers.*
 import repositories.SessionRepository
 import views.html.DescribeItemsOnInvoiceView
 import utils.ConfigPurchaseMapping
-import play.api.inject.bind
 
 import scala.concurrent.Future
 
@@ -39,6 +39,7 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
   def onwardRoute = Call("GET", "/foo")
 
   lazy val describeItemsOnInvoiceRoute = routes.DescribeItemsOnInvoiceController.onPageLoad(NormalMode).url
+  lazy val describeItemsOnInvoiceCheckModeRoute = routes.DescribeItemsOnInvoiceController.onPageLoad(CheckMode).url
 
   val formProvider = new DescribeItemsOnInvoiceFormProvider()
   val form = formProvider()
@@ -164,9 +165,18 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
-    "must redirect to PurchaseWarningController when empty data is submitted" in {
+    "must redirect to PurchaseWarningController and persist an empty value when empty data is submitted in NormalMode" in {
 
-      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(emptyUserAnswers))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
 
       running(application) {
         val request =
@@ -177,6 +187,41 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.PurchaseWarningController.onPageLoad(NormalMode).url
+
+        val captor = ArgumentCaptor.forClass(classOf[UserAnswers])
+        Mockito.verify(mockSessionRepository).set(captor.capture())
+        captor.getValue.get(DescribeItemsOnInvoicePage).value mustEqual ""
+      }
+    }
+
+    "must redirect to PurchaseWarningController and persist an empty value when empty data is submitted in CheckMode" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val userAnswers = UserAnswers(userAnswersId).set(DescribeItemsOnInvoicePage, "Fuel and transport costs").success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, describeItemsOnInvoiceCheckModeRoute)
+            .withFormUrlEncodedBody(("value", ""))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.PurchaseWarningController.onPageLoad(CheckMode).url
+
+        val captor = ArgumentCaptor.forClass(classOf[UserAnswers])
+        Mockito.verify(mockSessionRepository).set(captor.capture())
+        captor.getValue.get(DescribeItemsOnInvoicePage).value mustEqual ""
       }
     }
 

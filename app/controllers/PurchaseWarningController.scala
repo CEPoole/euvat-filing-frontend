@@ -17,7 +17,9 @@
 package controllers
 
 import controllers.actions.*
-import models.{CheckMode, Mode, NormalMode}
+import models.Mode
+import navigation.Navigator
+import pages.DescribeItemsOnInvoicePage
 
 import javax.inject.Inject
 import play.api.i18n.{I18nSupport, MessagesApi}
@@ -31,6 +33,7 @@ class PurchaseWarningController @Inject() (
   getData: DataRetrievalAction,
   requireData: DataRequiredAction,
   val controllerComponents: MessagesControllerComponents,
+  navigator: Navigator,
   view: PurchaseWarningView
 ) extends FrontendBaseController
     with I18nSupport {
@@ -40,9 +43,6 @@ class PurchaseWarningController @Inject() (
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    mode match {
-      case NormalMode => Redirect(routes.DescribeItemsOnInvoiceController.onPageLoad(NormalMode))
-      case CheckMode  => Redirect(routes.JourneyRecoveryController.onPageLoad())
-    }
+    Redirect(navigator.nextPage(DescribeItemsOnInvoicePage, mode, request.userAnswers))
   }
 }
