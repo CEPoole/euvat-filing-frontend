@@ -88,14 +88,7 @@ class RefundingCountryController @Inject() (
         value => {
           val latestReq = LatestApplicationRequest(
             applicantVatRegNumber = request.identifierValue.getOrElse(throw new IllegalStateException("Missing Vat registration number")),
-            refundingCountry      = Some(value),
-            startDate             = None,
-            endDate               = None,
-            representativeId      = None,
-            maxNumber             = 10000,
-            orderBy               = Some(0),
-            sortOrder             = Some("DESC"),
-            startAt               = Some(0)
+            refundingCountry      = Some(value)
           )
 
           euVatRefundsService

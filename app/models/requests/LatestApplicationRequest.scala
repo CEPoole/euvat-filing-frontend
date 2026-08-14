@@ -23,13 +23,13 @@ import java.time.LocalDateTime
 case class LatestApplicationRequest(
   applicantVatRegNumber: String,
   refundingCountry: Option[String],
-  startDate: Option[LocalDateTime],
-  endDate: Option[LocalDateTime],
-  representativeId: Option[String],
-  maxNumber: Int,
-  orderBy: Option[Int],
-  sortOrder: Option[String],
-  startAt: Option[Int]
+  startDate: Option[LocalDateTime] = None,
+  endDate: Option[LocalDateTime] = None,
+  representativeId: Option[String] = None,
+  maxNumber: Int = 10000,
+  orderBy: Option[Int] = Some(0),
+  sortOrder: Option[String] = Some("ASC"),
+  startAt: Option[Int] = Some(0)
 )
 
 object LatestApplicationRequest {

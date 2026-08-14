@@ -177,12 +177,7 @@ class RefundPeriodController @Inject() (
         applicantVatRegNumber = vrn,
         refundingCountry      = refundingCountry,
         startDate             = Some(startDate),
-        endDate               = Some(endDate),
-        representativeId      = None,
-        maxNumber             = 10000,
-        orderBy               = None,
-        sortOrder             = None,
-        startAt               = None
+        endDate               = Some(endDate)
       )
       euVatRefundsService.getLatestApplications(latestApplicationRequest).flatMap { response =>
         if (response.totalApplication > 0) {
