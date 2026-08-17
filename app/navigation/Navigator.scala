@@ -199,7 +199,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
     }
 
   private def navigateFromSupplierTaxIdentifierNumberPage(mode: Mode)(userAnswers: UserAnswers): Call = {
-    val maybeCountryCode = findCountryCode(userAnswers)
+    val maybeCountryCode = CountryCode.findCountryCode(userAnswers)
     mode match {
       case CheckMode =>
         maybeCountryCode match {

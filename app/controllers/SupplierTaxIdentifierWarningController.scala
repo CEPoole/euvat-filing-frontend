@@ -37,15 +37,19 @@ class SupplierTaxIdentifierWarningController @Inject() (
 )(implicit ec: ExecutionContext) extends FrontendBaseController
     with I18nSupport {
 
-  def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    Ok(
-      view(
-        controllers.routes.SupplierTaxIdentifierNumberController.onPageLoad(mode),
-        controllers.routes.InvoiceNumberController.onPageLoad(mode),
-        controllers.routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode),
-        mode
+  def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
+    // mark that the warning was shown and persist, then render the view
+    val flagged = request.userAnswers.set(pages.SupplierTaxIdentifierWarningShownPage, true)
+    Future.fromTry(flagged).flatMap(ua => sessionRepository.set(ua).map(_ =>
+      Ok(
+        view(
+          controllers.routes.SupplierTaxIdentifierNumberController.onPageLoad(mode),
+          controllers.routes.InvoiceNumberController.onPageLoad(mode),
+          controllers.routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode),
+          mode
+        )
       )
-    )
+    ))
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>

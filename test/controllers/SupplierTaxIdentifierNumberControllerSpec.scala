@@ -26,7 +26,8 @@ import org.mockito.ArgumentCaptor
 import org.scalatestplus.mockito.MockitoSugar
 import models.responses.SupplierTaxIdentifierCountResponse
 import models.responses.{AddPurchaseResponse, ApplicationResponse}
-import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, InvoiceNumberPage}
+import pages.{AddPurchaseResponsePage, InvoiceNumberPage}
+import queries.ClaimApplicationResponseQuery
 import pages.SupplierTaxIdentifierNumberPage
 import play.api.inject.bind
 import play.api.mvc.Call
@@ -122,7 +123,7 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
 
       // userAnswers with applicationId and itemNumber present
       val ua = emptyUserAnswers
-        .set(ClaimApplicationResponsePage, ApplicationResponse(123, "GB123456789", 1))
+      .set(ClaimApplicationResponseQuery, ApplicationResponse(123, "GB123456789", 1))
         .success
         .value
         .set(AddPurchaseResponsePage, AddPurchaseResponse(itemNumber = 1, updateSequenceNumber = 1))
@@ -152,7 +153,13 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.SupplierTaxIdentifierWarningController.onPageLoad(NormalMode).url
-        // verify the sessionRepository was saved with the warning flag set
+
+        // follow the redirect to the warning page which will set the flag
+        val getRequest = FakeRequest(GET, routes.SupplierTaxIdentifierWarningController.onPageLoad(NormalMode).url)
+        val getResult = route(application, getRequest).value
+        status(getResult) mustEqual OK
+
+        // verify the sessionRepository was saved: first for the updated answers, second for the flag set by the warning page
         val captor: ArgumentCaptor[UserAnswers] = ArgumentCaptor.forClass(classOf[UserAnswers])
         verify(mockSessionRepository, org.mockito.Mockito.times(2)).set(captor.capture())
         // second save should contain the warning flag
@@ -167,7 +174,7 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
         when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
         val ua = emptyUserAnswers
-          .set(ClaimApplicationResponsePage, ApplicationResponse(123, "GB123456789", 1))
+          .set(ClaimApplicationResponseQuery, ApplicationResponse(123, "GB123456789", 1))
           .success
           .value
           .set(AddPurchaseResponsePage, AddPurchaseResponse(itemNumber = 1, updateSequenceNumber = 1))
@@ -212,7 +219,7 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
       val ua = emptyUserAnswers
-        .set(ClaimApplicationResponsePage, ApplicationResponse(123, "GB123456789", 1))
+        .set(ClaimApplicationResponseQuery, ApplicationResponse(123, "GB123456789", 1))
         .success
         .value
         .set(AddPurchaseResponsePage, AddPurchaseResponse(itemNumber = 1, updateSequenceNumber = 1))

@@ -24,7 +24,8 @@ import models.Mode
 import models.requests.SupplierTaxIdentifierCountRequest
 import models.responses.SupplierTaxIdentifierCountResponse
 import models.responses.AddPurchaseResponse
-import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, InvoiceNumberPage}
+import pages.{AddPurchaseResponsePage, InvoiceNumberPage}
+import queries.ClaimApplicationResponseQuery
 import pages.SupplierTaxIdentifierWarningShownPage
 import services.EuVatRefundsService
 import navigation.Navigator
@@ -76,20 +77,17 @@ class SupplierTaxIdentifierNumberController @Inject() (
             updatedAnswers <- Future.fromTry(request.userAnswers.set(SupplierTaxIdentifierNumberPage, value))
             _              <- sessionRepository.set(updatedAnswers)
             result <- {
-              val maybeAppId = updatedAnswers.get(ClaimApplicationResponsePage).map(_.applicationId.toLong)
+              val maybeAppId = updatedAnswers.get(ClaimApplicationResponseQuery).map(_.applicationId.toLong)
               val maybeItem  = updatedAnswers.get(AddPurchaseResponsePage).map(_.itemNumber)
               val invoiceNum  = updatedAnswers.get(InvoiceNumberPage).getOrElse("")
 
               (maybeAppId, maybeItem) match {
                 case (Some(appId), Some(itemNumber)) =>
-                  euVatRefundsService.getSupplierTaxIdentifierCount(SupplierTaxIdentifierCountRequest(appId, itemNumber, value, invoiceNum)).flatMap {
+                  val countF = euVatRefundsService.getSupplierTaxIdentifierCount(SupplierTaxIdentifierCountRequest(appId, itemNumber, value, invoiceNum))
+                  countF.flatMap {
                     case SupplierTaxIdentifierCountResponse(count) if count > 0 =>
-                      // mark that the warning was shown
-                      val flagged = updatedAnswers.set(SupplierTaxIdentifierWarningShownPage, true)
-                      Future.fromTry(flagged).flatMap(ua => sessionRepository.set(ua).map(_ => Redirect(routes.SupplierTaxIdentifierWarningController.onPageLoad(mode))))
-
+                      Future.successful(Redirect(routes.SupplierTaxIdentifierWarningController.onPageLoad(mode)))
                     case _ =>
-                      // clear any existing warning flag and continue
                       val cleared = updatedAnswers.remove(SupplierTaxIdentifierWarningShownPage)
                       Future.fromTry(cleared).flatMap(ua => sessionRepository.set(ua).map(_ => Redirect(navigator.nextPage(SupplierTaxIdentifierNumberPage, mode, ua))))
                   }.recover { case _ => Redirect(routes.JourneyRecoveryController.onPageLoad()) }
