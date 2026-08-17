@@ -192,7 +192,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value must include("/file-eu-vat/fuel-type")
+        redirectLocation(result).value must include("change-fuel-type")
         val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
         captor.getValue.get(pages.PurchaseSubTypePage) mustBe Some("1")
@@ -634,6 +634,49 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.InvoiceTypeController.onPageLoad(models.NormalMode).url
+
+        val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        val saved = captor.getValue
+        saved.get(pages.PurchaseSubTypePage) mustBe Some(ConfigPurchaseMapping.NoneValue)
+        saved.get(pages.PurchaseSubTypeLabelPage) mustBe Some(ConfigPurchaseMapping.NoneValue)
+        saved.get(pages.PurchaseSubCategoryPage) mustBe None
+      }
+    }
+
+    "must remove subtype and redirect to CYA in CheckMode when None selected" in {
+      val fakeConfig = new ConfigPurchaseMapping() {
+        override def subcodesFor(country: String, parentKey: String) = Seq(("1", "purchase.sub.fuel.1"))
+        override def subcategoriesFor(country: String, parentKey: String, subcode: String) = Seq.empty
+        override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
+      }
+
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+
+      val userAnswers = emptyUserAnswers
+        .set(pages.RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(pages.PurchaseSubTypePage, "1")
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[ConfigPurchaseMapping].toInstance(fakeConfig),
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, controllers.purchase.routes.PurchaseSubTypeController.onSubmit("fuel-use", models.CheckMode).url)
+          .withFormUrlEncodedBody(("value", ConfigPurchaseMapping.NoneValue))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
 
         val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())

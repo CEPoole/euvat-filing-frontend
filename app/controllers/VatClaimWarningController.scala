@@ -37,6 +37,7 @@ class VatClaimWarningController @Inject() (
   requireData: DataRequiredAction,
   configCurrencyMapping: ConfigCurrencyMapping,
   val controllerComponents: MessagesControllerComponents,
+  navigator: navigation.Navigator,
   view: VatClaimWarningView
 ) extends FrontendBaseController
     with I18nSupport
@@ -60,14 +61,9 @@ class VatClaimWarningController @Inject() (
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    // Handle post from the warning page; behavior currently stubbed (TODOs)
-    mode match {
-      // NormalMode: currently redirect to journey recovery as a placeholder
-      case NormalMode => Redirect(routes.JourneyRecoveryController.onPageLoad())
-
-      // CheckMode: currently redirect to journey recovery (should route to CYA)
-      case CheckMode => Redirect(routes.JourneyRecoveryController.onPageLoad())
-    }
+    // Always forward via the navigator for the TotalVatClaimPage so downstream
+    // navigation rules (per-mode) are used consistently.
+    Redirect(navigator.nextPage(TotalVatClaimPage, mode, request.userAnswers))
   }
 
   // Render the OK view for the VatClaimWarning page with given return route

@@ -19,6 +19,7 @@ package controllers
 import controllers.actions.*
 import forms.TotalVatPaidFormProvider
 import models.requests.DataRequest
+import utils.CheckModeShortCircuit
 import models.{CheckMode, Mode}
 import navigation.Navigator
 import pages.{PurchaseTypePage, TotalPurchaseAmountBeforeVatPage, TotalVatPaidPage}
@@ -59,7 +60,6 @@ class TotalVatPaidController @Inject() (
   val form: Form[BigDecimal] = formProvider()
 
   private def backLink(mode: Mode) = routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
-
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     // Prepare the form by reading any stored TotalVatPaid from session
     val preparedForm = preparedFormFromAnswers(_.get(TotalVatPaidPage), form)
@@ -70,38 +70,29 @@ class TotalVatPaidController @Inject() (
     // Render OK view using shared helper
     okView(preparedForm, mode, prefix, currencyName)
   }
+
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-    // Bind the form and handle errors/valid submission using helpers
     form
       .bindFromRequest()
       .fold(
-        // Invalid form: render BadRequest with resolved currency info
         formWithErrors => Future.successful(badRequestView(formWithErrors, mode)),
-
-        // Valid submission: short-circuit unchanged CheckMode or persist once
-        value =>
-          if (mode == CheckMode && request.userAnswers.get(PurchaseTypePage).isDefined) {
-            // When inside a purchase flow and in CheckMode, avoid persisting if unchanged
-            request.userAnswers.get(TotalVatPaidPage) match {
-              case Some(prev) if prev == value =>
-                Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
-              case _ =>
-                // Persist once then redirect to purchase CYA
-                val userAnswersTry = request.userAnswers.set(TotalVatPaidPage, value)
-                persistAndThen(userAnswersTry, sessionRepository)(_ =>
-                  Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
-                )
-            }
-          } else {
-            // Normal flows: persist once then validate against total purchase amount
-            val userAnswersTry = request.userAnswers.set(TotalVatPaidPage, value)
-            persistAndThen(userAnswersTry, sessionRepository) { persistedAnswers =>
-              val totalPurchaseAmt: BigDecimal = request.userAnswers.get(TotalPurchaseAmountBeforeVatPage).getOrElse(BigDecimal(0))
-              if (value >= totalPurchaseAmt) Future.successful(Redirect(routes.VatPaidWarningController.onPageLoad(mode)))
-              else Future.successful(Redirect(navigator.nextPage(TotalVatPaidPage, mode, persistedAnswers)))
-            }
-          }
+        value => handleSubmit(value, mode)
       )
+  }
+
+  private def handleSubmit(value: BigDecimal, mode: Mode)(implicit request: DataRequest[?]) = {
+    shortCircuitPersistAndThen(
+      TotalVatPaidPage,
+      value,
+      mode,
+      request.userAnswers,
+      sessionRepository,
+      navigator.nextPage(TotalVatPaidPage, mode, request.userAnswers),
+      controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+    ) { updated =>
+      if (compareWithPage(value, TotalPurchaseAmountBeforeVatPage, updated)(_ >= _)) Future.successful(Redirect(routes.VatPaidWarningController.onPageLoad(mode)))
+      else Future.successful(Redirect(navigator.nextPage(TotalVatPaidPage, mode, updated)))
+    }
   }
 
   // Render OK view with prepared form and currency details

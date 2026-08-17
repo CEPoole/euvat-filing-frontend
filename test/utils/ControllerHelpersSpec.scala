@@ -30,6 +30,10 @@ import scala.concurrent.Future
 import scala.util.Success
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.typesafe.config.ConfigFactory
+import models.{CheckMode, NormalMode, PurchaseType}
+import play.api.mvc.Call
+import org.mockito.Mockito.{verify, never, times}
+import org.mockito.ArgumentMatchers.{any => anyA}
 
 class ControllerHelpersSpec extends SpecBase {
 
@@ -98,6 +102,108 @@ class ControllerHelpersSpec extends SpecBase {
       val cfg = new ConfigCurrencyMapping(conf)
 
       ControllerHelpers.currencySymbolFromSession(emptyUserAnswers, cfg) mustBe "€"
+    }
+  }
+
+  "compareWithPage" - {
+    "returns true when comparator matches stored value" in {
+      val updated = emptyUserAnswers.set(pages.TotalPurchaseAmountBeforeVatPage, BigDecimal(100)).success.value
+
+      ControllerHelpers.compareWithPage(BigDecimal(120), pages.TotalPurchaseAmountBeforeVatPage, updated)(_ >= _) mustBe true
+    }
+
+    "returns false when comparator does not match stored value" in {
+      val updated = emptyUserAnswers.set(pages.TotalPurchaseAmountBeforeVatPage, BigDecimal(100)).success.value
+
+      ControllerHelpers.compareWithPage(BigDecimal(80), pages.TotalPurchaseAmountBeforeVatPage, updated)(_ >= _) mustBe false
+    }
+  }
+
+  "shortCircuitPersistAndThen" - {
+    "short-circuits to purchase CYA when in CheckMode and value unchanged" in {
+      // prepare UserAnswers with a purchase type and stored value
+      val ua = emptyUserAnswers
+        .set(pages.PurchaseTypePage, PurchaseType.Fuel).success.value
+        .set(pages.TotalVatPaidPage, BigDecimal(10)).success.value
+
+      val mockRepo = mock[SessionRepository]
+      when(mockRepo.set(any[models.UserAnswers])) thenReturn Future.successful(true)
+
+      val fut = ControllerHelpers.shortCircuitPersistAndThen[
+        BigDecimal
+      ](
+        pages.TotalVatPaidPage,
+        BigDecimal(10),
+        CheckMode,
+        ua,
+        mockRepo,
+        Call("GET", "/next"),
+        controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+      ) { _ =>
+        Future.successful(Ok("saved"))
+      }
+
+      val res = fut.futureValue
+
+      res.header.status mustBe SEE_OTHER
+      redirectLocation(fut) mustBe Some(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url)
+
+      // persisted should NOT have been called because we short-circuited
+      verify(mockRepo, never()).set(anyA())
+    }
+
+    "persists and calls continuation when value changes" in {
+      val ua = emptyUserAnswers.set(pages.PurchaseTypePage, PurchaseType.Fuel).success.value
+
+      val mockRepo = mock[SessionRepository]
+      when(mockRepo.set(any[models.UserAnswers])) thenReturn Future.successful(true)
+
+      val fut = ControllerHelpers.shortCircuitPersistAndThen[
+        BigDecimal
+      ](
+        pages.TotalVatPaidPage,
+        BigDecimal(20),
+        CheckMode,
+        ua,
+        mockRepo,
+        Call("GET", "/next"),
+        controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+      ) { _ =>
+        Future.successful(Ok("saved"))
+      }
+
+      val res = fut.futureValue
+
+      res.header.status mustBe OK
+
+      // persisted should have been called once
+      verify(mockRepo, times(1)).set(anyA())
+    }
+
+    "persists and calls continuation when not in CheckMode" in {
+      val ua = emptyUserAnswers
+
+      val mockRepo = mock[SessionRepository]
+      when(mockRepo.set(any[models.UserAnswers])) thenReturn Future.successful(true)
+
+      val fut = ControllerHelpers.shortCircuitPersistAndThen[
+        BigDecimal
+      ](
+        pages.TotalVatPaidPage,
+        BigDecimal(20),
+        NormalMode,
+        ua,
+        mockRepo,
+        Call("GET", "/next"),
+        controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+      ) { _ =>
+        Future.successful(Ok("saved"))
+      }
+
+      val res = fut.futureValue
+
+      res.header.status mustBe OK
+      verify(mockRepo, times(1)).set(anyA())
     }
   }
 

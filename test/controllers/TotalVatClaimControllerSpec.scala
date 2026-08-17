@@ -26,7 +26,7 @@ import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import pages.{RefundingCountryPage, RefundingCurrencyPage, TotalVatClaimPage, TotalVatPaidPage}
+import pages.{RefundingCountryPage, RefundingCurrencyPage, TotalVatClaimPage, TotalVatPaidPage, TotalPurchaseAmountBeforeVatPage}
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
@@ -113,6 +113,34 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
 
     "must redirect to the warning page if total vat paid is less than total vat claim" in {
       val userAnswers = emptyUserAnswers.set(TotalVatPaidPage, BigDecimal("100")).success.value
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, totalVatClaimRoute)
+            .withFormUrlEncodedBody(("value", validAnswer.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.VatClaimWarningController.onPageLoad(NormalMode).url
+      }
+    }
+
+    "must redirect to the warning page if total vat claim equals total purchase before VAT" in {
+      val userAnswers = emptyUserAnswers
+        .set(TotalVatPaidPage, BigDecimal("10")).success.value
+        .set(TotalPurchaseAmountBeforeVatPage, validAnswer).success.value
       val mockSessionRepository = mock[SessionRepository]
 
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
@@ -225,8 +253,74 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
-    "must persist updated total vat claim and redirect to CYA when in CheckMode and total vat claim changed for purchase journey" in {
-      val userAnswers = UserAnswers(userAnswersId).set(PurchaseTypePage, PurchaseType.Fuel).success.value
+    "must redirect to warning when in CheckMode and total vat claim unchanged but total vat paid triggers warning (arrived from prior page)" in {
+      val userAnswers = UserAnswers(userAnswersId)
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(TotalVatClaimPage, BigDecimal("150.00"))
+        .success
+        .value
+        .set(TotalVatPaidPage, BigDecimal("100.00"))
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.TotalVatClaimController.onSubmit(CheckMode).url)
+          .withHeaders("Referer" -> "/total-vat-paid")
+          .withFormUrlEncodedBody(("value", "150.00"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+      }
+    }
+
+    "must persist updated total vat claim and continue journey when in CheckMode and total vat claim changed for purchase journey" in {
+      val userAnswers = UserAnswers(userAnswersId)
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(TotalVatPaidPage, BigDecimal("200.00"))
+        .success
+        .value
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.TotalVatClaimController.onSubmit(CheckMode).url)
+          // Emulate that we were redirected from the prior page after editing it by setting the session marker
+          .withSession("arrival" -> "total-purchase-before-vat")
+          .withFormUrlEncodedBody(("value", validAnswer.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual onwardRoute.url
+        verify(mockSessionRepository).set(any())
+      }
+    }
+
+    "must persist updated total vat claim and redirect to warning when in CheckMode and total vat claim > total vat paid" in {
+      val userAnswers = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(TotalVatPaidPage, BigDecimal("50.00"))
+        .success
+        .value
 
       val mockSessionRepository = mock[SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
@@ -239,13 +333,12 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
           .build()
 
       running(application) {
-        val request = FakeRequest(POST, routes.TotalVatClaimController.onSubmit(CheckMode).url)
-          .withFormUrlEncodedBody(("value", validAnswer.toString))
+        val request = FakeRequest(POST, routes.TotalVatClaimController.onSubmit(CheckMode).url).withFormUrlEncodedBody(("value", validAnswer.toString))
 
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+        redirectLocation(result).value mustEqual routes.VatClaimWarningController.onPageLoad(CheckMode).url
         verify(mockSessionRepository).set(any())
       }
     }

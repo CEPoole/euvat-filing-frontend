@@ -53,6 +53,12 @@ class SupplierVatRegistrationNumberController @Inject() (
 
   private def backLink(mode: Mode) = routes.SupplierTaxNumberController.onPageLoad(mode)
 
+  // TODO: Add a supplier-VAT-registration-number warning flow analogous to
+  // `SupplierTaxIdentifierWarningController`. When the user arrives from the
+  // Invoice number page in `CheckMode` and updates the VAT registration number we
+  // should short-circuit into that warning flow. The warning controller and
+  // related session flag are not yet implemented for VAT registration numbers.
+
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     // Remove any lingering SupplierTaxIdentifierNumber as VAT reg number page takes precedence
     // Execute the cleanup asynchronously but continue to prepare and render the page
@@ -84,19 +90,19 @@ class SupplierVatRegistrationNumberController @Inject() (
 
         // On valid submission attempt CheckMode short-circuiting or persist once
         value =>
-          CheckModeShortCircuit.shortCircuitIfUnchanged(
-            SupplierVatRegistrationNumberPage,
-            value,
-            mode,
-            request.userAnswers,
-            controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
-          ) match {
-            // If unchanged in CheckMode, short-circuit result present
-            case Some(res) => Future.successful(res)
-            // Otherwise persist the VAT reg number and redirect appropriately
-            case None =>
-              val userAnswersTry = request.userAnswers.set(SupplierVatRegistrationNumberPage, value)
-              persistAndRedirect(userAnswersTry, mode)
+          // Prefer the session flag over Referer detection
+          val cameFromInvoicePage = request.userAnswers.get(pages.SupplierVatRegistrationArrivedFromInvoicePage).contains(true)
+
+          if (mode == CheckMode && request.userAnswers.get(SupplierVatRegistrationNumberPage).contains(value) && !cameFromInvoicePage)
+            Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
+          else {
+            // Persist: remove the transient arrived flag before persisting final state
+            val userAnswersTry = for {
+              setVal <- request.userAnswers.set(SupplierVatRegistrationNumberPage, value)
+              removed <- setVal.remove(pages.SupplierVatRegistrationArrivedFromInvoicePage)
+            } yield removed
+
+            persistAndRedirect(userAnswersTry, mode)
           }
       )
   }

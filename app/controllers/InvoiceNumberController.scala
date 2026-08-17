@@ -87,17 +87,57 @@ class InvoiceNumberController @Inject() (
       }
     } else {
       // In CheckMode prefer short-circuit; otherwise persist and follow navigator
-      if (mode == CheckMode)
-        CheckModeShortCircuit(
+      if (mode == CheckMode) {
+        CheckModeShortCircuit.shortCircuitIfUnchanged(
           InvoiceNumberPage,
           value,
           mode,
           userAnswers,
-          sessionRepository,
-          controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad(),
-          _ => Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
-        )
-      else
+          controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+        ) match {
+          // If unchanged in CheckMode, short-circuit result present
+          case Some(res) => Future.successful(res)
+          case None =>
+            // Value has changed: persist and, if refunding country is Germany,
+            // route to the supplier-tax-number page indicated in session so the
+            // caller can amend the supplier tax details before returning to CYA.
+            val isGermany = userAnswers.get(pages.RefundingCountryPage).exists(_.equalsIgnoreCase("DE"))
+
+            val userAnswersTry = if (isGermany) {
+              for {
+                setVal <- userAnswers.set(InvoiceNumberPage, value)
+                marked1 <- setVal.set(pages.SupplierTaxIdentifierArrivedFromInvoicePage, true)
+                marked2 <- marked1.set(pages.SupplierVatRegistrationArrivedFromInvoicePage, true)
+              } yield marked2
+            } else {
+              userAnswers.set(InvoiceNumberPage, value)
+            }
+
+            Future.fromTry(userAnswersTry).flatMap { updated =>
+              sessionRepository.set(updated).flatMap { _ =>
+                if (isGermany) {
+                  // Prefer explicit stored number pages, falling back to the
+                  // SupplierTaxNumberPage sentinel when needed.
+                  updated.get(pages.SupplierVatRegistrationNumberPage) match {
+                    case Some(_) => Future.successful(Redirect(routes.SupplierVatRegistrationNumberController.onPageLoad(mode)))
+                    case None =>
+                      updated.get(pages.SupplierTaxIdentifierNumberPage) match {
+                        case Some(_) => Future.successful(Redirect(routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)))
+                        case None =>
+                          updated.get(pages.SupplierTaxNumberPage) match {
+                            case Some(models.SupplierTaxNumber.Vatregistrationnumber) => Future.successful(Redirect(routes.SupplierVatRegistrationNumberController.onPageLoad(mode)))
+                            case Some(models.SupplierTaxNumber.Taxidentifiernumber)  => Future.successful(Redirect(routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)))
+                            case _                                                      => Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
+                          }
+                      }
+                  }
+                } else {
+                  Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
+                }
+              }
+            }
+        }
+      } else {
         CheckModeShortCircuit(
           InvoiceNumberPage,
           value,
@@ -107,6 +147,7 @@ class InvoiceNumberController @Inject() (
           navigator.nextPage(InvoiceNumberPage, mode, userAnswers),
           updated => Future.successful(Redirect(navigator.nextPage(InvoiceNumberPage, mode, updated)))
         )
+      }
     }
   }
 

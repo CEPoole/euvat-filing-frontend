@@ -197,11 +197,11 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
         .set(TotalVatPaidPage, BigDecimal("50.00"))
         .success
         .value
-
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
       running(application) {
-        val request = FakeRequest(POST, routes.TotalVatPaidController.onSubmit(CheckMode).url).withFormUrlEncodedBody(("value", "50.00"))
+        val request = FakeRequest(POST, routes.TotalVatPaidController.onSubmit(CheckMode).url)
+          .withFormUrlEncodedBody(("value", "50.00"))
 
         val result = route(application, request).value
 
@@ -210,8 +210,75 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
-    "must persist updated VAT paid and redirect to CYA when in CheckMode and VAT paid changed for purchase journey" in {
-      val userAnswers = emptyUserAnswers.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+    "must redirect to warning when in CheckMode and VAT paid unchanged but total purchase amount triggers warning (arrived from prior page)" in {
+      val userAnswers = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(TotalVatPaidPage, BigDecimal("60.00"))
+        .success
+        .value
+        .set(TotalPurchaseAmountBeforeVatPage, BigDecimal("50.00"))
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.TotalVatPaidController.onSubmit(CheckMode).url)
+          // arrived from prior amount page
+          .withHeaders("Referer" -> "/total-purchase-amount-before-vat")
+          .withFormUrlEncodedBody(("value", "60.00"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+      }
+    }
+
+    "must persist updated VAT paid and continue journey when in CheckMode and VAT paid changed for purchase journey" in {
+      val userAnswers = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(TotalPurchaseAmountBeforeVatPage, BigDecimal("200.00"))
+        .success
+        .value
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.TotalVatPaidController.onSubmit(CheckMode).url)
+          // Emulate that we were redirected from the prior page after editing it by setting the session marker
+          .withSession("arrival" -> "total-purchase-before-vat")
+          .withFormUrlEncodedBody(("value", "60.00"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual onwardRoute.url
+        verify(mockSessionRepository).set(any())
+      }
+    }
+
+    "must persist updated VAT paid and redirect to warning when in CheckMode and VAT paid >= total purchase amount" in {
+      val userAnswers = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(TotalPurchaseAmountBeforeVatPage, BigDecimal("50.00"))
+        .success
+        .value
 
       val mockSessionRepository = mock[SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
@@ -229,7 +296,7 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+        redirectLocation(result).value mustEqual routes.VatPaidWarningController.onPageLoad(CheckMode).url
         verify(mockSessionRepository).set(any())
       }
     }

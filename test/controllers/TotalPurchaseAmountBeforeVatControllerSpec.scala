@@ -255,7 +255,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
       }
     }
 
-    "must persist updated amount and redirect to CYA when in CheckMode and amount changed for purchase journey" in {
+    "must persist updated amount and continue journey when in CheckMode and amount changed for purchase journey" in {
       val userAnswers = emptyUserAnswers.set(PurchaseTypePage, PurchaseType.Fuel).success.value
 
       val mockSessionRepository = mock[SessionRepository]
@@ -264,6 +264,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
       val application =
         applicationBuilder(userAnswers = Some(userAnswers))
           .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
             bind[repositories.SessionRepository].toInstance(mockSessionRepository)
           )
           .build()
@@ -275,7 +276,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+        redirectLocation(result).value mustEqual onwardRoute.url
         verify(mockSessionRepository).set(any())
       }
     }

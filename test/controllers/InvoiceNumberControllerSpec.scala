@@ -33,6 +33,10 @@ import views.html.InvoiceNumberView
 import play.api.mvc.Call
 
 import scala.concurrent.Future
+import models.CheckMode
+import models.SupplierTaxNumber
+import pages.{RefundingCountryPage, SupplierTaxNumberPage, PurchaseTypePage}
+import models.PurchaseType
 
 class InvoiceNumberControllerSpec extends SpecBase with MockitoSugar {
 
@@ -273,6 +277,76 @@ class InvoiceNumberControllerSpec extends SpecBase with MockitoSugar {
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.SupplierTaxIdentifierNumberController.onPageLoad(NormalMode).url
+      }
+    }
+
+    "must redirect to Supplier VAT reg page when in CheckMode, country Germany and supplier type VAT reg" in {
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val ua = emptyUserAnswers
+        .set(InvoiceNumberPage, "INV-1").success.value
+        .set(RefundingCountryPage, "DE").success.value
+        .set(SupplierTaxNumberPage, SupplierTaxNumber.Vatregistrationnumber).success.value
+        .set(PurchaseTypePage, PurchaseType.Fuel).success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(ua))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.InvoiceNumberController.onSubmit(models.CheckMode).url)
+            .withFormUrlEncodedBody(("value", "INV-2"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.SupplierVatRegistrationNumberController.onPageLoad(CheckMode).url
+
+        val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository).set(captor.capture())
+        val saved = captor.getValue
+        saved.get(InvoiceNumberPage) mustBe Some("INV-2")
+      }
+    }
+
+    "must redirect to Supplier Tax Identifier page when in CheckMode, country Germany and supplier type Tax identifier" in {
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val ua = emptyUserAnswers
+        .set(InvoiceNumberPage, "INV-1").success.value
+        .set(RefundingCountryPage, "DE").success.value
+        .set(SupplierTaxNumberPage, SupplierTaxNumber.Taxidentifiernumber).success.value
+        .set(PurchaseTypePage, PurchaseType.Fuel).success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(ua))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.InvoiceNumberController.onSubmit(models.CheckMode).url)
+            .withFormUrlEncodedBody(("value", "INV-2"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.SupplierTaxIdentifierNumberController.onPageLoad(CheckMode).url
+
+        val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository).set(captor.capture())
+        val saved = captor.getValue
+        saved.get(InvoiceNumberPage) mustBe Some("INV-2")
       }
     }
   }

@@ -22,9 +22,9 @@ import forms.TotalVatClaimFormProvider
 import javax.inject.Inject
 import models.{CheckMode, Mode}
 import navigation.Navigator
-import pages.{RefundingCurrencyPage, TotalVatClaimPage, TotalVatPaidPage}
+import pages.{RefundingCurrencyPage, TotalVatClaimPage, TotalVatPaidPage, PurchaseTypePage}
 import play.api.data.Form
-import utils.ConfigCurrencyMapping
+import utils.{CheckModeShortCircuit, ConfigCurrencyMapping}
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
 import utils.ControllerHelpers.*
@@ -73,31 +73,23 @@ class TotalVatClaimController @Inject() (
         // On validation errors render BadRequest with consistent currency symbol
         formWithErrors => Future.successful(badRequestView(formWithErrors, mode)),
 
-        // On valid submission decide short-circuit vs persist-and-redirect
-        value =>
-          // If this is an in-purchase CheckMode submission prefer to short-circuit when unchanged
-          if (mode == CheckMode && request.userAnswers.get(pages.PurchaseTypePage).isDefined) {
-            // If stored value equals submitted value, go back to purchase CYA without persisting
-            request.userAnswers.get(TotalVatClaimPage) match {
-              case Some(prev) if prev == value =>
-                Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
-              case _ =>
-                // Otherwise persist once and redirect to purchase CYA
-                val userAnswersTry = request.userAnswers.set(TotalVatClaimPage, value)
-                persistAndThen(userAnswersTry, sessionRepository)(_ =>
-                  Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
-                )
-            }
-          } else {
-            // Normal flows: persist once then decide whether to show warning or continue
-            val userAnswersTry = request.userAnswers.set(TotalVatClaimPage, value)
-            persistAndThen(userAnswersTry, sessionRepository) { persistedAnswers =>
-              val totalVatPaid = request.userAnswers.get(TotalVatPaidPage).getOrElse(BigDecimal(0))
-              if (value > totalVatPaid) Future.successful(Redirect(routes.VatClaimWarningController.onPageLoad(mode)))
-              else Future.successful(Redirect(navigator.nextPage(TotalVatClaimPage, mode, persistedAnswers)))
-            }
-          }
+        value => handleSubmit(value, mode)
       )
+  }
+
+  private def handleSubmit(value: BigDecimal, mode: Mode)(implicit request: DataRequest[?]) = {
+    shortCircuitPersistAndThen(
+      TotalVatClaimPage,
+      value,
+      mode,
+      request.userAnswers,
+      sessionRepository,
+      navigator.nextPage(TotalVatClaimPage, mode, request.userAnswers),
+      controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+    ) { updated =>
+      if (compareWithPage(value, TotalVatPaidPage, updated)(_ > _)) Future.successful(Redirect(routes.VatClaimWarningController.onPageLoad(mode)))
+      else Future.successful(Redirect(navigator.nextPage(TotalVatClaimPage, mode, updated)))
+    }
   }
 
   private def okView(preparedForm: Form[BigDecimal], mode: Mode, currencySymbol: String)(implicit request: DataRequest[?]) =

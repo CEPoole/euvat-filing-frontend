@@ -18,11 +18,14 @@ package utils
 
 import models.requests.DataRequest
 import play.api.data.Form
-import play.api.mvc.Result
+import play.api.mvc.{Call, Result}
+import pages.QuestionPage
 import repositories.SessionRepository
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
+import play.api.libs.json.Format
 import play.api.mvc.Results.*
+import models.{Mode, UserAnswers}
 
 object ControllerHelpers {
 
@@ -87,6 +90,47 @@ object ControllerHelpers {
     val (_, symbol) = currencyNameAndPrefix(userAnswers, configCurrencyMapping)
     // Fallback to Euro if the resolver returned an empty prefix
     if (symbol.isEmpty) "€" else symbol
+  }
+
+  // Generic helper to compare a submitted `value` against a BigDecimal stored
+  // on another page in `UserAnswers` using a provided comparator function.
+  //
+  // Example usage:
+  // `compareWithPage(value, TotalPurchaseAmountBeforeVatPage, updated)(_ >= _)`
+  def compareWithPage(value: BigDecimal, page: pages.QuestionPage[BigDecimal],
+                      updated: models.UserAnswers)(cmp: (BigDecimal, BigDecimal) => Boolean): Boolean =
+    updated.get(page).exists(stored => cmp(value, stored))
+
+  /** Shared submit helper that centralises the common CheckMode short-circuit
+    * pattern used across monetary input controllers.
+    *
+    * Behaviour:
+    *  - If in CheckMode and a `PurchaseTypePage` is present in `userAnswers` the
+    *    `purchaseCya` call is used as the unchanged-redirect target.
+    *  - Otherwise `navigatorNext` is used as the unchanged-redirect target.
+    *
+    * The `onSaved` continuation is invoked with the updated `UserAnswers` when
+    * the value changes (or when not in CheckMode) so callers can decide the
+    * appropriate redirect (including any warning-page checks).
+    */
+  def shortCircuitPersistAndThen[T](
+    page: QuestionPage[T],
+    newValue: T,
+    mode: Mode,
+    userAnswers: UserAnswers,
+    sessionRepository: SessionRepository,
+    navigatorNext: => Call,
+    purchaseCya: Call
+  )(onSaved: UserAnswers => Future[Result])(implicit fmt: Format[T], ec: ExecutionContext): Future[Result] = {
+
+    // Choose the unchanged-redirect target according to the purchase-journey
+    // short-circuit rule that routes CheckMode purchase flows back to the
+    // purchase CYA without persisting when the value is unchanged.
+    val unchangedRedirect: Call =
+      if (mode == models.CheckMode && userAnswers.get(pages.PurchaseTypePage).isDefined) purchaseCya
+      else navigatorNext
+
+    CheckModeShortCircuit(page, newValue, mode, userAnswers, sessionRepository, unchangedRedirect, onSaved)
   }
 
 }

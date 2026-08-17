@@ -77,14 +77,14 @@ class VatPaidWarningControllerSpec extends SpecBase {
       }
     }
 
-    "must redirect to check your purchase details page on submit in CheckMode" in {
+    "must redirect to next page on submit in CheckMode" in {
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
       running(application) {
         val request = FakeRequest(POST, routes.VatPaidWarningController.onSubmit(CheckMode).url)
         val result = route(application, request).value
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url // TODO - Check your purchase details
+          redirectLocation(result).value mustEqual routes.TotalVatClaimController.onPageLoad(CheckMode).url
       }
     }
   }

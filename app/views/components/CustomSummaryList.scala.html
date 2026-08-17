@@ -16,6 +16,8 @@
 
 @this()
 @(rows: Seq[(String, Option[String], Seq[(String, String, String)])])(implicit messages: Messages)
+@import play.twirl.api.Html
+@import play.twirl.api.HtmlFormat
 <dl class="govuk-summary-list">
     @for((key, value, links) <- rows) {
     <div class="govuk-summary-list__row">
@@ -23,7 +25,12 @@
             @key
         </dt>
         <dd class="govuk-summary-list__value">
-            @value
+            @defining(value.map { v =>
+                val normalized = v.replaceAll("(?i)<br\\s*/?>", "\n")
+                Html(HtmlFormat.escape(normalized).toString.replace("\n", "<br/>"))
+            }.getOrElse(Html(""))) { renderedValue =>
+                @renderedValue
+            }
         </dd>
         <dd class="govuk-summary-list__actions govuk-!-width-one-third">
             @if(links.nonEmpty) {

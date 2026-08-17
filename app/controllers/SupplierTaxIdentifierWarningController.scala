@@ -17,7 +17,7 @@
 package controllers
 
 import controllers.actions.*
-import models.{Mode, NormalMode}
+import models.{CheckMode, Mode, NormalMode}
 
 import javax.inject.Inject
 import play.api.i18n.{I18nSupport, MessagesApi}
@@ -55,7 +55,12 @@ class SupplierTaxIdentifierWarningController @Inject() (
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
     // clear the warning flag and continue
     val cleared = request.userAnswers.remove(pages.SupplierTaxIdentifierWarningShownPage)
-    Future.fromTry(cleared).flatMap(ua => sessionRepository.set(ua).map(_ => Redirect(controllers.routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode))))
+    Future.fromTry(cleared).flatMap(ua => sessionRepository.set(ua).map(_ =>
+      mode match {
+        case CheckMode => Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+        case _         => Redirect(controllers.routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode))
+      }
+    ))
   }
 
 }

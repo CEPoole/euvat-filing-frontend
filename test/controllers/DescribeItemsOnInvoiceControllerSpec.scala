@@ -25,6 +25,7 @@ import org.mockito.{ArgumentCaptor, Mockito}
 import org.scalatestplus.mockito.MockitoSugar
 import pages.DescribeItemsOnInvoicePage
 import play.api.inject.bind
+import navigation.{FakeNavigator, Navigator}
 import play.api.mvc.Call
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
@@ -90,7 +91,7 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
-    "must persist and redirect to CYA in CheckMode when value changed" in {
+    "must persist and redirect to next page in CheckMode when value changed" in {
       val mockSessionRepository = mock[SessionRepository]
 
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
@@ -100,7 +101,8 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
       val application =
         applicationBuilder(userAnswers = Some(userAnswers))
           .overrides(
-            bind[SessionRepository].toInstance(mockSessionRepository)
+            bind[SessionRepository].toInstance(mockSessionRepository),
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute))
           )
           .build()
 
@@ -110,7 +112,7 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
         val result = controller.onSubmit(models.CheckMode).apply(postRequest)
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+        redirectLocation(result).value mustEqual onwardRoute.url
         org.mockito.Mockito.verify(mockSessionRepository, org.mockito.Mockito.times(1)).set(any())
       }
     }

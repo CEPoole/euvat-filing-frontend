@@ -190,7 +190,13 @@ class RefundingCurrencyController @Inject() (
           content = Text(msgs(s"refundingCurrency.${v.toString}", symbol)),
           value   = Some(v.toString),
           id      = Some(if (idx == 0) "value" else s"value_$idx"),
-          label   = None
+          label   = None,
+          hint    = None,
+          divider = None,
+          checked = false,
+          conditionalHtml = None,
+          disabled = false,
+          attributes = Map.empty
         )
       }
     }

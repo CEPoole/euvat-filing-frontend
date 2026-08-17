@@ -32,9 +32,9 @@ object CheckYourPurchaseDetailsSummary {
       val value = messages(s"purchaseType.${pt.toString}")
       val url = routes.PurchaseTypeController.onPageLoad(CheckMode).url
       (
-        messages("purchaseType.heading"),
+        messages("purchaseType.checkYourAnswersLabel"),
         Some(value),
-        Seq((url, "site.change", "purchaseType.checkYourPurchaseDetails.hidden"))
+        Seq((url, "site.change", "purchaseType.change.hidden"))
       )
     }
 
@@ -93,11 +93,13 @@ object CheckYourPurchaseDetailsSummary {
     val keyLabel = if (messages.isDefinedAt(msgKey)) messages(msgKey) else parentSlug.replace('-', ' ').capitalize
 
     // value should come from PurchaseSubTypeLabelPage in session
-    val valueOpt: Option[String] = answers.get(PurchaseSubTypeLabelPage)
+      val valueOpt: Option[String] = answers.get(PurchaseSubTypeLabelPage)
+      // If the stored label is the None sentinel, display Not provided instead
+      val displayValueOpt: Option[String] = valueOpt.map(v => if (v == ConfigPurchaseMapping.NoneValue) messages("site.notProvided") else v)
 
     val url = controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(parentSlug, CheckMode).url
 
-    Some((keyLabel, valueOpt, Seq((url, "site.change", "purchase.subType.checkYourPurchaseDetails.hidden"))))
+      Some((keyLabel, displayValueOpt, Seq((url, "site.change", "purchase.subType.change.hidden"))))
   }
 
   def rowPurchaseSubCategoryLabel(answers: UserAnswers)(implicit messages: Messages): Option[Row] =
@@ -122,19 +124,46 @@ object CheckYourPurchaseDetailsSummary {
         loop(c).getOrElse(models.PurchaseSubCategoryType.pathFor(pk, c))
       }
 
-      val slug = findSlug(parentKey, code)
+      // If the stored sub-category code is the special NoneValue sentinel,
+      // resolve a slug based on the selected sub-type instead so the CYA
+      // change link points to the appropriate parent-specific edit page.
+      val codeToResolve = if (code == ConfigPurchaseMapping.NoneValue) answers.get(PurchaseSubTypePage).getOrElse(code) else code
+      val slug = findSlug(parentKey, codeToResolve)
       val msgKey = s"purchase.subCategory.$slug"
-
       val keyLabel = if (messages.isDefinedAt(msgKey)) messages(msgKey) else slug.replace('-', ' ').capitalize
-      val url = controllers.purchase.routes.PurchaseSubCategoryController.onPageLoad(CheckMode).url
 
-      (keyLabel, Some(label), Seq((url, "site.change", "purchase.subCategory.checkYourPurchaseDetails.change.hidden")))
+      // Display "Not provided" when the stored label is the None sentinel.
+      val displayValue = if (label == ConfigPurchaseMapping.NoneValue) messages("site.notProvided") else label
+
+      // Build a change-* URL for CheckMode using the resolved slug. Mount
+      // prefixing requires a RequestHeader which is not available in this
+      // view model, so emit the slug-only path and let templates/controllers
+      // handle any prefixing at render/dispatch time.
+      val url = s"/change-$slug"
+
+      (keyLabel, Some(displayValue), Seq((url, "site.change", "purchase.subCategory.change.hidden")))
     }
 
   def rowInvoiceType(answers: UserAnswers)(implicit messages: Messages): Option[Row] =
     answers.get(InvoiceTypePage).map { it =>
       val url = routes.InvoiceTypeController.onPageLoad(CheckMode).url
-      (messages("invoiceType.heading"), Some(it.toString), Seq((url, "site.change", "invoiceType.change.hidden")))
+
+      // Try to resolve a localized label first. InvoiceType.toString may be
+      // a space-separated name (e.g. "standard invoice"). Message keys use
+      // a camelCase suffix (e.g. "standardInvoice"). Convert to that form
+      // and fallback to a title-cased raw value if no message key exists.
+      val parts = it.toString.split("\\s+").toSeq.filter(_.nonEmpty)
+      val keySuffix = parts.headOption.map { first =>
+        first + parts.drop(1).map(_.capitalize).mkString("")
+      }.getOrElse(it.toString)
+
+      val display = if (messages.isDefinedAt(s"invoiceType.$keySuffix")) {
+        messages(s"invoiceType.$keySuffix")
+      } else {
+        parts.map(_.capitalize).mkString(" ")
+      }
+
+      (messages("invoiceType.checkYourAnswersLabel"), Some(display), Seq((url, "site.change", "invoiceType.change.hidden")))
     }
 
   def rowInvoiceNumber(answers: UserAnswers)(implicit messages: Messages): Option[Row] =
@@ -175,9 +204,9 @@ object CheckYourPurchaseDetailsSummary {
   def rowSupplierVatRegCheck(answers: UserAnswers)(implicit messages: Messages): Option[Row] =
     answers.get(SimplifiedInvoiceVatRegCheckPage).map { v =>
       val url = routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(CheckMode).url
-      (messages("simplifiedInvoiceVatRegCheck.checkYourPurchaseDetails"),
+      (messages("simplifiedInvoiceVatRegCheck.checkYourAnswersLabel"),
        Some(if (v) messages("site.yes") else messages("site.no")),
-       Seq((url, "site.change", "simplifiedInvoiceVatRegCheck.checkYourPurchaseDetails.hidden"))
+       Seq((url, "site.change", "simplifiedInvoiceVatRegCheck.change.hidden"))
       )
     }
 

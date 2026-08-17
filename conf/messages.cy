@@ -287,6 +287,8 @@ invoiceType.standardInvoice.hint = These always include detailed VAT breakdown a
 invoiceType.simplifiedInvoice = Simplified invoice
 invoiceType.simplifiedInvoice.hint = These are usually till receipts for lower-value purchases
 invoiceType.error.required = Select an invoice type
+invoiceType.change.hidden = Change invoice type
+invoiceType.checkYourAnswersLabel = Invoice type
 
 suppliersName.title = What is the supplier’s name?
 suppliersName.heading = What is the supplier’s name?
@@ -304,8 +306,8 @@ supplierTaxNumber.taxIdentifierNumber = Tax identifier number (also known as Ste
 supplierTaxNumber.taxIdentifierNumber.hint = This is 10 or 11 digits, for example 12/345/67890
 supplierTaxNumber.error.required = Select the supplier tax numbers shown on the invoice
 supplierTaxNumber.neither = I do not have any of these on the invoice
-supplierTaxNumber.checkYourAnswersLabel = Supplier tax number
-supplierTaxNumber.change.hidden = Change supplier tax number
+supplierTaxNumber.checkYourAnswersLabel = Supplier tax numbers
+supplierTaxNumber.change.hidden = Change supplier tax numbers
 
 supplierVatRegistrationNumber.title = What is the supplier’s VAT registration number?
 supplierVatRegistrationNumber.heading = What is the supplier’s VAT registration number?
@@ -324,6 +326,14 @@ supplierTaxIdentifierNumber.error.required = Enter the supplier’s tax identifi
 supplierTaxIdentifierNumber.error.length = Supplier’s tax identifier number cannot be more than 20 characters
 supplierTaxIdentifierNumber.checkYourAnswersLabel = Supplier’s tax identifier number
 supplierTaxIdentifierNumber.change.hidden = Change supplier’s tax identifier number
+
+supplierTaxIdentifierWarning.title = Are you sure the supplier’s tax identifier number is correct?
+supplierTaxIdentifierWarning.heading = Are you sure the supplier’s tax identifier number is correct?
+supplierTaxIdentifierWarning.p = You’ve already made a claim with the same supplier’s tax identifier and invoice number. Use a different supplier’s tax identifier or invoice number for this claim.
+supplierTaxIdentifierWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
+supplierTaxIdentifierWarning.changeTax = Change supplier’s tax identifier number
+supplierTaxIdentifierWarning.changeInvoice = Change invoice number
+supplierTaxIdentifierWarning.confirm = Yes, this is correct
 
 totalPurchaseAmountBeforeVat.title = Total purchase amount before VAT
 totalPurchaseAmountBeforeVat.heading = Total purchase amount before VAT
@@ -348,11 +358,12 @@ totalVatPaid.error.invalidNumeric = Enter total VAT paid in the correct format
 totalVatPaid.error.nonNumeric = Enter total VAT paid in the correct format
 totalVatPaid.error.aboveMaximum = Total VAT paid must be between -999,999,999.99 and 999,999,999.99
 totalVatPaid.checkYourAnswersLabel = VAT paid
+totalVatPaid.change.hidden=Change VAT paid
 
 totalVatClaim.title = Total VAT claim
 totalVatClaim.heading = Total VAT claim
 totalVatClaim.p1 = This is the amount of VAT you are entitled to claim back. It may be less than the amount you paid.
-totalVatClaim.checkYourAnswersLabel=VAT Claim
+totalVatClaim.checkYourAnswersLabel=VAT claim
 totalVatClaim.h2 = How much VAT are you claiming?
 totalVatClaim.hint = For example, {0}150 or {0}120.45
 totalVatClaim.error.required = Enter the total amount of VAT you’re claiming
@@ -370,7 +381,7 @@ supplierAddress.line3.label = Address line 3 (optional)
 supplierAddress.error.line1.required = Enter address line 1, typically the building and street
 supplierAddress.error.maxLength = must be 35 characters or less
 supplierAddress.error.maxLength.withLabel = {0} {1}
-supplierAddress.checkYourAnswersLabel=Supplier Address
+supplierAddress.checkYourAnswersLabel=Supplier address
 supplierAddress.change.hidden = Change supplier address
 
 invoiceDate.title = What is the invoice date?
@@ -404,6 +415,8 @@ simplifiedInvoiceVatRegCheck.title = Does the simplified invoice contain the sup
 simplifiedInvoiceVatRegCheck.heading = Does the simplified invoice contain the supplier’s VAT registration number?
 simplifiedInvoiceVatRegCheck.hint = This can be up to 12 characters and may start with a 2-letter EU country code. For example, FR123456789
 simplifiedInvoiceVatRegCheck.error.required = Select yes if the simplified invoice contains the supplier’s VAT registration number
+simplifiedInvoiceVatRegCheck.checkYourAnswersLabel = Supplier VAT registration check
+simplifiedInvoiceVatRegCheck.change.hidden = Change supplier VAT registration check
 
 purchaseType.title = Purchase type
 purchaseType.heading = Purchase type
@@ -417,10 +430,8 @@ purchaseType.foodAndDrink = Food, drink and restaurant services
 purchaseType.luxuries = Luxuries, entertainment and hospitality
 purchaseType.other = Other
 purchaseType.error.required = Select the type of purchase
-purchaseType.checkYourPurchaseDetails.hidden = Change purchase type
-
-checkYourPurchaseDetails.supplierVatRegCheck = Supplier VAT registration check
-checkYourPurchaseDetails.change.supplierVatReg.hidden = Change supplier VAT registration check
+purchaseType.checkYourAnswersLabel = Purchase type
+purchaseType.change.hidden = Change purchase type
 
 purchase.checkYourPurchase.purchaseCategory = Purchase category
 purchase.checkYourPurchase.invoiceDetails = Invoice details
@@ -433,7 +444,7 @@ purchase.subType.transport-cost = Transport cost type
 purchase.subType.food-drink-restaurant-cost = Food, drink or restaurant cost type
 purchase.subType.luxury-entertainment-hospitality-cost = Luxury, entertainment or hospitality cost type
 purchase.subType.purchase-type-other = Other purchase type
-purchase.subType.checkYourPurchaseDetails.hidden = Change sub type
+purchase.subType.change.hidden = Change sub type
 
 # Purchase sub-category headings for Check Your Answers
 purchase.subCategory.fuel-type = Fuel type
@@ -444,7 +455,7 @@ purchase.subCategory.who-food-drink-for = Food and drink for
 purchase.subCategory.cost-for-publicity-purposes = Cost for publicity purposes
 purchase.subCategory.property-purchase-type = Property purchase type
 purchase.subCategory.property-cost-type = Property cost type
-purchase.subCategory.checkYourPurchaseDetails.change.hidden = Change sub category
+purchase.subCategory.change.hidden = Change sub category
 
 checkYourStateDetails.title = EU member state details
 checkYourStateDetails.heading = EU member state details

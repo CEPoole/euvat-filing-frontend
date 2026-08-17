@@ -284,7 +284,7 @@ class PurchaseSubCategoryController @Inject() (
             // if there are no options for this parent, redirect to invoice type
             val (resolvedParentCode, options) = computeResolvedParentAndOptions(parentKey, effectiveParentCode, effectiveParentCode, country)
 
-            if (options.isEmpty) Future.successful(Redirect(routes.InvoiceTypeController.onPageLoad(mode)))
+            if (options.isEmpty) Future.successful(if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()) else Redirect(routes.InvoiceTypeController.onPageLoad(mode)))
             else {
               // prepare view data used when rendering the radio list
               val (resolvedParentCode2,

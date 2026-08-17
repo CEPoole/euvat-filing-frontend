@@ -29,10 +29,95 @@ import controllers.routes
 import models.CheckMode
 import models.UserAnswers
 import viewmodels.checkAnswers.CheckYourPurchaseDetailsSummary
+import utils.MountPrefix
 
 class CheckYourPurchaseDetailsSummarySpec extends SpecBase {
 
   "CheckYourPurchaseDetailsSummary" - {
+
+    "rowPurchaseSubCategoryLabel should build change link with resolved slug and mount prefix" in {
+      val userAnswers = UserAnswers(userAnswersId)
+        .set(RefundingCountryPage, "BG")
+        .success
+        .value
+        .set(PurchaseTypePage, PurchaseType.FoodAndDrink)
+        .success
+        .value
+        .set(PurchaseSubCategoryPage, "7.1")
+        .success
+        .value
+        .set(PurchaseSubCategoryLabelPage, "The taxable person or an employee")
+        .success
+        .value
+
+      val app = applicationBuilder(userAnswers = Some(userAnswers)).build()
+      running(app) {
+        implicit val msgs = messages(app)
+
+        // simulate MountPrefix.get via a fake request in SpecBase helpers
+        val row = CheckYourPurchaseDetailsSummary.rowPurchaseSubCategoryLabel(userAnswers).value
+        val slug = "who-food-drink-for"
+        val expected = s"/change-$slug"
+        row._3.head._1 must endWith(expected)
+      }
+    }
+
+    "rowPurchaseSubTypeLabel should display Not provided when NoneValue selected" in {
+      val userAnswers = UserAnswers(userAnswersId)
+        .set(RefundingCountryPage, "BG")
+        .success
+        .value
+        .set(PurchaseTypePage, PurchaseType.FoodAndDrink)
+        .success
+        .value
+        .set(PurchaseSubTypePage, ConfigPurchaseMapping.NoneValue)
+        .success
+        .value
+        .set(PurchaseSubTypeLabelPage, ConfigPurchaseMapping.NoneValue)
+        .success
+        .value
+
+      val fakeConfig = new ConfigPurchaseMapping() {
+        override def subcodesFor(country: String, parentKey: String) = Seq(("7.1", "purchase.sub.foodAndDrink.7.1"))
+      }
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+      running(application) {
+        implicit val msgs = messages(application)
+
+        val rowOpt = CheckYourPurchaseDetailsSummary.rowPurchaseSubTypeLabel(userAnswers, fakeConfig)
+        rowOpt.value._2.value mustBe msgs("site.notProvided")
+      }
+    }
+
+    "rowPurchaseSubCategoryLabel should show Not provided and resolve slug from sub-type when sub-category is None" in {
+      val userAnswers = UserAnswers(userAnswersId)
+        .set(RefundingCountryPage, "BG")
+        .success
+        .value
+        .set(PurchaseTypePage, PurchaseType.FoodAndDrink)
+        .success
+        .value
+        .set(PurchaseSubTypePage, "7.1")
+        .success
+        .value
+        .set(PurchaseSubCategoryPage, ConfigPurchaseMapping.NoneValue)
+        .success
+        .value
+        .set(PurchaseSubCategoryLabelPage, ConfigPurchaseMapping.NoneValue)
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+      running(application) {
+        implicit val msgs = messages(application)
+
+        val row = CheckYourPurchaseDetailsSummary.rowPurchaseSubCategoryLabel(userAnswers).value
+        row._2.value mustBe msgs("site.notProvided")
+        row._3.head._1 must endWith("/change-who-food-drink-for")
+      }
+    }
+
 
     "sections should include currency and amount rows when currency provided" in {
       val ua = emptyUserAnswers
@@ -89,6 +174,21 @@ class CheckYourPurchaseDetailsSummarySpec extends SpecBase {
 
       val rowOpt = CheckYourPurchaseDetailsSummary.rowPurchaseType(ua)
       rowOpt.value._1 mustBe msgs("purchaseType.heading")
+    }
+
+    "rowInvoiceType should show localized label when invoice type stored" in {
+      val ua = emptyUserAnswers
+        .set(InvoiceTypePage, InvoiceType.StandardInvoice)
+        .success
+        .value
+
+      val app = applicationBuilder().build()
+      running(app) {
+        implicit val msgs = messages(app)
+
+        val rowOpt = CheckYourPurchaseDetailsSummary.rowInvoiceType(ua)
+        rowOpt.value._2.value mustBe msgs("invoiceType.standardInvoice")
+      }
     }
 
     "currency row in sections" - {

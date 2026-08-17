@@ -73,7 +73,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
     case CheckYourStateDetailsPage         => userAnswers => navigateFromCheckYourStateDetailsPage(CheckMode)(userAnswers)
     case PurchaseTypePage                  => userAnswer => navigateFromPurchaseTypePage(CheckMode)(userAnswer)
     case PurchaseSubCategoryPage           => userAnswers => navigateFromPurchaseSubCategoryPage(CheckMode, userAnswers)
-    case DescribeItemsOnInvoicePage        => _ => routes.InvoiceTypeController.onPageLoad(CheckMode)
+    case DescribeItemsOnInvoicePage        => _ => controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
     case InvoiceTypePage                   => userAnswer => navigateFromInvoiceTypePage(CheckMode)(userAnswer)
     case InvoiceNumberPage                 => _ => routes.InvoiceDateController.onPageLoad(CheckMode)
     case InvoiceDatePage                   => _ => routes.SuppliersNameController.onPageLoad(CheckMode)
@@ -216,7 +216,10 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
             val subs = configPurchaseMapping.subcodesFor(country, parent.toString)
             if (subs.nonEmpty) {
               Call("GET", s"/${PurchaseType.slugOf(parent)}")
-            } else { routes.InvoiceTypeController.onPageLoad(mode) }
+            } else {
+              if (mode == CheckMode) controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+              else routes.InvoiceTypeController.onPageLoad(mode)
+            }
           case _ =>
             // No country present: gracefully route to the Describe Items page so the
             // flow remains usable in tests and UI scenarios where country is set later.
@@ -248,8 +251,10 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
 
   private def navigateFromPurchaseSubCategoryPage(mode: Mode, userAnswers: UserAnswers): Call = {
     userAnswers.get(PurchaseTypePage) match {
-      case Some(_) => routes.InvoiceTypeController.onPageLoad(mode)
-      case _       => routes.JourneyRecoveryController.onPageLoad()
+      case Some(_) =>
+        if (mode == CheckMode) controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+        else routes.InvoiceTypeController.onPageLoad(mode)
+      case _ => routes.JourneyRecoveryController.onPageLoad()
     }
   }
 

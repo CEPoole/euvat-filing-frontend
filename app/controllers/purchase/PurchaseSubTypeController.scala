@@ -211,8 +211,8 @@ class PurchaseSubTypeController @Inject() (
             val (options, items, parentHeading, preparedForm, resolvedSlug, formAction) =
               prepareViewData(parentKey, country, purchaseTypeSlug, request.userAnswers, mode)(request)
 
-            // If no options exist for this parent, route to InvoiceType
-            if (options.isEmpty) Future.successful(Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode)))
+            // If no options exist for this parent, route to InvoiceType (or CYA in CheckMode)
+            if (options.isEmpty) Future.successful(if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()) else Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode)))
             else {
               // Special-case: `other` parent with a single sentinel '99' option
               if (parentKey == "other" && options.size == 1) {
@@ -251,8 +251,8 @@ class PurchaseSubTypeController @Inject() (
           val (options, items, parentHeading, preparedForm, resolvedSlug, _) =
             prepareViewData(parentKey, country, purchaseTypeSlug, request.userAnswers, mode)(request)
 
-          // If no configured options, jump to InvoiceType
-          if (options.isEmpty) Future.successful(Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode)))
+          // If no configured options, jump to InvoiceType (or CYA in CheckMode)
+          if (options.isEmpty) Future.successful(if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()) else Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode)))
           else {
             // Bind and validate the submitted form
             preparedForm
@@ -289,7 +289,13 @@ class PurchaseSubTypeController @Inject() (
                         for {
                           updatedAnswers <- Future.fromTry(savedTry)
                           _              <- sessionRepository.set(updatedAnswers)
-                        } yield Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode))
+                        } yield {
+                          // In CheckMode, selecting the sentinel None should return
+                          // the user to the Purchase Check Your Answers page rather
+                          // than routing to the invoice type edit page.
+                          if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+                          else Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode))
+                        }
 
                       } else {
                         // Normal selection: resolve label and persist changes
@@ -315,7 +321,13 @@ class PurchaseSubTypeController @Inject() (
                                 try {
                                   val slug = PurchaseSubCategoryType.pathFor(parentKey, c)
                                   val prefix = MountPrefix.get
-                                  val path = s"$prefix/$slug"
+                                  val path =
+                                    if (mode == models.CheckMode)
+                                      // in CheckMode use change- prefixed paths so the
+                                      // user returns to the edit (change-*) route
+                                      (if (prefix.isEmpty) s"/change-$slug" else s"$prefix/change-$slug")
+                                    else
+                                      (if (prefix.isEmpty) s"/$slug" else s"$prefix/$slug")
                                   Some(Call("GET", path))
                                 } catch {
                                   case _: Throwable => None

@@ -101,32 +101,20 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
         // Invalid form: render the page with validation errors and currency info
         formWithErrors => Future.successful(badRequestView(formWithErrors, mode)),
 
-        // Valid submission: handle CheckMode short-circuit or persist-and-redirect
-        value =>
-          // If this is an in-purchase CheckMode submission prefer to short-circuit
-          if (mode == CheckMode && request.userAnswers.get(PurchaseTypePage).isDefined) {
-            CheckModeShortCircuit(
-              TotalPurchaseAmountBeforeVatPage,
-              value,
-              mode,
-              request.userAnswers,
-              sessionRepository,
-              controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad(),
-              _ => Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
-            )
-          } else {
-            // Normal behaviour: persist via CheckModeShortCircuit helper then redirect
-            CheckModeShortCircuit(
-              TotalPurchaseAmountBeforeVatPage,
-              value,
-              mode,
-              request.userAnswers,
-              sessionRepository,
-              navigator.nextPage(TotalPurchaseAmountBeforeVatPage, mode, request.userAnswers),
-              updated => Future.successful(Redirect(navigator.nextPage(TotalPurchaseAmountBeforeVatPage, mode, updated)))
-            )
-          }
+        value => handleSubmit(value, mode)
       )
+  }
+
+  private def handleSubmit(value: BigDecimal, mode: Mode)(implicit request: DataRequest[?]) = {
+    shortCircuitPersistAndThen(
+      TotalPurchaseAmountBeforeVatPage,
+      value,
+      mode,
+      request.userAnswers,
+      sessionRepository,
+      navigator.nextPage(TotalPurchaseAmountBeforeVatPage, mode, request.userAnswers),
+      controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+    )(updated => Future.successful(Redirect(navigator.nextPage(TotalPurchaseAmountBeforeVatPage, mode, updated))))
   }
 
   // Render OK view with currency details and computed backlink

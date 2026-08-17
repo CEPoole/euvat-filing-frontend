@@ -17,7 +17,7 @@
 package controllers
 
 import controllers.actions.*
-import models.Mode
+import models.{CheckMode, Mode, NormalMode}
 import navigation.Navigator
 import pages.DescribeItemsOnInvoicePage
 
@@ -43,6 +43,9 @@ class PurchaseWarningController @Inject() (
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    Redirect(navigator.nextPage(DescribeItemsOnInvoicePage, mode, request.userAnswers))
+    mode match {
+      case NormalMode => Redirect(navigator.nextPage(DescribeItemsOnInvoicePage, NormalMode, request.userAnswers))
+      case CheckMode  => Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+    }
   }
 }

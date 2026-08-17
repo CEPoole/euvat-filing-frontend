@@ -147,8 +147,8 @@ class DescribeItemsOnInvoiceController @Inject() (
               sessionRepository,
               // redirect target when unchanged in CheckMode
               controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad(),
-              // onSaved: once persisted, redirect back to Purchase CYA
-              _ => Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
+                // onSaved: once persisted, follow the normal navigator for this page (so warnings still display)
+                updated => Future.successful(Redirect(navigator.nextPage(DescribeItemsOnInvoicePage, mode, updated)))
             )
           } else {
             // Normal mode: persist and redirect according to the navigator

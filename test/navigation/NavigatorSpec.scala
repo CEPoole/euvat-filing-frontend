@@ -553,9 +553,9 @@ class NavigatorSpec extends SpecBase {
           routes.JourneyRecoveryController.onPageLoad()
       }
 
-      "must go from DescribeItemsOnInvoicePage to InvoiceTypeController in CheckMode" in {
+      "must go from DescribeItemsOnInvoicePage to CheckYourPurchaseDetailsController in CheckMode" in {
         navigator.nextPage(DescribeItemsOnInvoicePage, CheckMode, userAnswers) mustBe
-          routes.InvoiceTypeController.onPageLoad(CheckMode)
+          controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
       }
 
       "must go from InvoiceNumberPage to InvoiceDateController in CheckMode" in {
