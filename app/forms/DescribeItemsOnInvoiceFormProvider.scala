@@ -22,9 +22,6 @@ import play.api.data.Form
 
 class DescribeItemsOnInvoiceFormProvider @Inject() extends Mappings {
 
-  // TODO - Hello from past-Dorothea: once the warning interruption page is built, empty submissions
-  //  should route there instead of showing this validation error instead of error.required
-
   def apply(): Form[String] =
     Form(
       "value" -> text("describeItemsOnInvoice.error.required")
