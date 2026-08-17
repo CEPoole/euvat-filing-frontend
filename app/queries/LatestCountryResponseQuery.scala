@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package pages
+package queries
 
-import models.ContactDetails
-import models.responses.ApplicationResponse
+import models.responses.LatestApplicationResponse
 import play.api.libs.json.JsPath
 
-case object ClaimApplicationResponsePage extends QuestionPage[ApplicationResponse] {
-  override def path: JsPath = JsPath \ toString
-  override def toString: String = "claimApplicationResponsePage"
+case object LatestCountryResponseQuery extends Gettable[LatestApplicationResponse] with Settable[LatestApplicationResponse] {
+
+  override def path: JsPath = JsPath \ "latestApplicationCountryResponse"
 }

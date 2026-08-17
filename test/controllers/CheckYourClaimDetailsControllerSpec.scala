@@ -17,14 +17,16 @@
 package controllers
 
 import base.SpecBase
-import models.responses.ApplicationResponse
+import models.responses.{ApplicationResponse, LatestApplication, LatestApplicationResponse}
 import models.{ContactDetails, RefundPeriod, RefundingLanguage}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.*
 import org.scalatestplus.mockito.MockitoSugar
+import pages.*
 import play.api.inject.bind
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import queries.LatestCountryResponseQuery
 import repositories.SessionRepository
 import viewmodels.govuk.SummaryListFluency
 
@@ -48,25 +50,25 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
 
     "must redirect to the task list on submit and set ClaimDetailsCompletedPage to true" in {
       val ua = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "BE")
+        .set(RefundingCountryPage, "BE")
         .success
         .value
-        .set(pages.ClaimDetailsCompletedPage, true)
+        .set(ClaimDetailsCompletedPage, true)
         .success
         .value
-        .set(pages.RefundingCurrencyPage, "eur")
+        .set(RefundingCurrencyPage, "eur")
         .success
         .value
-        .set(pages.RefundingLanguagePage, RefundingLanguage.English)
+        .set(RefundingLanguagePage, RefundingLanguage.English)
         .success
         .value
-        .set(pages.RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10)))
+        .set(RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10)))
         .success
         .value
-        .set(pages.ContactDetailsPage, ContactDetails("test@email.com", Some("07123456789")))
+        .set(ContactDetailsPage, ContactDetails("test@email.com", Some("07123456789")))
         .success
         .value
-        .set(pages.BusinessActivityCodePage, "9999")
+        .set(BusinessActivityCodePage, "9999")
         .success
         .value
 
@@ -90,25 +92,25 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
 
     "must still redirect to task list on submit even if sessionRepository.set returns false" in {
       val ua = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "BE")
+        .set(RefundingCountryPage, "BE")
         .success
         .value
-        .set(pages.ClaimDetailsCompletedPage, true)
+        .set(ClaimDetailsCompletedPage, true)
         .success
         .value
-        .set(pages.RefundingCurrencyPage, "eur")
+        .set(RefundingCurrencyPage, "eur")
         .success
         .value
-        .set(pages.RefundingLanguagePage, RefundingLanguage.English)
+        .set(RefundingLanguagePage, RefundingLanguage.English)
         .success
         .value
-        .set(pages.RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10)))
+        .set(RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10)))
         .success
         .value
-        .set(pages.ContactDetailsPage, ContactDetails("test@email.com", None))
+        .set(ContactDetailsPage, ContactDetails("test@email.com", None))
         .success
         .value
-        .set(pages.BusinessActivityCodePage, "9999")
+        .set(BusinessActivityCodePage, "9999")
         .success
         .value
 
@@ -131,39 +133,35 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
     }
 
     "must redirect to JourneyRecovery on submit when duplicate application exists" in {
+      val dupApp = LatestApplication(1L, "BE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("D"), None, LocalDateTime.now())
       val ua = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "BE")
+        .set(RefundingCountryPage, "BE")
         .success
         .value
-        .set(pages.RefundingCurrencyPage, "eur")
+        .set(RefundingCurrencyPage, "eur")
         .success
         .value
-        .set(pages.RefundingLanguagePage, RefundingLanguage.English)
+        .set(RefundingLanguagePage, RefundingLanguage.English)
         .success
         .value
-        .set(pages.RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10)))
+        .set(RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10)))
         .success
         .value
-        .set(pages.ContactDetailsPage, ContactDetails("test@email.com", Some("07123456789")))
+        .set(ContactDetailsPage, ContactDetails("test@email.com", Some("07123456789")))
         .success
         .value
-        .set(pages.BusinessActivityCodePage, "9999")
+        .set(BusinessActivityCodePage, "9999")
+        .success
+        .value
+        .set(LatestCountryResponseQuery, LatestApplicationResponse(List(dupApp), 1))
         .success
         .value
 
       val mockSessionRepository = mock[SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
-      // Make the euvat service return a duplicate draft application
-      import models.responses.{LatestApplication, LatestApplicationResponse, TraderKnownFactsResponse}
-      when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(Future.successful(TraderKnownFactsResponse(123, None, None)))
-      val dupApp = LatestApplication(1L, "BE", LocalDateTime.now(), LocalDateTime.now(), "appNo", Some("D"), None, LocalDateTime.now())
-      when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(LatestApplicationResponse(List(dupApp), 1)))
-
       val application = applicationBuilder(userAnswers = Some(ua))
-        .overrides(
-          bind[SessionRepository].toInstance(mockSessionRepository)
-        )
+        .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
         .build()
 
       running(application) {
@@ -180,7 +178,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
 
     "must NOT include language label when country has only one language" in {
       val ua = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "CZ")
+        .set(RefundingCountryPage, "CZ")
         .success
         .value
 
@@ -209,7 +207,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
 
     "must not display phone number when it's missing" in {
       val contact = models.ContactDetails("a@b.com", None)
-      val ua = emptyUserAnswers.set(pages.ContactDetailsPage, contact).success.value
+      val ua = emptyUserAnswers.set(ContactDetailsPage, contact).success.value
       val application = applicationBuilder(userAnswers = Some(ua)).build()
 
       running(application) {
@@ -225,10 +223,10 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
 
     "must include language row with change link when country has multiple languages" in {
       val ua = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "BE")
+        .set(RefundingCountryPage, "BE")
         .success
         .value
-        .set(pages.RefundingLanguagePage, models.RefundingLanguage.English)
+        .set(RefundingLanguagePage, models.RefundingLanguage.English)
         .success
         .value
 
@@ -246,7 +244,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
 
     "must NOT include language section when country has only one language" in {
       val ua = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "CZ")
+        .set(RefundingCountryPage, "CZ")
         .success
         .value
 
@@ -263,7 +261,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
 
     "must NOT include currency section when country has only one currency" in {
       val ua = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "AT")
+        .set(RefundingCountryPage, "AT")
         .success
         .value
 
@@ -291,7 +289,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
     }
 
     "must render post submission view when ClaimDetailsCompletedPage is true" in {
-      val ua = emptyUserAnswers.set(pages.ClaimDetailsCompletedPage, true).success.value
+      val ua = emptyUserAnswers.set(ClaimDetailsCompletedPage, true).success.value
 
       val application = applicationBuilder(userAnswers = Some(ua)).build()
 
@@ -318,10 +316,10 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
 
     "must show Save and continue button when ClaimDetailsAmendedPage is true" in {
       val ua = emptyUserAnswers
-        .set(pages.ClaimDetailsCompletedPage, true)
+        .set(ClaimDetailsCompletedPage, true)
         .success
         .value
-        .set(pages.ClaimDetailsAmendedPage, true)
+        .set(ClaimDetailsAmendedPage, true)
         .success
         .value
 
@@ -337,7 +335,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
     }
 
     "must show Continue button when post submission and ClaimDetailsAmendedPage is not set" in {
-      val ua = emptyUserAnswers.set(pages.ClaimDetailsCompletedPage, true).success.value
+      val ua = emptyUserAnswers.set(ClaimDetailsCompletedPage, true).success.value
 
       val application = applicationBuilder(userAnswers = Some(ua)).build()
 
@@ -352,7 +350,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
 
     "must NOT call createApplication or sessionRepository when post-submission and not amended" in {
       val mockSessionRepository = mock[SessionRepository]
-      val ua = emptyUserAnswers.set(pages.ClaimDetailsCompletedPage, true).success.value
+      val ua = emptyUserAnswers.set(ClaimDetailsCompletedPage, true).success.value
 
       val application = applicationBuilder(userAnswers = Some(ua))
         .overrides(
@@ -375,28 +373,28 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
         .thenReturn(Future.successful(ApplicationResponse(123, "GB123456789", 10)))
 
       val ua = emptyUserAnswers
-        .set(pages.ClaimDetailsCompletedPage, true)
+        .set(ClaimDetailsCompletedPage, true)
         .success
         .value
-        .set(pages.ClaimDetailsAmendedPage, true)
+        .set(ClaimDetailsAmendedPage, true)
         .success
         .value
-        .set(pages.RefundingCountryPage, "DE")
+        .set(RefundingCountryPage, "DE")
         .success
         .value
-        .set(pages.RefundingCurrencyPage, "eur")
+        .set(RefundingCurrencyPage, "eur")
         .success
         .value
-        .set(pages.RefundingLanguagePage, RefundingLanguage.English)
+        .set(RefundingLanguagePage, RefundingLanguage.English)
         .success
         .value
-        .set(pages.RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10)))
+        .set(RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10)))
         .success
         .value
-        .set(pages.ContactDetailsPage, ContactDetails("test@email.com", Some("07123456789")))
+        .set(ContactDetailsPage, ContactDetails("test@email.com", Some("07123456789")))
         .success
         .value
-        .set(pages.BusinessActivityCodePage, "9999")
+        .set(BusinessActivityCodePage, "9999")
         .success
         .value
 
@@ -423,28 +421,28 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
         .thenReturn(Future.successful(ApplicationResponse(123, "GB123456789", 10)))
 
       val ua = emptyUserAnswers
-        .set(pages.ClaimDetailsCompletedPage, true)
+        .set(ClaimDetailsCompletedPage, true)
         .success
         .value
-        .set(pages.ClaimDetailsAmendedPage, true)
+        .set(ClaimDetailsAmendedPage, true)
         .success
         .value
-        .set(pages.RefundingCountryPage, "DE")
+        .set(RefundingCountryPage, "DE")
         .success
         .value
-        .set(pages.RefundingCurrencyPage, "eur")
+        .set(RefundingCurrencyPage, "eur")
         .success
         .value
-        .set(pages.RefundingLanguagePage, RefundingLanguage.English)
+        .set(RefundingLanguagePage, RefundingLanguage.English)
         .success
         .value
-        .set(pages.RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10)))
+        .set(RefundPeriodPage, RefundPeriod.apply(LocalDateTime.of(2025, 4, 1, 10, 10, 10, 10), LocalDateTime.of(2025, 12, 31, 23, 2, 10, 10)))
         .success
         .value
-        .set(pages.ContactDetailsPage, ContactDetails("test@email.com", Some("07123456789")))
+        .set(ContactDetailsPage, ContactDetails("test@email.com", Some("07123456789")))
         .success
         .value
-        .set(pages.BusinessActivityCodePage, "9999")
+        .set(BusinessActivityCodePage, "9999")
         .success
         .value
 
@@ -464,7 +462,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
         val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
         val saved = captor.getValue
-        saved.get(pages.ClaimDetailsAmendedPage).isDefined mustBe false
+        saved.get(ClaimDetailsAmendedPage).isDefined mustBe false
       }
     }
   }

@@ -31,9 +31,9 @@ class LatestApplicationRequestSpec extends AnyFreeSpec with Matchers {
     endDate               = Some(LocalDateTime.of(2025, 5, 31, 0, 0)),
     representativeId      = Some("rep123"),
     maxNumber             = 10,
-    orderBy               = None,
-    sortOrder             = None,
-    startAt               = None
+    orderBy               = Some(0),
+    sortOrder             = Some("ASC"),
+    startAt               = Some(0)
   )
 
   "LatestApplicationRequest" - {
@@ -67,9 +67,9 @@ class LatestApplicationRequestSpec extends AnyFreeSpec with Matchers {
       model.startDate mustEqual None
       model.endDate mustEqual None
       model.representativeId mustEqual None
-      model.orderBy mustEqual None
-      model.sortOrder mustEqual None
-      model.startAt mustEqual None
+      model.orderBy mustEqual Some(0)
+      model.sortOrder mustEqual Some("ASC")
+      model.startAt mustEqual Some(0)
     }
 
     "must round-trip through JSON" in {

@@ -29,6 +29,7 @@ import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import queries.ClaimApplicationResponseQuery
 import repositories.SessionRepository
 import views.html.PurchaseTypeView
 
@@ -199,7 +200,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         .thenReturn(Future.successful(AddPurchaseResponse(1, 2)))
 
       val userAnswers = emptyUserAnswers
-        .set(pages.ClaimApplicationResponsePage, ApplicationResponse(134, "GB123134", 1))
+        .set(ClaimApplicationResponseQuery, ApplicationResponse(134, "GB123134", 1))
         .success
         .value
 
@@ -232,7 +233,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         .set(pages.RefundingCountryPage, "LT")
         .success
         .value
-        .set(pages.ClaimApplicationResponsePage, ApplicationResponse(134, "GB123134", 1))
+        .set(queries.ClaimApplicationResponseQuery, ApplicationResponse(134, "GB123134", 1))
         .success
         .value
 

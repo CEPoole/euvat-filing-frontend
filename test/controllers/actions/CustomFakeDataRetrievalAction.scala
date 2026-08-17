@@ -16,20 +16,16 @@
 
 package controllers.actions
 
-import javax.inject.Inject
-import models.requests.IdentifierRequest
-import play.api.mvc.*
+import models.UserAnswers
+import models.requests.{IdentifierRequest, OptionalDataRequest}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class FakeIdentifierAction @Inject() (bodyParsers: PlayBodyParsers) extends IdentifierAction {
-  protected def identifierValue: Option[String] = Some("999900108")
+class CustomFakeDataRetrievalAction(dataToReturn: Option[UserAnswers]) extends DataRetrievalAction {
 
-  override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] =
-    block(IdentifierRequest(request, "id", Some("IdKey"), identifierValue))
+  override protected def transform[A](request: IdentifierRequest[A]): Future[OptionalDataRequest[A]] =
+    Future(OptionalDataRequest(request.request, request.userId, Some("IdKey"), Some("999900106"), dataToReturn))
 
-  override def parser: BodyParser[AnyContent] = bodyParsers.default
-
-  override protected def executionContext: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
-
+  override protected implicit val executionContext: ExecutionContext =
+    scala.concurrent.ExecutionContext.Implicits.global
 }

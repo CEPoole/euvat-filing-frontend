@@ -18,23 +18,22 @@ package controllers
 
 import controllers.actions.*
 import forms.RefundingLanguageFormProvider
-
-import javax.inject.Inject
-import models.{Mode, NormalMode}
+import models.{Mode, RefundingLanguage}
 import navigation.Navigator
 import pages.*
+import play.api.Logger
+import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import repositories.SessionRepository
+import uk.gov.hmrc.govukfrontend.views.Aliases.Text
+import uk.gov.hmrc.govukfrontend.views.viewmodels.radios.RadioItem
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import utils.*
 import views.html.RefundingLanguageView
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
-import play.api.Logger
-import models.RefundingLanguage
-import play.api.data.Form
-import uk.gov.hmrc.govukfrontend.views.Aliases.Text
-import utils.*
 
 class RefundingLanguageController @Inject() (
   override val messagesApi: MessagesApi,
@@ -59,13 +58,7 @@ class RefundingLanguageController @Inject() (
     // Data guard: require a previously selected refunding country. Support two storage formats:
     // - `RefundingCountryPage` contains the country code
     // - `RefundingCountryNamePage` may contain a delimited string where the code is first ("code,name")
-    val maybeCountryCode = request.userAnswers.get(pages.RefundingCountryPage).orElse {
-      request.userAnswers.get(pages.RefundingCountryNamePage).map { stored =>
-        stored.split(",", 2).headOption.getOrElse(stored)
-      }
-    }
-
-    maybeCountryCode match {
+    CountryCode.findCountryCode(request.userAnswers) match {
       case None =>
         logger.warn("RefundingLanguageController.onPageLoad - no refunding country in session, redirecting to JourneyRecovery")
         Redirect(routes.JourneyRecoveryController.onPageLoad())
@@ -78,7 +71,7 @@ class RefundingLanguageController @Inject() (
         val msgs = messagesApi.preferred(request)
         val items = langs.zipWithIndex.flatMap { case (lang, idx) =>
           RefundingLanguage.values.find(_.toString.equalsIgnoreCase(lang)).map { v =>
-            uk.gov.hmrc.govukfrontend.views.viewmodels.radios.RadioItem(
+            RadioItem(
               content = uk.gov.hmrc.govukfrontend.views.Aliases.Text(msgs(s"refundingLanguage.${v.toString}")),
               value   = Some(v.toString),
               id      = Some(s"value_$idx")
@@ -94,13 +87,8 @@ class RefundingLanguageController @Inject() (
       .bindFromRequest()
       .fold(
         formWithErrors =>
-          val maybeCountryCode = request.userAnswers.get(pages.RefundingCountryPage).orElse {
-            request.userAnswers.get(pages.RefundingCountryNamePage).map { stored =>
-              stored.split(",", 2).headOption.getOrElse(stored)
-            }
-          }
           // need country code to rebuild options; support either RefundingCountryPage or delimited RefundingCountryNamePage
-          maybeCountryCode match {
+          CountryCode.findCountryCode(request.userAnswers) match {
             case None =>
               logger.warn(
                 "RefundingLanguageController.onSubmit - no refunding country in session while binding form errors; redirecting to JourneyRecovery"
@@ -111,7 +99,7 @@ class RefundingLanguageController @Inject() (
               val msgs = messagesApi.preferred(request)
               val items = langs.zipWithIndex.flatMap { case (lang, idx) =>
                 RefundingLanguage.values.find(_.toString.equalsIgnoreCase(lang)).map { v =>
-                  uk.gov.hmrc.govukfrontend.views.viewmodels.radios.RadioItem(
+                  RadioItem(
                     content = Text(msgs(s"refundingLanguage.${v.toString}")),
                     value   = Some(v.toString),
                     id      = Some(s"value_$idx")
@@ -119,36 +107,21 @@ class RefundingLanguageController @Inject() (
                 }
               }
               Future.successful(BadRequest(view(formWithErrors, items, routes.RefundingCountryController.onPageLoad(mode), mode)))
-          }
-        ,
+          },
         value =>
           val isChanged = request.userAnswers.get(RefundingLanguagePage) match {
             case Some(existing) => existing != value
             case None           => true
           }
-          val maybeCountryCode = request.userAnswers.get(pages.RefundingCountryPage).orElse {
-            request.userAnswers.get(pages.RefundingCountryNamePage).map { stored =>
-              stored.split(",", 2).headOption.getOrElse(stored)
-            }
-          }
-          val autoStoredCurrencyCode = maybeCountryCode.flatMap { code =>
-            if (!configCurrencyMapping.requiresCurrencySelection(code))
-              configCurrencyMapping.currenciesFor(code).headOption.map(_._2)
-            else
-              None
-          }
           for {
             updatedAnswers <- Future.fromTry(request.userAnswers.set(RefundingLanguagePage, value))
-            updatedAnswers2 <- autoStoredCurrencyCode match {
-                                 case Some(currencyCode) => Future.fromTry(updatedAnswers.set(RefundingCurrencyPage, currencyCode))
-                                 case None               => Future.successful(updatedAnswers)
+            updatedAnswers1 <- if (isChanged && request.userAnswers.get(pages.ClaimDetailsCompletedPage).contains(true)) {
+                                 Future.fromTry(updatedAnswers.set(pages.ClaimDetailsAmendedPage, true))
+                               } else {
+                                 Future.successful(updatedAnswers)
                                }
-            updatedAnswers3 <- if (isChanged && request.userAnswers.get(pages.ClaimDetailsCompletedPage).contains(true))
-                                 Future.fromTry(updatedAnswers2.set(pages.ClaimDetailsAmendedPage, true))
-                               else
-                                 Future.successful(updatedAnswers2)
-            _ <- sessionRepository.set(updatedAnswers3)
-          } yield Redirect(navigator.nextPage(RefundingLanguagePage, mode, updatedAnswers3))
+            _ <- sessionRepository.set(updatedAnswers1)
+          } yield Redirect(navigator.nextPage(RefundingLanguagePage, mode, updatedAnswers1))
       )
   }
 }

@@ -14,24 +14,14 @@
  * limitations under the License.
  */
 
-package models.requests
+package queries
 
-import play.api.libs.json.{Json, OFormat}
+import models.ContactDetails
+import models.responses.ApplicationResponse
+import pages.QuestionPage
+import play.api.libs.json.JsPath
 
-import java.time.LocalDateTime
-
-case class LatestApplicationRequest(
-  applicantVatRegNumber: String,
-  refundingCountry: Option[String],
-  startDate: Option[LocalDateTime] = None,
-  endDate: Option[LocalDateTime] = None,
-  representativeId: Option[String] = None,
-  maxNumber: Int = 10000,
-  orderBy: Option[Int] = Some(0),
-  sortOrder: Option[String] = Some("ASC"),
-  startAt: Option[Int] = Some(0)
-)
-
-object LatestApplicationRequest {
-  implicit val format: OFormat[LatestApplicationRequest] = Json.format[LatestApplicationRequest]
+case object ClaimApplicationResponseQuery extends QuestionPage[ApplicationResponse] {
+  override def path: JsPath = JsPath \ toString
+  override def toString: String = "claimApplicationResponse"
 }

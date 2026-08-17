@@ -17,12 +17,11 @@
 package navigation
 
 import javax.inject.{Inject, Singleton}
-
 import play.api.mvc.Call
 import controllers.routes
 import pages.*
 import models.*
-import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, ConfigPurchaseMapping}
+import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, ConfigPurchaseMapping, CountryCode}
 
 @Singleton
 class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
@@ -91,18 +90,8 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
     case _                                 => _ => routes.IndexController.onPageLoad()
   }
 
-  private def findCountryCode(userAnswers: UserAnswers): Option[String] = {
-    userAnswers
-      .get(RefundingCountryPage)
-      .orElse(
-        userAnswers
-          .get(RefundingCountryNamePage)
-          .map(stored => stored.split(",", 2).headOption.getOrElse(stored))
-      )
-  }
-
   private def navigateFromRefundingCountryPage(mode: Mode, userAnswers: UserAnswers) = {
-    findCountryCode(userAnswers) match {
+    CountryCode.findCountryCode(userAnswers) match {
       case Some(code) if configLanguageMapping.languagesFor(code).size <= 1 =>
         mode match {
           case NormalMode => routes.RefundPeriodController.onPageLoad(NormalMode)
@@ -113,7 +102,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
   }
 
   private def navigateFromRefundingLanguagePage(mode: Mode)(userAnswers: UserAnswers): Call = {
-    findCountryCode(userAnswers) match {
+    CountryCode.findCountryCode(userAnswers) match {
       case Some(_) =>
         mode match {
           case NormalMode => routes.RefundPeriodController.onPageLoad(NormalMode)
@@ -129,7 +118,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
   }
 
   private def navigateFromSupplierAddressPage(mode: Mode)(userAnswers: UserAnswers): Call = {
-    findCountryCode(userAnswers) match {
+    CountryCode.findCountryCode(userAnswers) match {
       case Some("DE") => routes.SupplierTaxNumberController.onPageLoad(mode)
       case _          => routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(mode)
     }
@@ -158,7 +147,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
   }
 
   private def navigateToCurrencyOrPurchaseAmount(mode: Mode)(userAnswers: UserAnswers): Call = {
-    findCountryCode(userAnswers) match {
+    CountryCode.findCountryCode(userAnswers) match {
       case Some(countryCode) if configCurrencyMapping.requiresCurrencySelection(countryCode) =>
         routes.RefundingCurrencyController.onPageLoad(mode)
       case Some(_) => routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
@@ -176,7 +165,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
   private def navigateFromPurchaseTypePage(mode: Mode)(userAnswers: UserAnswers): Call =
     userAnswers.get(PurchaseTypePage) match {
       case Some(parent) =>
-        findCountryCode(userAnswers) match {
+        CountryCode.findCountryCode(userAnswers) match {
           case Some(country) =>
             val subs = configPurchaseMapping.subcodesFor(country, parent.toString)
             if (subs.nonEmpty) {

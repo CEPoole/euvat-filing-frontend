@@ -16,24 +16,26 @@
 
 package base
 
-import controllers.actions.*
+import controllers.actions.{FakeIdentifierAction, *}
 import models.UserAnswers
-import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatest.freespec.AnyFreeSpec
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest.matchers.must.Matchers
-import org.scalatest.{OptionValues, TryValues}
-import org.scalatestplus.mockito.MockitoSugar
+import models.responses.{LatestApplicationResponse, TraderKnownFactsResponse}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
-import scala.concurrent.Future
-import services.EuVatRefundsService
-import models.responses.{LatestApplicationResponse, TraderKnownFactsResponse}
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
+import org.scalatest.freespec.AnyFreeSpec
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.{BeforeAndAfterEach, OptionValues, TryValues}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.Application
 import play.api.i18n.{Messages, MessagesApi}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.mvc.{BodyParser, BodyParsers}
 import play.api.test.FakeRequest
+import repositories.SessionRepository
+import services.EuVatRefundsService
+
+import scala.concurrent.Future
 
 trait SpecBase
     extends AnyFreeSpec
@@ -50,28 +52,42 @@ trait SpecBase
   def emptyUserAnswers: UserAnswers = UserAnswers(userAnswersId)
 
   // Default mock for controllers that call the EuVatRefundsService
+  protected val mockSessionRepository: SessionRepository = mock[SessionRepository]
   protected val mockEuVatRefundsService: EuVatRefundsService = mock[EuVatRefundsService]
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     org.mockito.Mockito.reset(mockEuVatRefundsService)
+    org.mockito.Mockito.reset(mockSessionRepository)
     // safe defaults: no duplicate applications, and simple trader known facts
     when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any()))
-      .thenReturn(Future.successful(TraderKnownFactsResponse(vatRegNumber = 123, traderName = None, tradeClass = None)))
+      .thenReturn(Future.successful(TraderKnownFactsResponse(vatRegNumber = 999900106, traderName = None, tradeClass = None)))
     when(mockEuVatRefundsService.getLatestApplications(any())(any()))
       .thenReturn(Future.successful(LatestApplicationResponse(applications = List.empty, totalApplication = 0)))
+    when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
   }
 
   def messages(app: Application): Messages = app.injector.instanceOf[MessagesApi].preferred(FakeRequest())
 
-  protected def applicationBuilder(userAnswers: Option[UserAnswers] = None): GuiceApplicationBuilder =
-    new GuiceApplicationBuilder()
-      .overrides(
-        bind[DataRequiredAction].to[DataRequiredActionImpl],
-        bind[IdentifierAction].to[FakeIdentifierAction],
-        bind[DataRetrievalAction].toInstance(new FakeDataRetrievalAction(userAnswers)),
-        bind[EuVatRefundsService].toInstance(mockEuVatRefundsService)
-      )
+  protected def applicationBuilder(userAnswers: Option[UserAnswers] = None, whichAction: Boolean = false): GuiceApplicationBuilder =
+    if (whichAction) {
+      new GuiceApplicationBuilder()
+        .overrides(
+          bind[DataRequiredAction].to[DataRequiredActionImpl],
+          bind[IdentifierAction].to[CustomIdentifierAction],
+          bind[DataRetrievalAction].toInstance(new CustomFakeDataRetrievalAction(userAnswers)),
+          bind[EuVatRefundsService].toInstance(mockEuVatRefundsService)
+        )
+    } else {
+      new GuiceApplicationBuilder()
+        .overrides(
+          bind[DataRequiredAction].to[DataRequiredActionImpl],
+          bind[IdentifierAction].to[FakeIdentifierAction],
+          bind[DataRetrievalAction].toInstance(new FakeDataRetrievalAction(userAnswers)),
+          bind[EuVatRefundsService].toInstance(mockEuVatRefundsService)
+        )
+    }
 
   // Normalize dynamic values in rendered HTML to make string comparisons deterministic in tests.
   // - strips any `nonce="..."` attributes

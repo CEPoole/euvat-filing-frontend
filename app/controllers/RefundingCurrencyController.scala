@@ -18,21 +18,21 @@ package controllers
 
 import controllers.actions.*
 import forms.RefundingCurrencyFormProvider
-
-import javax.inject.Inject
-import models.{Mode, RefundingCurrency, UserAnswers}
+import models.{Mode, RefundingCurrency}
 import navigation.Navigator
 import pages.RefundingCurrencyPage
 import play.api.Logger
 import play.api.data.Form
-import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents, Request}
+import play.api.i18n.{I18nSupport, Messages, MessagesApi}
+import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
 import repositories.SessionRepository
 import uk.gov.hmrc.govukfrontend.views.Aliases.Text
+import uk.gov.hmrc.govukfrontend.views.viewmodels.radios.RadioItem
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import utils.{ConfigCurrencyMapping, ConfigLanguageMapping}
+import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, CountryCode}
 import views.html.RefundingCurrencyView
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class RefundingCurrencyController @Inject() (
@@ -57,7 +57,7 @@ class RefundingCurrencyController @Inject() (
   private def backLink(mode: Mode): Call = routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    resolveCountryCode(request.userAnswers) match {
+    CountryCode.findCountryCode(request.userAnswers) match {
       case None =>
         logger.warn("RefundingCurrencyController.onPageLoad - no refunding country in session, redirecting to JourneyRecovery")
         Redirect(routes.JourneyRecoveryController.onPageLoad())
@@ -83,7 +83,7 @@ class RefundingCurrencyController @Inject() (
       .bindFromRequest()
       .fold(
         formWithErrors =>
-          resolveCountryCode(request.userAnswers) match {
+          CountryCode.findCountryCode(request.userAnswers) match {
             case None =>
               logger.warn(
                 "RefundingCurrencyController.onSubmit - no refunding country in session while binding form errors; redirecting to JourneyRecovery"
@@ -96,7 +96,7 @@ class RefundingCurrencyController @Inject() (
               Future.successful(BadRequest(view(formWithErrors, items, backLink(mode), mode)))
           },
         value =>
-          resolveCountryCode(request.userAnswers) match {
+          CountryCode.findCountryCode(request.userAnswers) match {
             case None =>
               logger.warn("RefundingCurrencyController.onSubmit - no refunding country in session; redirecting to JourneyRecovery")
               Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
@@ -124,20 +124,13 @@ class RefundingCurrencyController @Inject() (
       )
   }
 
-  private def resolveCountryCode(userAnswers: UserAnswers): Option[String] =
-    userAnswers.get(pages.RefundingCountryPage).orElse {
-      userAnswers.get(pages.RefundingCountryNamePage).map { stored =>
-        stored.split(",", 2).headOption.getOrElse(stored)
-      }
-    }
-
   private def buildRadioItems(
     currencies: Seq[(String, String, String)],
-    msgs: play.api.i18n.Messages
-  ): Seq[uk.gov.hmrc.govukfrontend.views.viewmodels.radios.RadioItem] =
+    msgs: Messages
+  ): Seq[RadioItem] =
     currencies.zipWithIndex.flatMap { case ((name, _, symbol), idx) =>
       RefundingCurrency.values.find(_.toString.equalsIgnoreCase(name)).map { v =>
-        uk.gov.hmrc.govukfrontend.views.viewmodels.radios.RadioItem(
+        RadioItem(
           content = Text(msgs(s"refundingCurrency.${v.toString}", symbol)),
           value   = Some(v.toString),
           id      = Some(if (idx == 0) "value" else s"value_$idx")

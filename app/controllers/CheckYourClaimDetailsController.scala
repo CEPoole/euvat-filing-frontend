@@ -24,11 +24,12 @@ import models.responses.ApplicationResponse
 import pages.*
 import play.api.Logging
 import play.api.i18n.{I18nSupport, Messages, MessagesApi}
-import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
+import play.api.mvc.*
+import queries.{ClaimApplicationResponseQuery, LatestCountryResponseQuery}
 import repositories.SessionRepository
 import services.EuVatRefundsService
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import utils.{ConfigCurrencyMapping, ConfigLanguageMapping}
+import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, CountryCode}
 import viewmodels.checkAnswers.CheckYourClaimDetailsSummary
 import views.html.CheckYourClaimDetailsView
 
@@ -52,90 +53,64 @@ class CheckYourClaimDetailsController @Inject() (
 
   def onPageLoad(): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     val summaryList = buildSummaryList(request.userAnswers)
-    val isPostSubmission = request.userAnswers.get(pages.ClaimDetailsCompletedPage).contains(true)
-    val isAmended = request.userAnswers.get(pages.ClaimDetailsAmendedPage).contains(true)
+    val isPostSubmission = request.userAnswers.get(ClaimDetailsCompletedPage).contains(true)
+    val isAmended = request.userAnswers.get(ClaimDetailsAmendedPage).contains(true)
     Ok(view(summaryList, isPostSubmission, isAmended))
   }
 
   def onSubmit(): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-    val isPostSubmission = request.userAnswers.get(pages.ClaimDetailsCompletedPage).contains(true)
-    val isAmended = request.userAnswers.get(pages.ClaimDetailsAmendedPage).contains(true)
+    val userAnswers = request.userAnswers
+    val isPostSubmission = userAnswers.get(ClaimDetailsCompletedPage).contains(true)
+    val isAmended = userAnswers.get(ClaimDetailsAmendedPage).contains(true)
 
-    if (!isPostSubmission || isAmended) {
-      (for {
-        flaggedAnswers <- Future.fromTry {
-                            if (!isPostSubmission) {
-                              request.userAnswers.set(ClaimDetailsCompletedPage, true)
-                            } else {
-                              request.userAnswers.remove(pages.ClaimDetailsAmendedPage)
-                            }
-                          }
-        appRequest  <- buildAppRequest(flaggedAnswers)
-        traderFacts <- service.retrieveTraderKnownFacts()
-        latestReq = LatestApplicationRequest(
-                      applicantVatRegNumber = traderFacts.vatRegNumber.toString,
-                      refundingCountry      = flaggedAnswers.get(pages.RefundingCountryPage),
-                      startDate             = None,
-                      endDate               = None,
-                      representativeId      = None,
-                      maxNumber             = 10000,
-                      orderBy               = Some(0),
-                      sortOrder             = Some("DESC"),
-                      startAt               = Some(0)
-                    )
-        latestResp <- service.getLatestApplications(latestReq)
-        result <- {
-          if (!isPostSubmission) {
-            val isDuplicate = latestResp.applications.exists { app =>
-              val statusIsD = app.applicationStatus.exists(_.equalsIgnoreCase("D"))
-              val submissionIsNull = app.submissionStatus.isEmpty
-              statusIsD || submissionIsNull
-            }
-            if (isDuplicate) Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
-            else
-              for {
-                claimResponse  <- service.createApplication(appRequest)
-                updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
-                _              <- sessionRepository.set(updatedAnswers)
-              } yield {
-                if (claimResponse.applicationId > 0)
-                  Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
-                else
-                  Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
-              }
-          } else {
-            for {
-              claimResponse  <- service.createApplication(appRequest)
-              updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponsePage, claimResponse))
-              _              <- sessionRepository.set(updatedAnswers)
-            } yield {
-              if (claimResponse.applicationId > 0)
-                Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
-              else
-                Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
-            }
+    if (isPostSubmission && !isAmended) {
+      Future.successful(Redirect(routes.TaskListDashboardController.onPageLoad()))
+    } else {
+      val updatedAnswers = Future.fromTry {
+        if (isPostSubmission) {
+          userAnswers.remove(ClaimDetailsAmendedPage)
+        } else {
+          userAnswers.set(ClaimDetailsCompletedPage, true)
+        }
+      }
+
+      updatedAnswers
+        .flatMap { flaggedAnswers =>
+          flaggedAnswers.get(LatestCountryResponseQuery) match {
+            case Some(latestResp) if !isPostSubmission && latestResp.totalApplication > 0 =>
+              logger.warn("You cannot have more than one draft claim for each EU member state")
+              Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
+            case _ =>
+              val claimRequest = buildClaimRequest(flaggedAnswers)
+              saveClaimResponseAndRedirect(flaggedAnswers, claimRequest)
           }
         }
-      } yield result).recover { case ex: Exception =>
-        logger.error("Error while saving the refund application", ex)
+        .recover { case ex =>
+          logger.error("Error while saving the refund application", ex)
+          Redirect(routes.JourneyRecoveryController.onPageLoad())
+        }
+    }
+  }
+
+  private def saveClaimResponseAndRedirect(flaggedAnswers: UserAnswers, appRequest: ApplicationRequest)(using RequestHeader): Future[Result] = {
+    for {
+      claimResponse  <- service.createApplication(appRequest)
+      updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponseQuery, claimResponse))
+      _              <- sessionRepository.set(updatedAnswers)
+    } yield {
+      if (claimResponse.applicationId > 0) {
+        Redirect(controllers.routes.TaskListDashboardController.onPageLoad())
+      } else {
         Redirect(controllers.routes.JourneyRecoveryController.onPageLoad())
       }
-    } else {
-      Future.successful(Redirect(controllers.routes.TaskListDashboardController.onPageLoad()))
     }
   }
 
   private def buildSummaryList(
     answers: UserAnswers
   )(implicit messages: Messages): Seq[(String, Seq[(String, Option[String], Seq[(String, String, String)])])] = {
-    val maybeCountryCode = answers.get(pages.RefundingCountryPage).orElse {
-      answers.get(pages.RefundingCountryNamePage).map { stored =>
-        stored.split(",", 2).headOption.getOrElse(stored)
-      }
-    }
-
     val languageSection: Seq[(String, Seq[(String, Option[String], Seq[(String, String, String)])])] =
-      maybeCountryCode match {
+      CountryCode.findCountryCode(answers) match {
         case Some(code) if configLanguageMapping.languagesFor(code).size > 1 =>
           Seq(("checkYourClaimDetails.refundingLanguage.label", Seq(CheckYourClaimDetailsSummary.rowLanguage(answers)).flatten))
         case _ => Seq.empty
@@ -160,48 +135,23 @@ class CheckYourClaimDetailsController @Inject() (
       )
   }
 
-  private def buildAppRequest(userAnswers: UserAnswers): Future[ApplicationRequest] = {
-    val countryCode = userAnswers
-      .get(RefundingCountryPage)
-      .getOrElse(throw new RuntimeException("Country code missing"))
-    val languageCode = userAnswers
-      .get(RefundingLanguagePage)
-      .map(_.code)
-      .getOrElse(throw new RuntimeException("Language code missing"))
-    val refundStartDate = userAnswers
-      .get(RefundPeriodPage)
-      .map(_.startDate)
-      .getOrElse(throw new RuntimeException("RefundPeriodPage startDate missing"))
-    val refundEndDate = userAnswers
-      .get(RefundPeriodPage)
-      .map(_.endDate)
-      .getOrElse(throw new RuntimeException("RefundPeriodPage endDate missing"))
-    val email = userAnswers
-      .get(ContactDetailsPage)
-      .map(_.email)
-      .getOrElse(throw new RuntimeException("Email contact detail missing"))
-    val telephone = userAnswers
-      .get(ContactDetailsPage)
-      .map(_.telephone)
-      .getOrElse(throw new RuntimeException("Telephone contact detail missing"))
-    val businessActivityCode1 = userAnswers
-      .get(BusinessActivityCodePage)
-      .getOrElse(throw new RuntimeException("Business activity code missing"))
-    val businessActivityCode2 = userAnswers.get(BusinessActivityCodeTwoPage).getOrElse("")
-    val businessActivityCode3 = userAnswers.get(BusinessActivityCodeThreePage).getOrElse("")
+  private def buildClaimRequest(userAnswers: UserAnswers): ApplicationRequest = {
+    val countryCode = userAnswers.get(RefundingCountryPage).getOrElse(throw new RuntimeException("Country code missing"))
+    val languageCode = userAnswers.get(RefundingLanguagePage).map(_.code).getOrElse(throw new RuntimeException("Language code missing"))
+    val refundPeriod = userAnswers.get(RefundPeriodPage).getOrElse(throw new RuntimeException("Refund period missing"))
+    val contactDetails = userAnswers.get(ContactDetailsPage).getOrElse(throw new RuntimeException("Contact details missing"))
+    val businessActivityCode1 = userAnswers.get(BusinessActivityCodePage).getOrElse(throw new RuntimeException("Business activity code missing"))
 
-    Future.successful(
-      ApplicationRequest(
-        applicationLanguage      = Some(languageCode),
-        applicantEmailAddress    = Some(email),
-        applicantTelephoneNumber = Some(telephone).value,
-        refundingCountryCode     = Some(countryCode),
-        periodStartDate          = Some(refundStartDate),
-        periodEndDate            = Some(refundEndDate),
-        businessActivityCode1    = Some(businessActivityCode1),
-        businessActivityCode2    = Some(businessActivityCode2),
-        businessActivityCode3    = Some(businessActivityCode3)
-      )
+    ApplicationRequest(
+      refundingCountryCode     = Some(countryCode),
+      applicationLanguage      = Some(languageCode),
+      applicantEmailAddress    = Some(contactDetails.email),
+      applicantTelephoneNumber = Some(contactDetails.telephone.getOrElse("")),
+      periodStartDate          = Some(refundPeriod.startDate),
+      periodEndDate            = Some(refundPeriod.endDate),
+      businessActivityCode1    = Some(businessActivityCode1),
+      businessActivityCode2    = userAnswers.get(BusinessActivityCodeTwoPage),
+      businessActivityCode3    = userAnswers.get(BusinessActivityCodeThreePage)
     )
   }
 
