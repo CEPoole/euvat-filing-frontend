@@ -19,18 +19,18 @@ package controllers
 import base.SpecBase
 import forms.SupplierVatRegistrationNumberFormProvider
 import models.responses.{AddPurchaseResponse, ApplicationResponse, SupplierVrnCountResponse}
-import models.{CheckMode, NormalMode, UserAnswers}
+import models.{CheckMode, NormalMode, UserAnswers, PurchaseType}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import models.PurchaseType
-import pages.{AddPurchaseResponsePage, ClaimApplicationResponsePage, InvoiceNumberPage, PurchaseTypePage, RefundingCountryPage, RefundingCountryPage, SupplierVatRegistrationNumberPage}
+import pages.{AddPurchaseResponsePage, InvoiceNumberPage, PurchaseTypePage, RefundingCountryPage, RefundingCountryPage, SupplierVatRegistrationNumberPage}
 import play.api.data.Form
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import queries.ClaimApplicationResponseQuery
 import repositories.SessionRepository
 import views.html.SupplierVatRegistrationNumberView
 
@@ -46,7 +46,7 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
   lazy val supplierVatRegistrationNumberRoute: String = routes.SupplierVatRegistrationNumberController.onPageLoad(NormalMode).url
 
   val seededAnswers = emptyUserAnswers
-    .set(ClaimApplicationResponsePage, ApplicationResponse(134, "GB123134", 1))
+    .set(ClaimApplicationResponseQuery, ApplicationResponse(134, "GB123134", 1))
     .success
     .value
     .set(AddPurchaseResponsePage, AddPurchaseResponse(1, 2))

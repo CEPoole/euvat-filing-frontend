@@ -19,13 +19,14 @@ package controllers
 import controllers.actions.*
 import forms.SupplierVatRegistrationNumberFormProvider
 import models.requests.{DataRequest, SupplierVrnCountRequest}
-import models.{Mode, CheckMode, UserAnswers, InvoiceType}
+import models.{InvoiceType, Mode, CheckMode, UserAnswers}
 import navigation.Navigator
 import pages.*
 import play.api.data.Form
 import play.api.i18n.Lang.logger
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.*
+import queries.ClaimApplicationResponseQuery
 import repositories.SessionRepository
 import services.EuVatRefundsService
 import uk.gov.hmrc.http.HeaderCarrier
@@ -59,8 +60,8 @@ class SupplierVatRegistrationNumberController @Inject() (
 
   private def backLink(mode: Mode)(implicit request: DataRequest[?]): Call = {
     val warningActive = request.userAnswers.get(VrnWarningFlowPage).isDefined
-    val isGermany     = request.userAnswers.get(RefundingCountryPage).exists(_.equalsIgnoreCase("DE"))
-    val isSimplified  = request.userAnswers.get(InvoiceTypePage).contains(InvoiceType.SimplifiedInvoice)
+    val isGermany = request.userAnswers.get(RefundingCountryPage).exists(_.equalsIgnoreCase("DE"))
+    val isSimplified = request.userAnswers.get(InvoiceTypePage).contains(InvoiceType.SimplifiedInvoice)
 
     (warningActive, isGermany, isSimplified) match {
       case (true, _, _)     => routes.InvoiceNumberController.onPageLoad(mode)
@@ -155,7 +156,7 @@ class SupplierVatRegistrationNumberController @Inject() (
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
 
     val maybeRequest = for {
-      applicationId <- answers.get(ClaimApplicationResponsePage).map(_.applicationId)
+      applicationId <- answers.get(ClaimApplicationResponseQuery).map(_.applicationId)
       itemNumber    <- answers.get(AddPurchaseResponsePage).map(_.itemNumber)
       invoiceNumber <- answers.get(InvoiceNumberPage)
     } yield SupplierVrnCountRequest(applicationId.toLong, itemNumber, vatNumber, invoiceNumber)
