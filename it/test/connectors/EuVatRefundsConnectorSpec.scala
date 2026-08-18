@@ -16,8 +16,8 @@
 
 package connectors
 
-import models.requests.{AddPurchaseRequest, LatestApplicationRequest}
-import models.responses.{AddPurchaseResponse, LatestApplicationResponse, TraderKnownFactsResponse}
+import models.requests.{AddPurchaseRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest}
+import models.responses.{AddPurchaseResponse, LatestApplicationResponse, TraderKnownFactsResponse, SupplierTaxIdentifierCountResponse}
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.*
 import org.scalatest.concurrent.ScalaFutures
@@ -186,5 +186,40 @@ class EuVatRefundsConnectorSpec extends AnyWordSpec with Matchers with MockitoSu
         ex shouldBe a[RuntimeException]
       }
     }
+
   }
+
+  "EuVatRefundsConnector.getSupplierTaxIdentifierCount" should {
+
+    val requestPayload = SupplierTaxIdentifierCountRequest(applicationId = 123L, itemNumber = 1, taxIdentifier = "TAX123", invoiceNumber = "INV1")
+    val expectedResponse = SupplierTaxIdentifierCountResponse(duplicateCount = 2)
+
+    "call the correct URL and return the expected response" in {
+      reset(mockHttp, mockRequestBuilder)
+
+      when(mockHttp.post(any())(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.execute[SupplierTaxIdentifierCountResponse](any(), any()))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result = connector.getSupplierTaxIdentifierCount(requestPayload).futureValue
+
+      result shouldBe expectedResponse
+
+      verify(mockHttp).post(url"$baseUrl/get-supplier-taxIdentifier-count")
+      verify(mockRequestBuilder).execute[SupplierTaxIdentifierCountResponse](any(), any())
+    }
+
+    "propagate failures from the HTTP client" in {
+      when(mockHttp.post(any())(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.execute[SupplierTaxIdentifierCountResponse](any(), any()))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      whenReady(connector.getSupplierTaxIdentifierCount(requestPayload).failed) { ex =>
+        ex shouldBe a[RuntimeException]
+      }
+    }
+  }
+
 }

@@ -165,5 +165,63 @@ class InvoiceNumberControllerSpec extends SpecBase with MockitoSugar {
         redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
       }
     }
+
+    "must redirect to warning when invoice unchanged and warning flag set" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val ua = emptyUserAnswers
+        .set(InvoiceNumberPage, "INV123").success.value
+        .set(pages.SupplierTaxIdentifierWarningShownPage, true).success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(ua))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, invoiceNumberRoute)
+            .withFormUrlEncodedBody(("value", "INV123"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.SupplierTaxIdentifierWarningController.onPageLoad(NormalMode).url
+      }
+    }
+
+    "must route to SupplierTaxIdentifierNumber when invoice changed and warning flag set" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val ua = emptyUserAnswers
+        .set(InvoiceNumberPage, "INV123").success.value
+        .set(pages.SupplierTaxIdentifierWarningShownPage, true).success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(ua))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, invoiceNumberRoute)
+            .withFormUrlEncodedBody(("value", "INV124"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.SupplierTaxIdentifierNumberController.onPageLoad(NormalMode).url
+      }
+    }
   }
 }

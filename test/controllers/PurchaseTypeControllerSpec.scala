@@ -23,6 +23,7 @@ import models.{CheckMode, NormalMode, PurchaseType}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{never, times, verify, when}
+import org.mockito.ArgumentCaptor
 import org.scalatestplus.mockito.MockitoSugar
 import pages.PurchaseTypePage
 import play.api.inject.bind
@@ -264,6 +265,76 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         .success
         .value
         .set(pages.DescribeItemsOnInvoicePage, "details")
+        .success
+        .value
+        .set(ClaimApplicationResponseQuery, ApplicationResponse(134, "GB123134", 1))
+        .success
+        .value
+
+      when(mockEuVatRefundsService.addPurchase(any())(any())).thenReturn(Future.successful(AddPurchaseResponse(1, 2)))
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, purchaseTypeSubmitRoute)
+          .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual ("/file-eu-vat" + onwardRoute.url)
+        verify(mockEuVatRefundsService, times(1)).addPurchase(any())(any())
+      }
+    }
+
+    "must persist AddPurchaseResponse in session when addPurchase succeeds" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+      val addResp = AddPurchaseResponse(itemNumber = 42, updateSequenceNumber = 3)
+      when(mockEuVatRefundsService.addPurchase(any())(any()))
+        .thenReturn(Future.successful(addResp))
+
+      val userAnswers = emptyUserAnswers
+        .set(ClaimApplicationResponseQuery, ApplicationResponse(134, "GB123134", 1))
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, purchaseTypeSubmitRoute)
+          .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+
+        val captor: ArgumentCaptor[models.UserAnswers] = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(2)).set(captor.capture())
+        val savedAnswers = captor.getAllValues.get(1)
+
+        savedAnswers.get(pages.AddPurchaseResponsePage).value mustEqual addResp
+      }
+    }
+
+    "must redirect to Journey Recovery when the addPurchase call fails" in {
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+      when(mockEuVatRefundsService.addPurchase(any())(any()))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val userAnswers = emptyUserAnswers
+        .set(ClaimApplicationResponseQuery, ApplicationResponse(134, "GB123134", 1))
         .success
         .value
 

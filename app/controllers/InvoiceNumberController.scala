@@ -70,7 +70,25 @@ class InvoiceNumberController @Inject() (
           for {
             updatedAnswers <- Future.fromTry(request.userAnswers.set(InvoiceNumberPage, value))
             _              <- sessionRepository.set(updatedAnswers)
-          } yield Redirect(navigator.nextPage(InvoiceNumberPage, mode, updatedAnswers))
+            result <- {
+              // special flows when coming from the supplier tax identifier warning
+              val wasShown = request.userAnswers.get(pages.SupplierTaxIdentifierWarningShownPage).contains(true)
+              val previousInvoice = request.userAnswers.get(InvoiceNumberPage)
+
+              if (wasShown) {
+                if (previousInvoice.contains(value)) {
+                  // invoice not changed -> show warning again
+                  Future.successful(Redirect(routes.SupplierTaxIdentifierWarningController.onPageLoad(mode)))
+                } else {
+                  // invoice changed -> clear the flag and route to supplier tax id page
+                  val cleared = updatedAnswers.remove(pages.SupplierTaxIdentifierWarningShownPage)
+                  Future.fromTry(cleared).flatMap(ua => sessionRepository.set(ua).map(_ => Redirect(routes.SupplierTaxIdentifierNumberController.onPageLoad(mode))))
+                }
+              } else {
+                Future.successful(Redirect(navigator.nextPage(InvoiceNumberPage, mode, updatedAnswers)))
+              }
+            }
+          } yield result
       )
   }
 }

@@ -21,8 +21,13 @@ import forms.SupplierTaxIdentifierNumberFormProvider
 import models.{CheckMode, NormalMode, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
+import org.mockito.Mockito.{when, verify}
+import org.mockito.ArgumentCaptor
 import org.scalatestplus.mockito.MockitoSugar
+import models.responses.SupplierTaxIdentifierCountResponse
+import models.responses.{AddPurchaseResponse, ApplicationResponse}
+import pages.{AddPurchaseResponsePage, InvoiceNumberPage}
+import queries.ClaimApplicationResponseQuery
 import pages.SupplierTaxIdentifierNumberPage
 import play.api.inject.bind
 import play.api.mvc.Call
@@ -107,6 +112,143 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual onwardRoute.url
+      }
+    }
+
+    "must redirect to JourneyRecovery when duplicate count > 0" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      // userAnswers with applicationId and itemNumber present
+      val ua = emptyUserAnswers
+      .set(ClaimApplicationResponseQuery, ApplicationResponse(123, "GB123456789", 1))
+        .success
+        .value
+        .set(AddPurchaseResponsePage, AddPurchaseResponse(itemNumber = 1, updateSequenceNumber = 1))
+        .success
+        .value
+        .set(InvoiceNumberPage, "INV123")
+        .success
+        .value
+
+      when(mockEuVatRefundsService.getSupplierTaxIdentifierCount(any())(any()))
+        .thenReturn(Future.successful(SupplierTaxIdentifierCountResponse(duplicateCount = 1)))
+
+      val application =
+        applicationBuilder(userAnswers = Some(ua))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, supplierTaxIdentifierNumberRoute)
+            .withFormUrlEncodedBody(("value", "1234567890"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.SupplierTaxIdentifierWarningController.onPageLoad(NormalMode).url
+
+        // follow the redirect to the warning page which will set the flag
+        val getRequest = FakeRequest(GET, routes.SupplierTaxIdentifierWarningController.onPageLoad(NormalMode).url)
+        val getResult = route(application, getRequest).value
+        status(getResult) mustEqual OK
+
+        // verify the sessionRepository was saved: first for the updated answers, second for the flag set by the warning page
+        val captor: ArgumentCaptor[UserAnswers] = ArgumentCaptor.forClass(classOf[UserAnswers])
+        verify(mockSessionRepository, org.mockito.Mockito.times(2)).set(captor.capture())
+        // second save should contain the warning flag
+        captor.getAllValues.get(1).get(pages.SupplierTaxIdentifierWarningShownPage) mustBe Some(true)
+      }
+    }
+
+      "must redirect to TotalPurchaseAmountBeforeVat when duplicate count == 0" in {
+
+        val mockSessionRepository = mock[SessionRepository]
+
+        when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+        val ua = emptyUserAnswers
+          .set(ClaimApplicationResponseQuery, ApplicationResponse(123, "GB123456789", 1))
+          .success
+          .value
+          .set(AddPurchaseResponsePage, AddPurchaseResponse(itemNumber = 1, updateSequenceNumber = 1))
+          .success
+          .value
+          .set(InvoiceNumberPage, "INV123")
+          .success
+          .value
+          .set(pages.SupplierTaxNumberPage, models.SupplierTaxNumber.Taxidentifiernumber).success.value
+          .set(pages.RefundingCountryPage, "DE").success.value
+
+        when(mockEuVatRefundsService.getSupplierTaxIdentifierCount(any())(any()))
+          .thenReturn(Future.successful(SupplierTaxIdentifierCountResponse(duplicateCount = 0)))
+
+        val application =
+          applicationBuilder(userAnswers = Some(ua))
+            .overrides(
+              bind[SessionRepository].toInstance(mockSessionRepository)
+            )
+            .build()
+
+        running(application) {
+          val request =
+            FakeRequest(POST, supplierTaxIdentifierNumberRoute)
+              .withFormUrlEncodedBody(("value", "1234567890"))
+
+          val result = route(application, request).value
+
+          status(result) mustEqual SEE_OTHER
+          redirectLocation(result).value mustEqual routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode).url
+          val captor: ArgumentCaptor[UserAnswers] = ArgumentCaptor.forClass(classOf[UserAnswers])
+          verify(mockSessionRepository, org.mockito.Mockito.times(2)).set(captor.capture())
+          // second save should have cleared the flag
+          captor.getAllValues.get(1).get(pages.SupplierTaxIdentifierWarningShownPage) mustBe None
+        }
+      }
+
+    "must redirect to JourneyRecovery when backend call fails" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val ua = emptyUserAnswers
+        .set(ClaimApplicationResponseQuery, ApplicationResponse(123, "GB123456789", 1))
+        .success
+        .value
+        .set(AddPurchaseResponsePage, AddPurchaseResponse(itemNumber = 1, updateSequenceNumber = 1))
+        .success
+        .value
+        .set(InvoiceNumberPage, "INV123")
+        .success
+        .value
+
+      when(mockEuVatRefundsService.getSupplierTaxIdentifierCount(any())(any()))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val application =
+        applicationBuilder(userAnswers = Some(ua))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, supplierTaxIdentifierNumberRoute)
+            .withFormUrlEncodedBody(("value", "1234567890"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
       }
     }
 

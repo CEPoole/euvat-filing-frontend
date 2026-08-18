@@ -20,7 +20,8 @@ import base.SpecBase
 import config.FrontendAppConfig
 import connectors.EuVatRefundsConnector
 import models.requests.{AddPurchaseRequest, LatestApplicationRequest}
-import models.responses.{AddPurchaseResponse, LatestApplicationResponse, TraderKnownFactsResponse}
+import models.requests.{AddPurchaseRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest}
+import models.responses.{AddPurchaseResponse, LatestApplicationResponse, TraderKnownFactsResponse, SupplierTaxIdentifierCountResponse}
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.*
 import org.scalatest.concurrent.ScalaFutures
@@ -134,6 +135,30 @@ class EuVatRefundsServiceSpec extends SpecBase with MockitoSugar with ScalaFutur
         .thenReturn(Future.failed(failure))
 
       whenReady(service.addPurchase(request).failed) { ex =>
+        ex mustEqual failure
+      }
+    }
+  }
+
+  "EuVatRefundsService.getSupplierTaxIdentifierCount" - {
+
+    val request = SupplierTaxIdentifierCountRequest(applicationId = 123L, itemNumber = 1, taxIdentifier = "TAX123", invoiceNumber = "INV1")
+    val expectedResponse = SupplierTaxIdentifierCountResponse(duplicateCount = 0)
+
+    "should return the response from the connector" in {
+      when(mockConnector.getSupplierTaxIdentifierCount(any())(any()))
+        .thenReturn(Future.successful(expectedResponse))
+
+      service.getSupplierTaxIdentifierCount(request)(hc).futureValue mustEqual expectedResponse
+    }
+
+    "should propagate an exception from the connector" in {
+      val failure = new RuntimeException("Connector failed")
+
+      when(mockConnector.getSupplierTaxIdentifierCount(any())(any()))
+        .thenReturn(Future.failed(failure))
+
+      whenReady(service.getSupplierTaxIdentifierCount(request).failed) { ex =>
         ex mustEqual failure
       }
     }

@@ -52,9 +52,9 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
     case SuppliersNamePage                 => _ => routes.SupplierAddressController.onPageLoad(NormalMode)
     case SupplierAddressPage               => userAnswers => navigateFromSupplierAddressPage(NormalMode)(userAnswers)
     case SupplierTaxNumberPage             => userAnswers => navigateFromSupplierTaxNumberPage(NormalMode)(userAnswers)
-    case SimplifiedInvoiceVatRegCheckPage  => userAnswer => navigateFromSimplifiedInvoiceVatRegCheckPage(NormalMode)(userAnswer)
+    case SimplifiedInvoiceVatRegCheckPage  => userAnswers => navigateFromSimplifiedInvoiceVatRegCheckPage(NormalMode)(userAnswers)
     case SupplierVatRegistrationNumberPage => userAnswers => navigateToCurrencyOrPurchaseAmount(NormalMode)(userAnswers)
-    case SupplierTaxIdentifierNumberPage   => userAnswers => navigateToCurrencyOrPurchaseAmount(NormalMode)(userAnswers)
+    case SupplierTaxIdentifierNumberPage   => userAnswers => navigateFromSupplierTaxIdentifierNumberPage(NormalMode)(userAnswers)
     case RefundingCurrencyPage             => _ => routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode)
     case TotalPurchaseAmountBeforeVatPage  => _ => routes.TotalVatPaidController.onPageLoad(NormalMode)
     case TotalVatPaidPage                  => _ => routes.TotalVatClaimController.onPageLoad(NormalMode)
@@ -80,9 +80,9 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
     case SuppliersNamePage                 => _ => routes.SupplierAddressController.onPageLoad(CheckMode)
     case SupplierAddressPage               => userAnswers => navigateFromSupplierAddressPage(CheckMode)(userAnswers)
     case SupplierTaxNumberPage             => userAnswers => navigateFromSupplierTaxNumberPage(CheckMode)(userAnswers)
-    case SimplifiedInvoiceVatRegCheckPage  => userAnswer => navigateFromSimplifiedInvoiceVatRegCheckPage(CheckMode)(userAnswer)
+    case SimplifiedInvoiceVatRegCheckPage  => userAnswers => navigateFromSimplifiedInvoiceVatRegCheckPage(CheckMode)(userAnswers)
     case SupplierVatRegistrationNumberPage => userAnswers => navigateToCurrencyOrPurchaseAmount(CheckMode)(userAnswers)
-    case SupplierTaxIdentifierNumberPage   => userAnswers => navigateToCurrencyOrPurchaseAmount(CheckMode)(userAnswers)
+    case SupplierTaxIdentifierNumberPage   => userAnswers => navigateFromSupplierTaxIdentifierNumberPage(CheckMode)(userAnswers)
     case RefundingCurrencyPage             => _ => routes.TotalPurchaseAmountBeforeVatController.onPageLoad(CheckMode)
     case TotalPurchaseAmountBeforeVatPage  => _ => routes.TotalVatPaidController.onPageLoad(CheckMode)
     case TotalVatPaidPage                  => _ => routes.TotalVatClaimController.onPageLoad(CheckMode)
@@ -197,6 +197,28 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
         navigateToCurrencyOrPurchaseAmount(mode)(userAnswers)
       case _ => routes.JourneyRecoveryController.onPageLoad()
     }
+
+  private def navigateFromSupplierTaxIdentifierNumberPage(mode: Mode)(userAnswers: UserAnswers): Call = {
+    val maybeCountryCode = CountryCode.findCountryCode(userAnswers)
+    mode match {
+      case CheckMode =>
+        maybeCountryCode match {
+          case Some(code) if configCurrencyMapping.requiresCurrencySelection(code) =>
+            routes.RefundingCurrencyController.onPageLoad(mode)
+          case Some(code) if code == "DE" || (configCurrencyMapping.hasMapping(code) && configCurrencyMapping.currenciesFor(code).nonEmpty) =>
+            routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
+          case _ => routes.JourneyRecoveryController.onPageLoad()
+        }
+
+      case NormalMode =>
+        maybeCountryCode match {
+          case Some(code) if configCurrencyMapping.requiresCurrencySelection(code) =>
+            routes.RefundingCurrencyController.onPageLoad(mode)
+          case Some("DE") => routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
+          case _           => routes.JourneyRecoveryController.onPageLoad()
+        }
+    }
+  }
 
   private def navigateFromCheckYourStateDetailsPage(mode: Mode)(userAnswers: UserAnswers): Call =
     userAnswers.get(CheckYourStateDetailsPage) match {

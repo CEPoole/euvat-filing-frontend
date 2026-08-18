@@ -16,8 +16,8 @@
 
 package connectors
 
-import models.requests.{AddPurchaseRequest, ApplicationRequest, LatestApplicationRequest}
-import models.responses.{AddPurchaseResponse, ApplicationResponse, LatestApplicationResponse, TraderKnownFactsResponse}
+import models.requests.{AddPurchaseRequest, ApplicationRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest}
+import models.responses.{AddPurchaseResponse, ApplicationResponse, LatestApplicationResponse, TraderKnownFactsResponse, SupplierTaxIdentifierCountResponse}
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
@@ -67,5 +67,19 @@ class EuVatRefundsConnector @Inject() (config: ServicesConfig, http: HttpClientV
       .post(url"$euVatRefundsBaseUrl/add-purchase")
       .withBody(Json.toJson(request))
       .execute[AddPurchaseResponse]
+
+  def getSupplierTaxIdentifierCount(request: SupplierTaxIdentifierCountRequest)(implicit hc: HeaderCarrier): Future[SupplierTaxIdentifierCountResponse] =
+    {
+      val bodyJson = Json.toJson(request)
+      logger.info(s"EuVatRefundsConnector POST $euVatRefundsBaseUrl/get-supplier-taxIdentifier-count body=$bodyJson")
+      http
+        .post(url"$euVatRefundsBaseUrl/get-supplier-taxIdentifier-count")
+        .withBody(bodyJson)
+        .execute[SupplierTaxIdentifierCountResponse]
+        .map { resp =>
+          logger.info(s"EuVatRefundsConnector response: ${Json.toJson(resp)}")
+          resp
+        }
+    }
 
 }

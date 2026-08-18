@@ -334,5 +334,51 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
         )
       }
     }
+
+    "back link should navigate correctly for implemented supplier-tax cases" - {
+      "Germany + SimplifiedInvoice + taxIdentifier -> supplier tax identifier page" in {
+        val userAnswers = UserAnswers(userAnswersId)
+          .set(pages.RefundingCountryPage, "DE").success.value
+          .set(pages.InvoiceTypePage, models.InvoiceType.SimplifiedInvoice).success.value
+          .set(pages.SupplierTaxNumberPage, models.SupplierTaxNumber.Taxidentifiernumber).success.value
+
+        val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+        running(application) {
+          val request = FakeRequest(GET, totalPurchaseAmountBeforeVatRoute)
+          val view = application.injector.instanceOf[TotalPurchaseAmountBeforeVatView]
+          val result = route(application, request).value
+
+          status(result) mustEqual OK
+          contentAsString(result) mustEqual view(form, NormalMode, routes.SupplierTaxIdentifierNumberController.onPageLoad(NormalMode), "€", "Euro")(
+            request,
+            messages(application)
+          ).toString
+        }
+      }
+
+      "Germany + StandardInvoice + taxIdentifier -> supplier tax identifier page" in {
+        val userAnswers = UserAnswers(userAnswersId)
+          .set(pages.RefundingCountryPage, "DE").success.value
+          .set(pages.InvoiceTypePage, models.InvoiceType.StandardInvoice).success.value
+          .set(pages.SupplierTaxNumberPage, models.SupplierTaxNumber.Taxidentifiernumber).success.value
+
+        val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+        running(application) {
+          val request = FakeRequest(GET, totalPurchaseAmountBeforeVatRoute)
+          val view = application.injector.instanceOf[TotalPurchaseAmountBeforeVatView]
+          val result = route(application, request).value
+
+          status(result) mustEqual OK
+          contentAsString(result) mustEqual view(form, NormalMode, routes.SupplierTaxIdentifierNumberController.onPageLoad(NormalMode), "€", "Euro")(
+            request,
+            messages(application)
+          ).toString
+        }
+      }
+
+      // TODO: add remaining back-link tests for other scenarios
+    }
   }
 }
