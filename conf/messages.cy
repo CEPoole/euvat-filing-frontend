@@ -275,7 +275,7 @@ deleteClaim.legend = Are you sure you want to delete this claim?
 deleteClaim.memberState = Refunding EU member state
 deleteClaim.periodStartDate = Refund period start date
 deleteClaim.periodEndDate = Refund period end date
-deleteClaim.error = Select yes if you want to delete this claim
+deleteClaim.error.required = Select yes if you want to delete this claim
 
 beforeYouStart.title = Before you start
 beforeYouStart.heading = Before you start
