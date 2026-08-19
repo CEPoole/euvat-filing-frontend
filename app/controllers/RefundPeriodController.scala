@@ -193,14 +193,15 @@ class RefundPeriodController @Inject() (
         _              <- sessionRepository.set(updatedAnswer2)
       } yield Redirect(controllers.routes.ConfirmRefundPeriodStartDateController.onPageLoad())
     } else {
-      checkOverlappingPeriod(traderResponse, startDate, endDate, mode)
+      checkEndDateInPast(vrn, traderResponse, startDate, endDate, mode)
     }
   }
 
-  private[controllers] def isEndDateInPast(endDate: LocalDateTime): Boolean =
-    YearMonth.from(endDate).isBefore(YearMonth.now())
+  private def isEndDateInPast(endDate: LocalDateTime, today: LocalDate = LocalDate.now()): Boolean =
+    YearMonth.from(endDate).isBefore(YearMonth.from(today))
 
   private def checkEndDateInPast(
+    vrn: String,
     traderResponse: TraderKnownFactsResponse,
     startDate: LocalDateTime,
     endDate: LocalDateTime,
@@ -209,12 +210,11 @@ class RefundPeriodController @Inject() (
     if (isEndDateInPast(endDate)) {
       val refundPeriod = RefundPeriod(startDate, endDate)
       for {
-        updatedAnswer1 <- Future.fromTry(request.userAnswers.set(TraderKnownFactsQuery, traderResponse))
-        updatedAnswer2 <- Future.fromTry(updatedAnswer1.set(RefundPeriodPage, refundPeriod))
-        _              <- sessionRepository.set(updatedAnswer2)
+        updatedUserAnswers <- updateUserAnswers(traderResponse, refundPeriod)
+        _                  <- sessionRepository.set(updatedUserAnswers)
       } yield Redirect(controllers.routes.ConfirmRefundPeriodEndDateController.onPageLoad(mode))
     } else {
-      checkOverlappingPeriod(traderResponse, startDate, endDate, mode)
+      checkOverlappingPeriod(vrn, traderResponse, startDate, endDate, mode)
     }
   }
 
@@ -366,8 +366,8 @@ class RefundPeriodController @Inject() (
                   .orElse(vatDateValidation(value, startDate, endDate, traderResponse, baseForm))
 
                 validationResult match {
-                  case Some(formWithError)                => renderError(formWithError, mode, isExemptForTrader)
-                  case None                               => checkEarliestStartDate(vrn,traderResponse, startDate, endDate, mode)
+                  case None                => checkEarliestStartDate(vrn, traderResponse, startDate, endDate, mode)
+                  case Some(formWithError) => renderError(formWithError, mode, isExemptForTrader)
                 }
             )
         }
