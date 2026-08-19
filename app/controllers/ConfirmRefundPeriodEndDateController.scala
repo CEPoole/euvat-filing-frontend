@@ -19,6 +19,7 @@ package controllers
 import controllers.actions.*
 import models.requests.DataRequest
 import models.{CheckMode, Mode, NormalMode, RefundPeriod}
+import navigation.Navigator
 import pages.RefundPeriodPage
 
 import javax.inject.Inject
@@ -36,6 +37,7 @@ class ConfirmRefundPeriodEndDateController @Inject() (
   getData: DataRetrievalAction,
   requireData: DataRequiredAction,
   val controllerComponents: MessagesControllerComponents,
+  navigator: Navigator,
   view: ConfirmRefundPeriodEndDateView
 ) extends FrontendBaseController
     with I18nSupport {
@@ -51,9 +53,6 @@ class ConfirmRefundPeriodEndDateController @Inject() (
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    mode match {
-      case NormalMode => Redirect(routes.ContactDetailsController.onPageLoad(NormalMode))
-      case CheckMode  => Redirect(routes.CheckYourClaimDetailsController.onPageLoad())
-    }
+    Redirect(navigator.nextPage(RefundPeriodPage, mode, request.userAnswers))
   }
 }
