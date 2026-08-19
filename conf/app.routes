@@ -48,8 +48,8 @@ POST        /change-check-refund-period-start-date      controllers.ConfirmRefun
 
 GET         /check-refund-period-end-date               controllers.ConfirmRefundPeriodEndDateController.onPageLoad(mode: Mode = NormalMode)
 POST        /check-refund-period-end-date               controllers.ConfirmRefundPeriodEndDateController.onSubmit(mode: Mode = NormalMode)
-GET         /check-refund-period-end-date               controllers.ConfirmRefundPeriodEndDateController.onPageLoad(mode: Mode = CheckMode)
-POST        /check-refund-period-end-date               controllers.ConfirmRefundPeriodEndDateController.onSubmit(mode: Mode = CheckMode)
+GET         /change-check-refund-period-end-date        controllers.ConfirmRefundPeriodEndDateController.onPageLoad(mode: Mode = CheckMode)
+POST        /change-check-refund-period-end-date        controllers.ConfirmRefundPeriodEndDateController.onSubmit(mode: Mode = CheckMode)
 
 GET         /how-contact-you-about-claim                controllers.ContactDetailsController.onPageLoad(mode: Mode = NormalMode)
 POST        /how-contact-you-about-claim                controllers.ContactDetailsController.onSubmit(mode: Mode = NormalMode)

@@ -499,7 +499,7 @@ confirmRefundPeriodStartDate.link = No, change the start date
 
 confirmRefundPeriodEndDate.title = Are you sure the refund period end date is correct?
 confirmRefundPeriodEndDate.heading = Are you sure the refund period end date is correct?
-confirmRefundPeriodEndDate.paragraph = You’ve told us the refund period end date is [MM/YY]. The refund period end date must be in the past.
+confirmRefundPeriodEndDate.paragraph = You’ve told us the refund period end date is {0}. The refund period end date must be in the past.
 confirmRefundPeriodEndDate.warning = If you submit a claim with inaccurate information, it may be rejected.
 confirmRefundPeriodEndDate.button = Yes, this is correct
 confirmRefundPeriodEndDate.link = No, change the end date
