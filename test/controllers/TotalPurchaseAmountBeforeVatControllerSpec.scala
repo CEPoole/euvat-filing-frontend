@@ -389,9 +389,15 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
     "back link should navigate correctly for implemented supplier-tax cases" - {
       "Germany + SimplifiedInvoice + taxIdentifier -> supplier tax identifier page" in {
         val userAnswers = UserAnswers(userAnswersId)
-          .set(pages.RefundingCountryPage, "DE").success.value
-          .set(pages.InvoiceTypePage, models.InvoiceType.SimplifiedInvoice).success.value
-          .set(pages.SupplierTaxNumberPage, models.SupplierTaxNumber.Taxidentifiernumber).success.value
+          .set(pages.RefundingCountryPage, "DE")
+          .success
+          .value
+          .set(pages.InvoiceTypePage, models.InvoiceType.SimplifiedInvoice)
+          .success
+          .value
+          .set(pages.SupplierTaxNumberPage, models.SupplierTaxNumber.Taxidentifiernumber)
+          .success
+          .value
 
         val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
@@ -410,9 +416,15 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
 
       "Germany + StandardInvoice + taxIdentifier -> supplier tax identifier page" in {
         val userAnswers = UserAnswers(userAnswersId)
-          .set(pages.RefundingCountryPage, "DE").success.value
-          .set(pages.InvoiceTypePage, models.InvoiceType.StandardInvoice).success.value
-          .set(pages.SupplierTaxNumberPage, models.SupplierTaxNumber.Taxidentifiernumber).success.value
+          .set(pages.RefundingCountryPage, "DE")
+          .success
+          .value
+          .set(pages.InvoiceTypePage, models.InvoiceType.StandardInvoice)
+          .success
+          .value
+          .set(pages.SupplierTaxNumberPage, models.SupplierTaxNumber.Taxidentifiernumber)
+          .success
+          .value
 
         val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 

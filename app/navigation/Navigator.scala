@@ -289,7 +289,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
           case Some(code) if configCurrencyMapping.requiresCurrencySelection(code) =>
             routes.RefundingCurrencyController.onPageLoad(mode)
           case Some("DE") => routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
-          case _           => routes.JourneyRecoveryController.onPageLoad()
+          case _          => routes.JourneyRecoveryController.onPageLoad()
         }
     }
   }

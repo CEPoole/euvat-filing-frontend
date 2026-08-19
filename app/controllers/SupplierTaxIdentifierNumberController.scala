@@ -87,8 +87,8 @@ class SupplierTaxIdentifierNumberController @Inject() (
               case scala.util.Failure(_) => Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
               case scala.util.Success(updatedAnswers) =>
                       val maybeAppId = updatedAnswers.get(ClaimApplicationResponseQuery).map(_.applicationId.toLong)
-                      val maybeItem  = updatedAnswers.get(AddPurchaseResponsePage).map(_.itemNumber)
-                      val invoiceNum  = updatedAnswers.get(InvoiceNumberPage).getOrElse("")
+                      val maybeItem = updatedAnswers.get(AddPurchaseResponsePage).map(_.itemNumber)
+                      val invoiceNum = updatedAnswers.get(InvoiceNumberPage).getOrElse("")
 
                       (maybeAppId, maybeItem) match {
                   case (Some(appId), Some(itemNumber)) =>

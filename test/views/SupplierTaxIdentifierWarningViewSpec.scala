@@ -19,7 +19,7 @@ package views
 import base.SpecBase
 import models.NormalMode
 import org.jsoup.Jsoup
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.FakeRequest
 import views.html.SupplierTaxIdentifierWarningView
 

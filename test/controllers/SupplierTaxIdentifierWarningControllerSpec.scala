@@ -19,7 +19,7 @@ package controllers
 import base.SpecBase
 import models.{CheckMode, NormalMode}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import views.html.SupplierTaxIdentifierWarningView
 
 class SupplierTaxIdentifierWarningControllerSpec extends SpecBase {
