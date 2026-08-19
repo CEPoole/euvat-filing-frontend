@@ -90,6 +90,9 @@ POST        /remove-second-SIC-code                     controllers.RemoveSecond
 GET         /remove-third-SIC-code                      controllers.RemoveThirdBusinessActivityController.onPageLoad()
 POST        /remove-third-SIC-code                      controllers.RemoveThirdBusinessActivityController.onSubmit()
 
+GET         /delete-claim                               controllers.DeleteClaimController.onPageLoad()
+POST         /delete-claim                               controllers.DeleteClaimController.onSubmit()
+
 # Purchase details journey
 GET         /before-you-start                           controllers.BeforeYouStartPurchaseController.onPageLoad()
 POST        /before-you-start                           controllers.BeforeYouStartPurchaseController.onSubmit()

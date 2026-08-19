@@ -269,6 +269,14 @@ checkYourClaimDetails.claimDetails.heading = Claim details
 checkYourPurchaseDetails.title = Check your purchase details
 checkYourPurchaseDetails.heading = Check your purchase details
 
+deleteClaim.title = Delete claim
+deleteClaim.heading = Delete claim
+deleteClaim.legend = Are you sure you want to delete this claim?
+deleteClaim.memberState = Refunding EU member state
+deleteClaim.periodStartDate = Refund period start date
+deleteClaim.periodEndDate = Refund period end date
+deleteClaim.error = Select yes if you want to delete this claim
+
 beforeYouStart.title = Before you start
 beforeYouStart.heading = Before you start
 beforeYouStart.p1 = To tell HMRC about your purchase, you’ll need the:
