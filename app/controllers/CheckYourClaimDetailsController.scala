@@ -74,20 +74,28 @@ class CheckYourClaimDetailsController @Inject() (
         }
       }
 
+      val latestReq = LatestApplicationRequest(
+        applicantVatRegNumber = request.identifierValue.getOrElse(throw new IllegalStateException("Missing Vat registration number")),
+        refundingCountry      = userAnswers.get(RefundingCountryPage)
+      )
+
       updatedAnswers
         .flatMap { flaggedAnswers =>
-          flaggedAnswers.get(LatestCountryResponseQuery) match {
-            case Some(latestResp) if !isPostSubmission && latestResp.totalApplication > 0 =>
-              logger.warn("You cannot have more than one draft claim for each EU member state")
-              Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
-            case _ =>
-              val claimRequest = buildClaimRequest(flaggedAnswers)
-              saveClaimResponseAndRedirect(flaggedAnswers, claimRequest)
-          }
-        }
-        .recover { case ex =>
-          logger.error("Error while saving the refund application", ex)
-          Redirect(routes.JourneyRecoveryController.onPageLoad())
+          service
+            .getLatestApplications(latestReq)
+            .flatMap { latestResp =>
+              if (latestResp.totalApplication > 0) {
+                logger.warn("You cannot have more than one draft claim for each EU member state")
+                Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
+              } else {
+                val claimRequest = buildClaimRequest(flaggedAnswers)
+                saveClaimResponseAndRedirect(flaggedAnswers, claimRequest)
+              }
+            }
+            .recover { case ex =>
+              logger.error("Error while retrieving or saving the refund application", ex)
+              Redirect(routes.JourneyRecoveryController.onPageLoad())
+            }
         }
     }
   }

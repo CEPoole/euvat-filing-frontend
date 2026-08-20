@@ -16,7 +16,7 @@
 
 package forms
 
-import forms.mappings.YearMonthFormatter
+import forms.mappings.{Mappings, YearMonthFormatter}
 import play.api.data.Form
 import play.api.data.Forms.{mapping, of}
 import play.api.data.validation.{Constraint, Invalid, Valid}
@@ -28,7 +28,7 @@ import javax.inject.Inject
 
 case class RefundPeriodData(start: YearMonth, end: YearMonth)
 
-class RefundPeriodFormProvider @Inject() () {
+class RefundPeriodFormProvider @Inject() extends Mappings {
 
   protected def today: LocalDate = LocalDate.now()
 

@@ -26,8 +26,8 @@
 @(sections: Seq[(String, Seq[(String, Option[String], Seq[(String, String, String)])])], isPostSubmission: Boolean, isAmended: Boolean)(implicit request: Request[_], messages: Messages)
 
 @layout(
-pageTitle = titleNoForm(messages(if(isPostSubmission) "checkYourClaimDetails.claimDetails.title" else "checkYourClaimDetails.title")),
-showBackLink = false
+    pageTitle = titleNoForm(messages(if(isPostSubmission) "checkYourClaimDetails.claimDetails.title" else "checkYourClaimDetails.title")),
+    showBackLink = false
 ) {
     <h1 class="govuk-heading-l">@messages(if(isPostSubmission) "checkYourClaimDetails.claimDetails.heading" else "checkYourClaimDetails.heading")</h1>
     @if(!isPostSubmission) {
@@ -35,6 +35,7 @@ showBackLink = false
     }
 
     @formHelper(action = routes.CheckYourClaimDetailsController.onSubmit(), Symbol("autoComplete") -> "off") {
+        @helper.CSRF.formField
         @for((labelKey, rows) <- sections) {
             <div class="govuk-!-margin-bottom-9">
                 <h2 class="govuk-heading-m govuk-!-margin-bottom-2">@messages(labelKey)</h2>
