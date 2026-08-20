@@ -274,7 +274,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
           val result = route(application, request).value
 
           status(result) mustEqual SEE_OTHER
-          redirectLocation(result).value mustEqual routes.ConfirmRefundPeriodStartDateController.onPageLoad(CheckMode).url
+          redirectLocation(result).value mustEqual routes.ConfirmRefundPeriodEndDateController.onPageLoad(CheckMode).url
         }
       }
 
@@ -427,7 +427,6 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             )
 
           val result = route(application, request).value
-
           status(result) mustEqual SEE_OTHER
         }
       }
@@ -991,7 +990,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
               .withFormUrlEncodedBody(
                 "start.month" -> "01",
                 "start.year"  -> afterSept30Year.toString,
-                "end.month"   -> "06",
+                "end.month"   -> "12",
                 "end.year"    -> afterSept30Year.toString
               )
             val result = route(application, request).value
