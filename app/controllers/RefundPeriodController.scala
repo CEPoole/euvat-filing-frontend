@@ -36,7 +36,7 @@ import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, CountryCode}
 import views.html.RefundPeriodView
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDateTime, YearMonth, LocalDate, MonthDay}
+import java.time.{LocalDate, LocalDateTime, MonthDay, YearMonth}
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -179,6 +179,7 @@ class RefundPeriodController @Inject() (
   }
 
   private def checkEarliestStartDate(
+    vrn: String,
     traderResponse: TraderKnownFactsResponse,
     startDate: LocalDateTime,
     endDate: LocalDateTime,
@@ -195,7 +196,7 @@ class RefundPeriodController @Inject() (
         _              <- sessionRepository.set(updatedAnswer2)
       } yield Redirect(controllers.routes.ConfirmRefundPeriodStartDateController.onPageLoad(mode))
     } else {
-      checkOverlappingPeriod(traderResponse, startDate, endDate, mode)
+      checkOverlappingPeriod(vrn, traderResponse, startDate, endDate, mode)
     }
   }
 
@@ -231,7 +232,6 @@ class RefundPeriodController @Inject() (
             _ <- sessionRepository.set(updatedAnswer3)
           } yield Redirect(controllers.routes.PeriodOverlapWarningController.onPageLoad(mode))
         } else {
-          logger.info(s"F5 overlap check: no overlapping applications found, startDate=$startDate, endDate=$endDate")
           saveAndRedirect(traderResponse, startDate, endDate, mode)
         }
       }
@@ -348,7 +348,7 @@ class RefundPeriodController @Inject() (
                   .orElse(vatDateValidation(value, startDate, endDate, traderResponse, baseForm))
 
                 validationResult match {
-                  case None                => checkOverlappingPeriod(vrn, traderResponse, startDate, endDate, mode)
+                  case None                => checkEarliestStartDate(vrn, traderResponse, startDate, endDate, mode)
                   case Some(formWithError) => renderError(formWithError, mode, isExemptForTrader)
                 }
             )
