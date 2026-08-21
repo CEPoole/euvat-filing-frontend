@@ -21,6 +21,8 @@ import utils.ConfigPurchaseMapping
 import models.{CheckMode, UserAnswers}
 import pages.*
 import play.api.i18n.{Lang, Messages}
+import play.api.mvc.RequestHeader
+import utils.MountPrefix
 import viewmodels.govuk.summarylist.*
 
 object CheckYourPurchaseDetailsSummary {
@@ -102,7 +104,7 @@ object CheckYourPurchaseDetailsSummary {
       Some((keyLabel, displayValueOpt, Seq((url, "site.change", "purchase.subType.change.hidden"))))
   }
 
-  def rowPurchaseSubCategoryLabel(answers: UserAnswers)(implicit messages: Messages): Option[Row] =
+  def rowPurchaseSubCategoryLabel(answers: UserAnswers)(implicit messages: Messages, request: RequestHeader): Option[Row] =
     // Build a humanised heading from the slug mapping in PurchaseSubCategoryType
     // and show the stored sub-category label as the value.
     for {
@@ -135,11 +137,12 @@ object CheckYourPurchaseDetailsSummary {
       // Display "Not provided" when the stored label is the None sentinel.
       val displayValue = if (label == ConfigPurchaseMapping.NoneValue) messages("site.notProvided") else label
 
-      // Build a change-* URL for CheckMode using the resolved slug. Mount
-      // prefixing requires a RequestHeader which is not available in this
-      // view model, so emit the slug-only path and let templates/controllers
-      // handle any prefixing at render/dispatch time.
-      val url = s"/change-$slug"
+      // Build a change-* URL for CheckMode using the resolved slug and
+      // include the configured mount prefix so the link points to the
+      // externally mounted context (e.g. "/file-eu-vat"). Use the implicit
+      // RequestHeader to compute the mount via `MountPrefix.get`.
+      val mount = MountPrefix.get
+      val url = if (mount.isEmpty) s"/change-$slug" else s"$mount/change-$slug"
 
       (keyLabel, Some(displayValue), Seq((url, "site.change", "purchase.subCategory.change.hidden")))
     }
@@ -306,7 +309,7 @@ object CheckYourPurchaseDetailsSummary {
                maybeCurrencySymbol: Option[String],
                config: ConfigPurchaseMapping,
                showCurrencyRow: Boolean
-              )(implicit messages: Messages): Seq[(String, Seq[Row])] = {
+              )(implicit messages: Messages, request: RequestHeader): Seq[(String, Seq[Row])] = {
     val purchaseCategoryRows =
       Seq(rowPurchaseType(answers), rowPurchaseSubTypeLabel(answers, config), rowPurchaseSubCategoryLabel(answers), rowDescribeItems(answers)).flatten
 

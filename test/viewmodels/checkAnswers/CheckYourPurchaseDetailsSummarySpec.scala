@@ -53,6 +53,7 @@ class CheckYourPurchaseDetailsSummarySpec extends SpecBase {
       val app = applicationBuilder(userAnswers = Some(userAnswers)).build()
       running(app) {
         implicit val msgs = messages(app)
+        implicit val req = play.api.test.FakeRequest()
 
         // simulate MountPrefix.get via a fake request in SpecBase helpers
         val row = CheckYourPurchaseDetailsSummary.rowPurchaseSubCategoryLabel(userAnswers).value
@@ -111,6 +112,7 @@ class CheckYourPurchaseDetailsSummarySpec extends SpecBase {
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
       running(application) {
         implicit val msgs = messages(application)
+        implicit val req = play.api.test.FakeRequest()
 
         val row = CheckYourPurchaseDetailsSummary.rowPurchaseSubCategoryLabel(userAnswers).value
         row._2.value mustBe msgs("site.notProvided")
@@ -143,6 +145,7 @@ class CheckYourPurchaseDetailsSummarySpec extends SpecBase {
       val config = new ConfigPurchaseMapping()
       val app = applicationBuilder().build()
       implicit val msgs = messages(app)
+      implicit val req = play.api.test.FakeRequest()
 
       val sections = CheckYourPurchaseDetailsSummary.sections(ua, Some("Euro"), Some("€"), config, showCurrencyRow = true)
 
@@ -202,6 +205,7 @@ class CheckYourPurchaseDetailsSummarySpec extends SpecBase {
 
         running(application) {
           implicit val msgs: Messages = messages(application)
+          implicit val req: play.api.mvc.RequestHeader = play.api.test.FakeRequest()
 
           val sections = CheckYourPurchaseDetailsSummary.sections(userAnswers,
                                                                   Some(msgs("site.notProvided")),
