@@ -35,7 +35,6 @@
     }
 
     @formHelper(action = routes.CheckYourClaimDetailsController.onSubmit(), Symbol("autoComplete") -> "off") {
-        @helper.CSRF.formField
         @for((labelKey, rows) <- sections) {
             <div class="govuk-!-margin-bottom-9">
                 <h2 class="govuk-heading-m govuk-!-margin-bottom-2">@messages(labelKey)</h2>
