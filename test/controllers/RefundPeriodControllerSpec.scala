@@ -21,7 +21,7 @@ import controllers.actions.{CustomIdentifierAction, FakeIdentifierAction, Identi
 import forms.{RefundPeriodData, RefundPeriodFormProvider}
 import models.requests.DataRequest
 import models.responses.{LatestApplication, LatestApplicationResponse, TraderKnownFactsResponse}
-import models.{NormalMode, CheckMode, RefundPeriod, UserAnswers}
+import models.{CheckMode, NormalMode, RefundPeriod, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.*
@@ -239,7 +239,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
       }
 
       "must redirect to ConfirmRefundPeriodStartDateController if start date is before the earliest permitted date" in {
-        val application = appBuilder(userAnswers = Some(emptyUserAnswers))
+        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
           .overrides(bind[forms.RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
           .build()
 
