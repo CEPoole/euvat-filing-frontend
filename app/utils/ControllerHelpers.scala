@@ -25,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 import play.api.libs.json.Format
 import play.api.mvc.Results.*
-import models.{Mode, UserAnswers}
+import models.{Mode, UserAnswers, CheckMode}
 
 object ControllerHelpers {
 
@@ -131,6 +131,20 @@ object ControllerHelpers {
       else navigatorNext
 
     CheckModeShortCircuit(page, newValue, mode, userAnswers, sessionRepository, unchangedRedirect, onSaved)
+  }
+
+  /** If running in CheckMode and the arrival flag page is not set, set it
+    * and persist the updated `UserAnswers`. Otherwise call `render` with
+    * the existing `UserAnswers`.
+    */
+  def markArrivalAndRender(page: QuestionPage[Boolean], mode: Mode, userAnswers: UserAnswers, sessionRepository: SessionRepository)(
+    render: UserAnswers => Future[Result]
+  )(implicit ec: ExecutionContext, request: DataRequest[?]): Future[Result] = {
+    import play.api.mvc.Results.*
+    if (mode == CheckMode && !userAnswers.get(page).contains(true)) {
+      val markedTry = userAnswers.set(page, true)
+      persistAndThen(markedTry, sessionRepository)(render)
+    } else render(userAnswers)
   }
 
 }

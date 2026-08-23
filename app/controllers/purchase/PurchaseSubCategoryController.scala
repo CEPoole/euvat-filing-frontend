@@ -21,12 +21,13 @@ import controllers.routes
 import forms.PurchaseSubTypeFormProvider
 import models.{Mode, PurchaseSubCategoryType, PurchaseType, UserAnswers}
 import navigation.Navigator
-import pages.{PurchaseSubCategoryLabelPage, PurchaseSubCategoryPage, PurchaseTypePage}
+import pages.{PurchaseSubCategoryArrivedFromCheckYourAnswersPage, PurchaseSubCategoryLabelPage, PurchaseSubCategoryPage, PurchaseTypePage}
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import utils.ConfigPurchaseMapping
+import utils.ControllerHelpers
 import views.html.PurchaseSubTypeView
 
 import javax.inject.Inject
@@ -138,12 +139,17 @@ class PurchaseSubCategoryController @Inject() (
       )
   }
 
-  private def backUrlFor(userAnswers: UserAnswers)(implicit request: play.api.mvc.RequestHeader): String = {
+  private def backUrlFor(userAnswers: UserAnswers, mode: Mode)(implicit request: play.api.mvc.RequestHeader): String = {
     // compute the back URL that returns to the parent purchase type
+    // when in CheckMode the back target should include the change- prefix
     val prefix = utils.MountPrefix.get
     userAnswers.get(PurchaseTypePage).map(models.PurchaseType.slugOf) match {
       case Some(slug) =>
-        val url = if (prefix.isEmpty) s"/$slug" else s"$prefix/$slug"
+        val url = if (mode == models.CheckMode) {
+          if (prefix.isEmpty) s"/change-$slug" else s"$prefix/change-$slug"
+        } else {
+          if (prefix.isEmpty) s"/$slug" else s"$prefix/$slug"
+        }
         Call("GET", url).url
       case None =>
         // fallback to the top-level PurchaseType page in NormalMode
@@ -230,8 +236,8 @@ class PurchaseSubCategoryController @Inject() (
 
     // compute the POST action target for the radio form
     val formAction = computeFormAction(parentKey, candidates, userAnswers, mode)(request)
-    // compute a back URL used by the template
-    val backUrl = backUrlFor(userAnswers)
+    // compute a back URL used by the template (mode-aware)
+    val backUrl = backUrlFor(userAnswers, mode)
 
     // parent base is the top-level segment of the resolved code
     val parentBase = resolvedParentCode.split("\\.").headOption.getOrElse(resolvedParentCode)
@@ -244,10 +250,7 @@ class PurchaseSubCategoryController @Inject() (
   }
 
   // Persist the provided `Try[UserAnswers]` once, then invoke `f` with the
-  // persisted `UserAnswers`. This avoids repeated `sessionRepository.set`
-  // calls and centralises the common pattern used by onPageLoad/onSubmit.
-  private def persistAndThen(uaTry: Try[UserAnswers])(f: UserAnswers => Future[play.api.mvc.Result]): Future[play.api.mvc.Result] =
-    Future.fromTry(uaTry).flatMap(ua => sessionRepository.set(ua).flatMap(_ => f(ua)))
+  // persisted `UserAnswers`. Delegates to the central `ControllerHelpers.persistAndThen` to avoid duplication.
 
   // Helper: compute effectiveParentCode for the current request/session
   private def effectiveParentCodeFor(country: String, parentKey: String, userAnswers: UserAnswers): String =
@@ -304,7 +307,15 @@ class PurchaseSubCategoryController @Inject() (
               // if session already contains a compatible parent, just render
               request.userAnswers.get(pages.PurchaseSubTypePage) match {
                 case Some(existing) if existing.split("\\.").headOption.contains(parentBase2) =>
-                  Future.successful(Ok(view(preparedForm2, items2, pageTitle2, heading2, formAction2, backUrl2)))
+                  // Use helper to mark arrival flag when entering in CheckMode
+                  ControllerHelpers.markArrivalAndRender(
+                    PurchaseSubCategoryArrivedFromCheckYourAnswersPage,
+                    mode,
+                    request.userAnswers,
+                    sessionRepository
+                  ) { _ =>
+                    Future.successful(Ok(view(preparedForm2, items2, pageTitle2, heading2, formAction2, backUrl2)))
+                  }
 
                 case _ =>
                   // otherwise, persist a default parent and label and render
@@ -313,8 +324,19 @@ class PurchaseSubCategoryController @Inject() (
                     afterSetParent      <- request.userAnswers.set(pages.PurchaseSubTypePage, childToPersist2)
                     afterSetParentLabel <- afterSetParent.set(pages.PurchaseSubTypeLabelPage, labelForParent)
                   } yield afterSetParentLabel
-
-                  persistAndThen(saved)(_ => Future.successful(Ok(view(preparedForm2, items2, pageTitle2, heading2, formAction2, backUrl2))))
+                  ControllerHelpers.persistAndThen(saved, sessionRepository) { ua =>
+                    // When persisting a default parent in CheckMode, also
+                    // mark that the user arrived from the sub-category
+                    // change flow so PurchaseTypeController can route back
+                    // here when appropriate. Use the already-persisted `ua`
+                    // to avoid overwriting the saved default parent.
+                    ControllerHelpers.markArrivalAndRender(
+                      PurchaseSubCategoryArrivedFromCheckYourAnswersPage,
+                      mode,
+                      ua,
+                      sessionRepository
+                    ) { _ => Future.successful(Ok(view(preparedForm2, items2, pageTitle2, heading2, formAction2, backUrl2))) }
+                  }
               }
             }
 
@@ -384,7 +406,7 @@ class PurchaseSubCategoryController @Inject() (
                       } yield a2
 
                       // persist and redirect based on mode
-                      persistAndThen(savedTry)(ua =>
+                      ControllerHelpers.persistAndThen(savedTry, sessionRepository)(ua =>
                         Future.successful(
                           if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
                           else Redirect(routes.InvoiceTypeController.onPageLoad(mode))
@@ -401,7 +423,7 @@ class PurchaseSubCategoryController @Inject() (
                       } yield afterSetLabel
 
                       // persist and redirect based on mode
-                      persistAndThen(savedTry)(ua =>
+                      ControllerHelpers.persistAndThen(savedTry, sessionRepository)(ua =>
                         Future.successful(
                           if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
                           else Redirect(routes.InvoiceTypeController.onPageLoad(mode))

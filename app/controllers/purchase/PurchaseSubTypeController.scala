@@ -19,12 +19,13 @@ package controllers.purchase
 import controllers.actions.*
 import forms.PurchaseSubTypeFormProvider
 import navigation.Navigator
-import pages.{CountryChangedPage, PurchaseSubCategoryLabelPage, PurchaseSubCategoryPage, PurchaseSubTypeLabelPage, PurchaseSubTypePage, PurchaseTypePage, RefundingCountryNamePage, RefundingCountryPage}
+import pages.{CountryChangedPage, PurchaseSubCategoryLabelPage, PurchaseSubCategoryPage, PurchaseSubTypeArrivedFromCheckYourAnswersPage, PurchaseSubTypeLabelPage, PurchaseSubTypePage, PurchaseTypePage, RefundingCountryNamePage, RefundingCountryPage}
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents, Request, RequestHeader}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import utils.{ConfigPurchaseMapping, MountPrefix}
+import utils.ControllerHelpers
 import views.html.PurchaseSubTypeView
 
 import javax.inject.Inject
@@ -224,16 +225,26 @@ class PurchaseSubTypeController @Inject() (
                   val label = if (labelKey != null && labelKey.nonEmpty) messagesApi.preferred(request)(labelKey) else singleCode
                   val savedTry = persistSelection(request.userAnswers, parentKey, singleCode, label)
 
-                  Future.fromTry(savedTry).flatMap { updated =>
-                    sessionRepository.set(updated).map(_ => Redirect(controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(mode)))
+                  ControllerHelpers.persistAndThen(savedTry, sessionRepository) { _ =>
+                    Future.successful(Redirect(controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(mode)))
                   }
                 } else {
                   // Render normally when the single option is not the sentinel
-                  renderSubTypeView(preparedForm, items, parentHeading, formAction, mode)
+                  ControllerHelpers.markArrivalAndRender(
+                    pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage,
+                    mode,
+                    request.userAnswers,
+                    sessionRepository
+                  ) { _ => renderSubTypeView(preparedForm, items, parentHeading, formAction, mode) }
                 }
               } else {
                 // Standard rendering path: show the radio list
-                renderSubTypeView(preparedForm, items, parentHeading, formAction, mode)
+                ControllerHelpers.markArrivalAndRender(
+                  pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage,
+                  mode,
+                  request.userAnswers,
+                  sessionRepository
+                ) { _ => renderSubTypeView(preparedForm, items, parentHeading, formAction, mode) }
               }
             }
 
@@ -286,15 +297,11 @@ class PurchaseSubTypeController @Inject() (
                           a4 <- a3.remove(PurchaseSubCategoryLabelPage)
                         } yield a4
 
-                        for {
-                          updatedAnswers <- Future.fromTry(savedTry)
-                          _              <- sessionRepository.set(updatedAnswers)
-                        } yield {
-                          // In CheckMode, selecting the sentinel None should return
-                          // the user to the Purchase Check Your Answers page rather
-                          // than routing to the invoice type edit page.
-                          if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
-                          else Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode))
+                        ControllerHelpers.persistAndThen(savedTry, sessionRepository) { _ =>
+                          Future.successful(
+                            if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+                            else Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode))
+                          )
                         }
 
                       } else {
@@ -304,10 +311,7 @@ class PurchaseSubTypeController @Inject() (
 
                         val savedTry = persistSelection(request.userAnswers, parentKey, value, label)
 
-                        for {
-                          updatedAnswers <- Future.fromTry(savedTry)
-                          _              <- sessionRepository.set(updatedAnswers)
-                        } yield {
+                        ControllerHelpers.persistAndThen(savedTry, sessionRepository) { _ =>
                           // After persisting decide whether to navigate to subcategory
                           val children = config.subcategoriesFor(country, parentKey, value)
 
@@ -335,10 +339,7 @@ class PurchaseSubTypeController @Inject() (
                               }
                               .collectFirst { case Some(call) => call }
 
-                            maybeCall match {
-                              case Some(call) => Redirect(call)
-                              case None       => Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode))
-                            }
+                            Future.successful(maybeCall.fold(Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode)): play.api.mvc.Result)(Redirect(_)))
 
                           } else {
                             // No children present: special-case `other` + sentinel '99'
@@ -346,12 +347,11 @@ class PurchaseSubTypeController @Inject() (
                             val isOtherPurchaseType =
                               PurchaseType.values.find(pt => PurchaseType.slugOf(pt) == resolvedSlug).contains(PurchaseType.Other)
 
-                            if (isOtherPurchaseType && lastSeg == "99")
-                              Redirect(controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(mode))
-                            else
-                            // In CheckMode with no further pages, show Purchase CYA
-                            if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
-                            else Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode))
+                            Future.successful(
+                              if (isOtherPurchaseType && lastSeg == "99") Redirect(controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(mode))
+                              else if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+                              else Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode))
+                            )
                           }
                         }
                       }

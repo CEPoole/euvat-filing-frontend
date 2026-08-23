@@ -133,51 +133,98 @@ class PurchaseTypeController @Inject() (
         formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode)))),
 
         // Successful bind -> process the selected purchase type value
-        value =>
+        value => {
           // capture the previous stored purchase type (if any) to decide
           // whether a full downstream clear is necessary
           val previous = request.userAnswers.get(PurchaseTypePage)
-          /*
-           * Submission handling summary:
-           * 1. Attempt a CheckMode short-circuit: if the user is in CheckMode
-           *    and the submitted value equals the stored value we immediately
-           *    redirect to the Purchase CYA without persisting (avoids a
-           *    needless write and keeps single-write semantics).
-           * 2. If not short-circuited, build a `Try[UserAnswers]` that
-           *    represents the new state. If the purchase type changed we
-           *    clear downstream data via `buildUpdatedTryForPurchaseTypeChange`.
-           * 3. Persist exactly once and perform post-persist routing using
-           *    `persistAndHandleSaved` (this may call the external service
-           *    to add a purchase, redirect to change-* paths in CheckMode,
-           *    or follow the navigator in NormalMode).
-           */
-          CheckModeShortCircuit.shortCircuitIfUnchanged(
-            PurchaseTypePage,
-            value,
-            mode,
-            request.userAnswers,
-            controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
-          ) match {
-            case Some(res) => Future.successful(res)
-            case None =>
-              val userAnswersTry = request.userAnswers.get(PurchaseTypePage) match {
-                // If the purchase type actually changed, compose a Try that
-                // clears dependent answers (sub-type, sub-category, labels,
-                // and free-text description) before setting the new type.
-                case Some(prev) if prev != value =>
-                  // Purchase type changed -> build a Try that clears dependent
-                  // sub-type/sub-category and free-text fields before setting
-                  // the new type so we persist a consistent session state.
-                  buildUpdatedTryForPurchaseTypeChange(value)
 
-                case _ =>
-                  // No change or previously empty -> just set the purchase type
-                  request.userAnswers.set(PurchaseTypePage, value)
+          // If the user arrived here from the describe-items change flow
+          // we should not short-circuit back to the CYA when the purchase
+          // type value is unchanged; instead consume the transient marker
+          // and return them to the originating change page so they can
+          // continue editing. Arrival flags for sub-type/sub-category are
+          // handled after persisting a changed value in
+          // `handleCheckModePostPersist` to avoid redirecting on unchanged
+          // submissions.
+          if (mode == models.CheckMode && previous.contains(value)) {
+            // If the user arrived here from editing describe-items we would
+            // usually return them to that page. However if they have also
+            // travelled via sub-type/sub-category change flows (transient
+            // arrival flags present) we should not re-route them back to
+            // describe-items on an unchanged submission — instead
+            // short-circuit to the CYA. This avoids the loop described in
+            // the bug report where users navigate back without making any
+            // edits and are sent back to describe-items repeatedly.
+            val arrivedFromDescribe = request.userAnswers.get(pages.DescribeItemsArrivedFromCheckYourAnswersPage).contains(true)
+            val arrivedFromSubTypeOrCategory = request.userAnswers.get(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage).contains(true) || request.userAnswers.get(pages.PurchaseSubCategoryArrivedFromCheckYourAnswersPage).contains(true)
+
+            if (arrivedFromDescribe && !arrivedFromSubTypeOrCategory) {
+              val removedTry = request.userAnswers.remove(pages.DescribeItemsArrivedFromCheckYourAnswersPage)
+              Future.fromTry(removedTry).flatMap { ua =>
+                sessionRepository.set(ua).map { _ =>
+                  val call = controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(models.CheckMode)
+                  val prefix = MountPrefix.get
+                  if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
+                  else Redirect(Call(call.method, s"$prefix${call.url}"))
+                }
               }
-
-              // Persist the composed UserAnswers once and handle routing.
-              persistAndHandleSaved(userAnswersTry, value, mode)
+            } else {
+              // Default: perform the usual short-circuit to Purchase CYA
+              CheckModeShortCircuit.shortCircuitIfUnchanged(
+                PurchaseTypePage,
+                value,
+                mode,
+                request.userAnswers,
+                controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+              ) match {
+                case Some(res) => Future.successful(res)
+                case None      =>
+                  Future.failed(new IllegalStateException("Expected short-circuit result for unchanged CheckMode submission"))
+              }
+            }
           }
+          else {
+            // Submission handling summary:
+            // 1. Attempt a CheckMode short-circuit: if the user is in CheckMode
+            //    and the submitted value equals the stored value we immediately
+            //    redirect to the Purchase CYA without persisting (avoids a
+            //    needless write and keeps single-write semantics).
+            // 2. If not short-circuited, build a `Try[UserAnswers]` that
+            //    represents the new state. If the purchase type changed we
+            //    clear downstream data via `buildUpdatedTryForPurchaseTypeChange`.
+            // 3. Persist exactly once and perform post-persist routing using
+            //    `persistAndHandleSaved` (this may call the external service
+            //    to add a purchase, redirect to change-* paths in CheckMode,
+            //    or follow the navigator in NormalMode).
+            CheckModeShortCircuit.shortCircuitIfUnchanged(
+              PurchaseTypePage,
+              value,
+              mode,
+              request.userAnswers,
+              controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+            ) match {
+              case Some(res) => Future.successful(res)
+              case None =>
+                val userAnswersTry = request.userAnswers.get(PurchaseTypePage) match {
+                  // If the purchase type actually changed, compose a Try that
+                  // clears dependent answers (sub-type, sub-category, labels,
+                  // and free-text description) before setting the new type.
+                  case Some(prev) if prev != value =>
+                    // Purchase type changed -> build a Try that clears dependent
+                    // sub-type/sub-category and free-text fields before setting
+                    // the new type so we persist a consistent session state.
+                    buildUpdatedTryForPurchaseTypeChange(value)
+
+                  case _ =>
+                    // No change or previously empty -> just set the purchase type
+                    request.userAnswers.set(PurchaseTypePage, value)
+                }
+
+                // Persist the composed UserAnswers once and handle routing.
+                persistAndHandleSaved(userAnswersTry, value, mode)
+            }
+          }
+        }
       )
   }
 
@@ -253,8 +300,40 @@ class PurchaseTypeController @Inject() (
       }
       .getOrElse(true)
 
-    // If no subcodes, simply return to Purchase CYA
-    if (!hasSubcodes) Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
+    // If the user reached PurchaseType via the describe-items change flow
+    // then consume the transient marker and return them to the describe-items
+    // change page so they can edit the free-text description.
+    if (updatedAnswers.get(pages.DescribeItemsArrivedFromCheckYourAnswersPage).contains(true)) {
+      val removeTry = updatedAnswers.remove(pages.DescribeItemsArrivedFromCheckYourAnswersPage)
+      Future.fromTry(removeTry).flatMap { ua =>
+        sessionRepository.set(ua).map { _ =>
+          val call = controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(models.CheckMode)
+          val prefix = MountPrefix.get
+          if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
+          else Redirect(Call(call.method, s"$prefix${call.url}"))
+        }
+      }
+    } else if (updatedAnswers.get(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage).contains(true)) {
+      val removeTry = updatedAnswers.remove(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage)
+      Future.fromTry(removeTry).flatMap { ua =>
+        sessionRepository.set(ua).map { _ =>
+          val call = controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(PurchaseType.slugOf(value), models.CheckMode)
+          val prefix = MountPrefix.get
+          if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
+          else Redirect(Call(call.method, s"$prefix${call.url}"))
+        }
+      }
+    } else if (updatedAnswers.get(pages.PurchaseSubCategoryArrivedFromCheckYourAnswersPage).contains(true)) {
+      val removeTry = updatedAnswers.remove(pages.PurchaseSubCategoryArrivedFromCheckYourAnswersPage)
+      Future.fromTry(removeTry).flatMap { ua =>
+        sessionRepository.set(ua).map { _ =>
+          val call = controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(PurchaseType.slugOf(value), models.CheckMode)
+          val prefix = MountPrefix.get
+          if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
+          else Redirect(Call(call.method, s"$prefix${call.url}"))
+        }
+      }
+    } else if (!hasSubcodes) Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
     else {
       // Build a change-<slug> path and redirect there so users complete
       // any newly-required pages for the changed purchase type.

@@ -106,15 +106,23 @@ class DescribeItemsOnInvoiceController @Inject() (
       PurchaseBackLinkHelper.computeBackTarget(mode)
 
   // Render the page on GET request.
-  def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
+  def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
     // prepare the form: fill with existing value if present
     val preparedForm = request.userAnswers.get(DescribeItemsOnInvoicePage) match {
       case None        => form
       case Some(value) => form.fill(value)
     }
 
-    // render the view with the prepared form and computed back target
-    Ok(view(preparedForm, mode, computeBackTarget(mode)))
+    // When opened in CheckMode we mark the session so downstream pages
+    // (notably PurchaseTypeController) can detect that the user arrived
+    // from the describe-items change flow and return them here after
+    // editing the purchase type.
+    if (mode == CheckMode && !request.userAnswers.get(pages.DescribeItemsArrivedFromCheckYourAnswersPage).contains(true)) {
+      val markedTry = request.userAnswers.set(pages.DescribeItemsArrivedFromCheckYourAnswersPage, true)
+      Future.fromTry(markedTry).flatMap { updated =>
+        sessionRepository.set(updated).map(_ => Ok(view(preparedForm, mode, computeBackTarget(mode))))
+      }
+    } else Future.successful(Ok(view(preparedForm, mode, computeBackTarget(mode))))
   }
 
   // Handle form submission on POST.

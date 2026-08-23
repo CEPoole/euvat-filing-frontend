@@ -34,6 +34,7 @@ import models.{CheckMode, NormalMode, PurchaseType}
 import play.api.mvc.Call
 import org.mockito.Mockito.{verify, never, times}
 import org.mockito.ArgumentMatchers.{any => anyA}
+import org.mockito.ArgumentCaptor
 
 class ControllerHelpersSpec extends SpecBase {
 
@@ -204,6 +205,71 @@ class ControllerHelpersSpec extends SpecBase {
 
       res.header.status mustBe OK
       verify(mockRepo, times(1)).set(anyA())
+    }
+  }
+
+  "markArrivalAndRender" - {
+    "marks arrival and persists when in CheckMode and flag missing" in {
+      val page = pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage
+
+      val ua = emptyUserAnswers
+
+      val mockRepo = mock[SessionRepository]
+      when(mockRepo.set(any[models.UserAnswers])) thenReturn Future.successful(true)
+
+      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, None, None, ua)
+
+      val fut = ControllerHelpers.markArrivalAndRender(page, CheckMode, ua, mockRepo) { updated =>
+        Future.successful(Ok("rendered"))
+      }
+
+      val res = fut.futureValue
+      res.header.status mustBe OK
+
+      val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+      verify(mockRepo, times(1)).set(captor.capture())
+      val saved = captor.getValue
+      saved.get(page).value mustBe true
+    }
+
+    "does not persist when flag already set in CheckMode" in {
+      val page = pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage
+
+      val ua = emptyUserAnswers.set(page, true).success.value
+
+      val mockRepo = mock[SessionRepository]
+      when(mockRepo.set(any[models.UserAnswers])) thenReturn Future.successful(true)
+
+      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, None, None, ua)
+
+      val fut = ControllerHelpers.markArrivalAndRender(page, CheckMode, ua, mockRepo) { updated =>
+        Future.successful(Ok("rendered"))
+      }
+
+      val res = fut.futureValue
+      res.header.status mustBe OK
+
+      verify(mockRepo, never()).set(anyA())
+    }
+
+    "does not persist when in NormalMode" in {
+      val page = pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage
+
+      val ua = emptyUserAnswers
+
+      val mockRepo = mock[SessionRepository]
+      when(mockRepo.set(any[models.UserAnswers])) thenReturn Future.successful(true)
+
+      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, None, None, ua)
+
+      val fut = ControllerHelpers.markArrivalAndRender(page, NormalMode, ua, mockRepo) { updated =>
+        Future.successful(Ok("rendered"))
+      }
+
+      val res = fut.futureValue
+      res.header.status mustBe OK
+
+      verify(mockRepo, never()).set(anyA())
     }
   }
 
