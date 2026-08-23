@@ -188,7 +188,8 @@ object CheckYourPurchaseDetailsSummary {
   def rowDescribeItems(answers: UserAnswers)(implicit messages: Messages): Option[Row] =
     answers.get(DescribeItemsOnInvoicePage).map { desc =>
       val url = controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(CheckMode).url
-      (messages("describeItemsOnInvoice.checkYourAnswersLabel"), Some(desc), Seq((url, "site.change", "describeItemsOnInvoice.change.hidden")))
+      val display = if (desc == null || desc.trim.isEmpty) messages("site.notProvided") else desc
+      (messages("describeItemsOnInvoice.checkYourAnswersLabel"), Some(display), Seq((url, "site.change", "describeItemsOnInvoice.change.hidden")))
     }
 
   def rowSupplierName(answers: UserAnswers)(implicit messages: Messages): Option[Row] =
