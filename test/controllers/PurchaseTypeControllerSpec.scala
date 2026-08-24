@@ -68,6 +68,44 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "must short-circuit to CYA when arrived-from-describe but no description and only 'none' subcode exists" in {
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+
+      val fakeConfig = new ConfigPurchaseMapping() {
+        override def subcodesFor(country: String, parentKey: String) = Seq(("1.99", "purchase.sub.other.1.99"))
+      }
+
+      val userAnswers = emptyUserAnswers
+        .set(pages.PurchaseTypePage, PurchaseType.Other)
+        .success
+        .value
+        .set(pages.DescribeItemsArrivedFromCheckYourAnswersPage, true)
+        .success
+        .value
+        .set(pages.RefundingCountryPage, "EE")
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[ConfigPurchaseMapping].toInstance(fakeConfig),
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.PurchaseTypeController.onSubmit(CheckMode).url)
+          .withFormUrlEncodedBody("value" -> PurchaseType.Other.toString)
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+        verify(mockSessionRepository, times(0)).set(any())
+      }
+    }
+
     "must return OK and the correct view for a GET when simplified invoice check exists with back link to simplified check" in {
 
       val userAnswers = emptyUserAnswers.set(pages.SimplifiedInvoiceVatRegCheckPage, false).success.value

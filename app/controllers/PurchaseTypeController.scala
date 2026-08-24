@@ -159,13 +159,41 @@ class PurchaseTypeController @Inject() (
             val arrivedFromSubTypeOrCategory = request.userAnswers.get(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage).contains(true) || request.userAnswers.get(pages.PurchaseSubCategoryArrivedFromCheckYourAnswersPage).contains(true)
 
             if (arrivedFromDescribe && !arrivedFromSubTypeOrCategory) {
-              val removedTry = request.userAnswers.remove(pages.DescribeItemsArrivedFromCheckYourAnswersPage)
-              Future.fromTry(removedTry).flatMap { ua =>
-                sessionRepository.set(ua).map { _ =>
-                  val call = controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(models.CheckMode)
-                  val prefix = MountPrefix.get
-                  if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
-                  else Redirect(Call(call.method, s"$prefix${call.url}"))
+              // Only return to the describe-items change page when there is
+              // meaningful data to edit (either a non-empty description is
+              // present or the purchase type has meaningful subcodes).
+              val describePresent = request.userAnswers.get(DescribeItemsOnInvoicePage).exists(_.trim.nonEmpty)
+
+              val countryOpt = CountryCode.findCountryCode(request.userAnswers)
+              val hasMeaningfulSubcodes = countryOpt
+                .flatMap { c =>
+                  try Some(config.subcodesFor(c, value.toString).exists { case (code, _) => !code.split("\\.").lastOption.contains("99") })
+                  catch { case _: Throwable => None }
+                }
+                .getOrElse(true)
+
+              if (describePresent || hasMeaningfulSubcodes) {
+                val removedTry = request.userAnswers.remove(pages.DescribeItemsArrivedFromCheckYourAnswersPage)
+                Future.fromTry(removedTry).flatMap { ua =>
+                  sessionRepository.set(ua).map { _ =>
+                    val call = controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(models.CheckMode)
+                    val prefix = MountPrefix.get
+                    if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
+                    else Redirect(Call(call.method, s"$prefix${call.url}"))
+                  }
+                }
+              } else {
+                // No meaningful describe text and no meaningful subcodes ->
+                // nothing to edit, short-circuit to Purchase CYA instead.
+                CheckModeShortCircuit.shortCircuitIfUnchanged(
+                  PurchaseTypePage,
+                  value,
+                  mode,
+                  request.userAnswers,
+                  controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+                ) match {
+                  case Some(res) => Future.successful(res)
+                  case None      => Future.failed(new IllegalStateException("Expected short-circuit result for unchanged CheckMode submission"))
                 }
               }
             } else {
