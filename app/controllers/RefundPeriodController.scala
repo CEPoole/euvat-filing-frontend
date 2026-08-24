@@ -125,19 +125,32 @@ class RefundPeriodController @Inject() (
     // Case 1: Jan–Mar rule
     if (regMonth >= 1 && regMonth <= 3) {
       // Same month/year OR after regDate (same year)
-      (startDate.equals(regDate) || startDate.isAfter(regDate), "refundPeriod.start.error.beforeVatRegDate.firstQuarter")
+      (!startDate.isBefore(regDate), "refundPeriod.start.error.beforeVatRegDate.firstQuarter")
     } else { // Case 2: Apr–Dec rule
-      val min = regDate.minusMonths(3)
       // valid when start is within three months before the registration date or anytime after
-      (!startDate.isBefore(min) || startDate.isAfter(regDate), "refundPeriod.start.error.beforeVatRegDate.remainingQuarter")
+      (!startDate.isBefore(regDate.minusMonths(3)) || startDate.isAfter(regDate), "refundPeriod.start.error.beforeVatRegDate.remainingQuarter")
     }
   }
 
-  private def isChanged(userAnswers: UserAnswers, startDate: LocalDateTime, endDate: LocalDateTime) = {
-    userAnswers.get(RefundPeriodPage) match {
-      case Some(existing) => existing.startDate != startDate || existing.endDate != endDate
-      case None           => true
-    }
+  private def hasRefundPeriodChanged(userAnswers: UserAnswers, refundPeriod: RefundPeriod) = {
+    userAnswers.get(RefundPeriodPage) != Some(refundPeriod)
+  }
+
+  private def updateUserAnswers(
+    traderResponse: TraderKnownFactsResponse,
+    refundPeriod: RefundPeriod
+  )(using request: DataRequest[?]): Future[UserAnswers] = {
+    for {
+      updatedWithKnownFacts   <- Future.fromTry(request.userAnswers.set(TraderKnownFactsQuery, traderResponse))
+      updatedWithRefundPeriod <- Future.fromTry(updatedWithKnownFacts.set(RefundPeriodPage, refundPeriod))
+      updatedWithoutCountry   <- Future.fromTry(updatedWithRefundPeriod.remove(CountryChangedPage))
+      finalAnswers <-
+        if (hasRefundPeriodChanged(updatedWithoutCountry, refundPeriod) && updatedWithoutCountry.get(ClaimDetailsCompletedPage).contains(true)) {
+          Future.fromTry(updatedWithoutCountry.set(ClaimDetailsAmendedPage, true))
+        } else {
+          Future.successful(updatedWithoutCountry)
+        }
+    } yield finalAnswers
   }
 
   private def saveAndRedirect(
@@ -149,17 +162,9 @@ class RefundPeriodController @Inject() (
     val refundPeriod = RefundPeriod(startDate, endDate)
 
     for {
-      updatedAnswer1 <- Future.fromTry(request.userAnswers.set(TraderKnownFactsQuery, traderResponse))
-      updatedAnswer2 <- Future.fromTry(updatedAnswer1.set(RefundPeriodPage, refundPeriod))
-      updatedAnswer3 <- Future.fromTry(updatedAnswer2.remove(CountryChangedPage))
-      updatedAnswer4 <-
-        if (isChanged(updatedAnswer3, startDate, endDate) && updatedAnswer3.get(ClaimDetailsCompletedPage).contains(true)) {
-          Future.fromTry(updatedAnswer3.set(ClaimDetailsAmendedPage, true))
-        } else {
-          Future.successful(updatedAnswer3)
-        }
-      _ <- sessionRepository.set(updatedAnswer4)
-    } yield Redirect(navigator.nextPage(RefundPeriodPage, mode, updatedAnswer4))
+      updatedUserAnswers <- updateUserAnswers(traderResponse, refundPeriod)
+      _                  <- sessionRepository.set(updatedUserAnswers)
+    } yield Redirect(navigator.nextPage(RefundPeriodPage, mode, updatedUserAnswers))
   }
 
   private def checkOverlappingPeriod(
@@ -186,7 +191,7 @@ class RefundPeriodController @Inject() (
             updatedAnswer1 <- Future.fromTry(request.userAnswers.set(TraderKnownFactsQuery, traderResponse))
             updatedAnswer2 <- Future.fromTry(updatedAnswer1.set(RefundPeriodPage, refundPeriod))
             updatedAnswer3 <-
-              if (isChanged(request.userAnswers, startDate, endDate) && updatedAnswer2.get(ClaimDetailsCompletedPage).contains(true)) {
+              if (hasRefundPeriodChanged(request.userAnswers, refundPeriod) && updatedAnswer2.get(ClaimDetailsCompletedPage).contains(true)) {
                 Future.fromTry(updatedAnswer2.set(ClaimDetailsAmendedPage, true))
               } else {
                 Future.successful(updatedAnswer2)

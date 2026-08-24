@@ -41,7 +41,6 @@ class BusinessActivityController @Inject() (
   getData: DataRetrievalAction,
   requireData: DataRequiredAction,
   formProvider: BusinessActivityFormProvider,
-  euVatRefundsService: EuVatRefundsService,
   val controllerComponents: MessagesControllerComponents,
   view: BusinessActivityView
 )(implicit ec: ExecutionContext)
@@ -81,10 +80,11 @@ class BusinessActivityController @Inject() (
                               val remove1 = updateAnswer2.remove(BusinessActivityCodeTwoPage)
                               Future.fromTry(remove1.flatMap(_.remove(BusinessActivityCodeThreePage)))
                             }
-            finalAnswers2 <- if (isChanged && request.userAnswers.get(pages.ClaimDetailsCompletedPage).contains(true))
+            finalAnswers2 <- if (isChanged && request.userAnswers.get(pages.ClaimDetailsCompletedPage).contains(true)) {
                                Future.fromTry(finalAnswers.set(pages.ClaimDetailsAmendedPage, true))
-                             else
+                             } else {
                                Future.successful(finalAnswers)
+                             }
             _ <- sessionRepository.set(finalAnswers2)
           } yield Redirect(navigator.nextPage(BusinessActivityPage, mode, finalAnswers2))
       )

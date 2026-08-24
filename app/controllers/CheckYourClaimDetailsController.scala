@@ -76,26 +76,39 @@ class CheckYourClaimDetailsController @Inject() (
 
       updatedAnswers
         .flatMap { flaggedAnswers =>
-          flaggedAnswers.get(LatestCountryResponseQuery) match {
-            case Some(latestResp) if !isPostSubmission && latestResp.totalApplication > 0 =>
-              logger.warn("You cannot have more than one draft claim for each EU member state")
+          request.identifierValue match {
+            case None =>
+              logger.error("Missing VAT registration number")
               Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
-            case _ =>
-              val claimRequest = buildClaimRequest(flaggedAnswers)
-              saveClaimResponseAndRedirect(flaggedAnswers, claimRequest)
+            case Some(vatRegNumber) =>
+              val latestReq = LatestApplicationRequest(
+                applicantVatRegNumber = vatRegNumber,
+                refundingCountry      = flaggedAnswers.get(RefundingCountryPage)
+              )
+              service
+                .getLatestApplications(latestReq)
+                .flatMap { latestResp =>
+                  if (latestResp.totalApplication > 0) {
+                    logger.warn("You cannot have more than one draft claim for each EU member state")
+                    Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
+                  } else {
+                    saveClaimResponseAndRedirect(flaggedAnswers, buildClaimRequest(flaggedAnswers))
+                  }
+                }
           }
         }
         .recover { case ex =>
-          logger.error("Error while saving the refund application", ex)
+          logger.error("Error while retrieving or saving the refund application", ex)
           Redirect(routes.JourneyRecoveryController.onPageLoad())
         }
+
     }
   }
 
-  private def saveClaimResponseAndRedirect(flaggedAnswers: UserAnswers, appRequest: ApplicationRequest)(using RequestHeader): Future[Result] = {
+  private def saveClaimResponseAndRedirect(userAnswers: UserAnswers, appRequest: ApplicationRequest)(using RequestHeader): Future[Result] = {
     for {
       claimResponse  <- service.createApplication(appRequest)
-      updatedAnswers <- Future.fromTry(flaggedAnswers.set(ClaimApplicationResponseQuery, claimResponse))
+      updatedAnswers <- Future.fromTry(userAnswers.set(ClaimApplicationResponseQuery, claimResponse))
       _              <- sessionRepository.set(updatedAnswers)
     } yield {
       if (claimResponse.applicationId > 0) {

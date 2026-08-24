@@ -24,6 +24,7 @@ import org.mockito.Mockito.*
 import org.scalatestplus.mockito.MockitoSugar
 import pages.*
 import play.api.inject.bind
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import queries.LatestCountryResponseQuery
@@ -37,11 +38,10 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
 
   "Check Your Answers Controller" - {
     // use shared mock from SpecBase
-
     "must return OK and the correct view for a GET" in {
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
       running(application) {
-        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url).withCSRFToken
         val result = route(application, request).value
 
         status(result) mustEqual OK
@@ -153,12 +153,10 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
         .set(BusinessActivityCodePage, "9999")
         .success
         .value
-        .set(LatestCountryResponseQuery, LatestApplicationResponse(List(dupApp), 1))
-        .success
-        .value
 
       val mockSessionRepository = mock[SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+      when(mockEuVatRefundsService.getLatestApplications(any())(any())).thenReturn(Future.successful(List(dupApp), 1))
 
       val application = applicationBuilder(userAnswers = Some(ua))
         .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
@@ -185,7 +183,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
       val application = applicationBuilder(userAnswers = Some(ua)).build()
 
       running(application) {
-        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url).withCSRFToken
         val result = route(application, request).value
         val html = contentAsString(result)
 
@@ -197,7 +195,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
       running(application) {
-        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url).withCSRFToken
         val result = route(application, request).value
         val html = contentAsString(result)
 
@@ -211,7 +209,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
       val application = applicationBuilder(userAnswers = Some(ua)).build()
 
       running(application) {
-        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url).withCSRFToken
         val result = route(application, request).value
         val html = contentAsString(result)
 
@@ -233,7 +231,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
       val application = applicationBuilder(userAnswers = Some(ua)).build()
 
       running(application) {
-        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url).withCSRFToken
         val result = route(application, request).value
         val html = contentAsString(result)
 
@@ -251,7 +249,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
       val application = applicationBuilder(userAnswers = Some(ua)).build()
 
       running(application) {
-        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url).withCSRFToken
         val result = route(application, request).value
         val html = contentAsString(result)
 
@@ -268,7 +266,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
       val application = applicationBuilder(userAnswers = Some(ua)).build()
 
       running(application) {
-        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url).withCSRFToken
         val result = route(application, request).value
         val html = contentAsString(result)
 
@@ -294,7 +292,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
       val application = applicationBuilder(userAnswers = Some(ua)).build()
 
       running(application) {
-        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url).withCSRFToken
         val result = route(application, request).value
 
         status(result) mustEqual OK
@@ -306,7 +304,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
       running(application) {
-        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url).withCSRFToken
         val result = route(application, request).value
 
         status(result) mustEqual OK
@@ -326,7 +324,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
       val application = applicationBuilder(userAnswers = Some(ua)).build()
 
       running(application) {
-        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url).withCSRFToken
         val result = route(application, request).value
 
         status(result) mustEqual OK
@@ -340,7 +338,7 @@ class CheckYourClaimDetailsControllerSpec extends SpecBase with SummaryListFluen
       val application = applicationBuilder(userAnswers = Some(ua)).build()
 
       running(application) {
-        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url)
+        val request = FakeRequest(GET, routes.CheckYourClaimDetailsController.onPageLoad().url).withCSRFToken
         val result = route(application, request).value
 
         status(result) mustEqual OK
