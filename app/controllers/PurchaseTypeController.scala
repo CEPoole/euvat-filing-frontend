@@ -156,7 +156,9 @@ class PurchaseTypeController @Inject() (
             // the bug report where users navigate back without making any
             // edits and are sent back to describe-items repeatedly.
             val arrivedFromDescribe = request.userAnswers.get(pages.DescribeItemsArrivedFromCheckYourAnswersPage).contains(true)
-            val arrivedFromSubTypeOrCategory = request.userAnswers.get(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage).contains(true) || request.userAnswers.get(pages.PurchaseSubCategoryArrivedFromCheckYourAnswersPage).contains(true)
+            val arrivedFromSubTypeOrCategory = request.userAnswers
+              .get(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage)
+              .contains(true) || request.userAnswers.get(pages.PurchaseSubCategoryArrivedFromCheckYourAnswersPage).contains(true)
 
             if (arrivedFromDescribe && !arrivedFromSubTypeOrCategory) {
               // Only return to the describe-items change page when there is
@@ -206,12 +208,11 @@ class PurchaseTypeController @Inject() (
                 controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
               ) match {
                 case Some(res) => Future.successful(res)
-                case None      =>
+                case None =>
                   Future.failed(new IllegalStateException("Expected short-circuit result for unchanged CheckMode submission"))
               }
             }
-          }
-          else {
+          } else {
             // Submission handling summary:
             // 1. Attempt a CheckMode short-circuit: if the user is in CheckMode
             //    and the submitted value equals the stored value we immediately
@@ -313,18 +314,6 @@ class PurchaseTypeController @Inject() (
           handleNormalModeRedirect(persistedAnswers, mode)
       }
     }
-          val saved = request.userAnswers.get(PurchaseTypePage) match {
-            case Some(prev) if prev != value =>
-              for {
-                afterRemovedSubType        <- request.userAnswers.remove(pages.PurchaseSubTypePage)
-                afterRemovedSubTypeLabel   <- afterRemovedSubType.remove(pages.PurchaseSubTypeLabelPage)
-                afterRemovedSubCategory    <- afterRemovedSubTypeLabel.remove(pages.PurchaseSubCategoryPage)
-                afterRemovedSubCategoryLbl <- afterRemovedSubCategory.remove(pages.PurchaseSubCategoryLabelPage)
-                afterRemovedDescribe       <- afterRemovedSubCategoryLbl.remove(pages.DescribeItemsOnInvoicePage)
-                afterSetPurchaseType       <- afterRemovedDescribe.set(PurchaseTypePage, value)
-              } yield afterSetPurchaseType
-            case _ => request.userAnswers.set(PurchaseTypePage, value)
-          }
 
   private def handleCheckModePostPersist(updatedAnswers: UserAnswers, value: PurchaseType)(implicit request: DataRequest[?]): Future[Result] = {
     // After persisting in CheckMode, either return to the Purchase CYA or
@@ -413,7 +402,8 @@ class PurchaseTypeController @Inject() (
         Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
       } { claimResponse =>
 
-        // Build a minimal AddPurchaseRequest using the available informationval purchaseRequest = AddPurchaseRequest(
+        // Build a minimal AddPurchaseRequest using the available information
+        val purchaseRequest = AddPurchaseRequest(
           applicationId              = claimResponse.applicationId.toLong,
           goodsDescriptionCategory   = PurchaseTypeCode.codeFor(purchaseType),
           goodsDescriptionText       = None,
@@ -436,15 +426,18 @@ class PurchaseTypeController @Inject() (
 
         // Call the external service, persist its response and redirect
         // according to the navigator. Failures are logged and redirect to
-        // journey recovery to avoid leaving the user in an inconsistent state.euVatRefundsService
+        // journey recovery to avoid leaving the user in an inconsistent state.
+        euVatRefundsService
           .addPurchase(purchaseRequest)
           .flatMap { response =>
             for {
-              // persist the API response in sessionupdatedAnswers <- Future.fromTry(
+              // persist the API response in session
+              updatedAnswers <- Future.fromTry(
                                   answers.set(AddPurchaseResponsePage, response)
                                 )
               _ <- sessionRepository.set(updatedAnswers)
-            } yield {// Navigate to the next page, applying mount prefix when needed
+            } yield {
+              // Navigate to the next page, applying mount prefix when needed
               val call = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)
               val prefix = MountPrefix.get
 
@@ -456,7 +449,8 @@ class PurchaseTypeController @Inject() (
             }
           }
           .recover { case ex =>
-            // Log unexpected errors and redirect to recoverylogger.error("Error while adding the purchase", ex)
+            // Log unexpected errors and redirect to recovery
+            logger.error("Error while adding the purchase", ex)
             Redirect(routes.JourneyRecoveryController.onPageLoad())
           }
       }

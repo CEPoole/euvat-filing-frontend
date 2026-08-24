@@ -19,7 +19,7 @@ package controllers
 import controllers.actions.*
 import forms.SupplierVatRegistrationNumberFormProvider
 import models.requests.{DataRequest, SupplierVrnCountRequest}
-import models.{InvoiceType, Mode, CheckMode, UserAnswers}
+import models.{CheckMode, InvoiceType, Mode, UserAnswers}
 import navigation.Navigator
 import pages.*
 import play.api.data.Form
@@ -102,7 +102,6 @@ class SupplierVatRegistrationNumberController @Inject() (
       .bindFromRequest()
       .fold(
         formWithErrors => Future.successful(badRequestView(formWithErrors, mode, isGermany)),
-
         value => {
           val changed = !request.userAnswers.get(SupplierVatRegistrationNumberPage).contains(value)
           val cameFromInvoicePage = request.userAnswers.get(pages.SupplierVatRegistrationArrivedFromInvoicePage).contains(true)
@@ -115,12 +114,12 @@ class SupplierVatRegistrationNumberController @Inject() (
               updated <- Future.fromTry(request.userAnswers.set(SupplierVatRegistrationNumberPage, value))
               // 7224: clear the VRN warning marker when the VRN genuinely changes
               withFlag <- Future.fromTry(
-                              if (request.userAnswers.get(VrnWarningFlowPage).isDefined && changed)
-                                updated.set(VrnWarningFlowPage, false)
-                              else
-                                scala.util.Success(updated)
-                            )
-            // his refactor: drop the transient arrived-from-invoice flag before persisting
+                            if (request.userAnswers.get(VrnWarningFlowPage).isDefined && changed)
+                              updated.set(VrnWarningFlowPage, false)
+                            else
+                              scala.util.Success(updated)
+                          )
+              // his refactor: drop the transient arrived-from-invoice flag before persisting
               finalAnswers <- Future.fromTry(withFlag.remove(pages.SupplierVatRegistrationArrivedFromInvoicePage))
               _            <- sessionRepository.set(finalAnswers)
               result       <- checkDuplicate(value, finalAnswers, mode)
@@ -137,20 +136,6 @@ class SupplierVatRegistrationNumberController @Inject() (
   // Render BadRequest for invalid form submissions
   private def badRequestView(formWithErrors: Form[String], mode: Mode, isGermany: Boolean)(implicit request: DataRequest[?]) =
     BadRequest(view(formWithErrors, mode, backLink(mode), isGermany))
-
-  // Persist once and compute redirect target according to mode and purchase flow
-  private def persistAndRedirect(userAnswersTry: Try[models.UserAnswers], mode: Mode)(implicit
-    request: DataRequest[?]
-  ): Future[play.api.mvc.Result] =
-    persistAndThen(userAnswersTry, sessionRepository) { persisted =>
-      Future.successful(
-        if (mode == CheckMode && request.userAnswers.get(PurchaseTypePage).isDefined)
-          Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
-        else
-          Redirect(navigator.nextPage(SupplierVatRegistrationNumberPage, mode, persisted))
-      )
-    }
-  }
 
   private def checkDuplicate(vatNumber: String, answers: UserAnswers, mode: Mode)(implicit request: DataRequest[?]): Future[Result] = {
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
@@ -181,6 +166,13 @@ class SupplierVatRegistrationNumberController @Inject() (
       case None =>
         logger.warn("Missing data for duplicate VRN check")
         Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
+        val isPurchaseJourneyCheckMode = mode == CheckMode && answers.get(PurchaseTypePage).isDefined
+        Future.successful(
+          if (isPurchaseJourneyCheckMode)
+            Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+          else
+            Redirect(routes.JourneyRecoveryController.onPageLoad())
+        )
     }
   }
 }

@@ -115,7 +115,7 @@ class SupplierTaxNumberController @Inject() (
           )
     }
   }
-  
+
   // Render OK view with supplied form and simplified-invoice flag
   private def okView(preparedForm: Form[SupplierTaxNumber], mode: Mode, isSimplifiedInvoice: Boolean)(implicit request: DataRequest[?]) =
     Ok(view(preparedForm, mode, backLink, isSimplifiedInvoice))

@@ -62,7 +62,7 @@ class InvoiceNumberController @Inject() (
   // This avoids duplicating the `utils.CheckModeShortCircuit` invocation in the
   // body of `onSubmit` and keeps the public method concise.
   private def handleInvoiceNumberSave(value: String, mode: Mode, userAnswers: UserAnswers)(implicit
-                                                                                           request: Request[AnyContent]
+    request: Request[AnyContent]
   ): Future[Result] = {
 
     val changed = !userAnswers.get(InvoiceNumberPage).contains(value)
@@ -103,7 +103,7 @@ class InvoiceNumberController @Inject() (
         ) match {
           // If unchanged in CheckMode, short-circuit result present
           case Some(res) => Future.successful(res)
-          case None =>
+          case None      =>
             // Value has changed: persist and, if refunding country is Germany,
             // route to the supplier-tax-number page indicated in session so the
             // caller can amend the supplier tax details before returning to CYA.
@@ -131,9 +131,11 @@ class InvoiceNumberController @Inject() (
                         case Some(_) => Future.successful(Redirect(routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)))
                         case None =>
                           updated.get(pages.SupplierTaxNumberPage) match {
-                            case Some(models.SupplierTaxNumber.Vatregistrationnumber) => Future.successful(Redirect(routes.SupplierVatRegistrationNumberController.onPageLoad(mode)))
-                            case Some(models.SupplierTaxNumber.Taxidentifiernumber)  => Future.successful(Redirect(routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)))
-                            case _                                                      => Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
+                            case Some(models.SupplierTaxNumber.Vatregistrationnumber) =>
+                              Future.successful(Redirect(routes.SupplierVatRegistrationNumberController.onPageLoad(mode)))
+                            case Some(models.SupplierTaxNumber.Taxidentifiernumber) =>
+                              Future.successful(Redirect(routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)))
+                            case _ => Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
                           }
                       }
                   }

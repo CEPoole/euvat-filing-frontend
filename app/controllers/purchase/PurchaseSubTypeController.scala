@@ -213,7 +213,11 @@ class PurchaseSubTypeController @Inject() (
               prepareViewData(parentKey, country, purchaseTypeSlug, request.userAnswers, mode)(request)
 
             // If no options exist for this parent, route to InvoiceType (or CYA in CheckMode)
-            if (options.isEmpty) Future.successful(if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()) else Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode)))
+            if (options.isEmpty)
+              Future.successful(
+                if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+                else Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode))
+              )
             else {
               // Special-case: `other` parent with a single sentinel '99' option
               if (parentKey == "other" && options.size == 1) {
@@ -235,7 +239,7 @@ class PurchaseSubTypeController @Inject() (
                     mode,
                     request.userAnswers,
                     sessionRepository
-                  ) { _ => renderSubTypeView(preparedForm, items, parentHeading, formAction, mode) }
+                  )(_ => renderSubTypeView(preparedForm, items, parentHeading, formAction, mode))
                 }
               } else {
                 // Standard rendering path: show the radio list
@@ -244,7 +248,7 @@ class PurchaseSubTypeController @Inject() (
                   mode,
                   request.userAnswers,
                   sessionRepository
-                ) { _ => renderSubTypeView(preparedForm, items, parentHeading, formAction, mode) }
+                )(_ => renderSubTypeView(preparedForm, items, parentHeading, formAction, mode))
               }
             }
 
@@ -263,7 +267,11 @@ class PurchaseSubTypeController @Inject() (
             prepareViewData(parentKey, country, purchaseTypeSlug, request.userAnswers, mode)(request)
 
           // If no configured options, jump to InvoiceType (or CYA in CheckMode)
-          if (options.isEmpty) Future.successful(if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()) else Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode)))
+          if (options.isEmpty)
+            Future.successful(
+              if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+              else Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode))
+            )
           else {
             // Bind and validate the submitted form
             preparedForm
@@ -329,9 +337,9 @@ class PurchaseSubTypeController @Inject() (
                                     if (mode == models.CheckMode)
                                       // in CheckMode use change- prefixed paths so the
                                       // user returns to the edit (change-*) route
-                                      (if (prefix.isEmpty) s"/change-$slug" else s"$prefix/change-$slug")
-                                    else
-                                      (if (prefix.isEmpty) s"/$slug" else s"$prefix/$slug")
+                                      if (prefix.isEmpty) s"/change-$slug" else s"$prefix/change-$slug"
+                                    else if (prefix.isEmpty) s"/$slug"
+                                    else s"$prefix/$slug"
                                   Some(Call("GET", path))
                                 } catch {
                                   case _: Throwable => None
@@ -339,7 +347,9 @@ class PurchaseSubTypeController @Inject() (
                               }
                               .collectFirst { case Some(call) => call }
 
-                            Future.successful(maybeCall.fold(Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode)): play.api.mvc.Result)(Redirect(_)))
+                            Future.successful(
+                              maybeCall.fold(Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode)): play.api.mvc.Result)(Redirect(_))
+                            )
 
                           } else {
                             // No children present: special-case `other` + sentinel '99'
@@ -348,7 +358,8 @@ class PurchaseSubTypeController @Inject() (
                               PurchaseType.values.find(pt => PurchaseType.slugOf(pt) == resolvedSlug).contains(PurchaseType.Other)
 
                             Future.successful(
-                              if (isOtherPurchaseType && lastSeg == "99") Redirect(controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(mode))
+                              if (isOtherPurchaseType && lastSeg == "99")
+                                Redirect(controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(mode))
                               else if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
                               else Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode))
                             )

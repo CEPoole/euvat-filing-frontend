@@ -100,7 +100,6 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
       .fold(
         // Invalid form: render the page with validation errors and currency info
         formWithErrors => Future.successful(badRequestView(formWithErrors, mode)),
-
         value => handleSubmit(value, mode)
       )
   }

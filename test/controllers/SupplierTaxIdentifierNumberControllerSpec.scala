@@ -181,8 +181,12 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
         .set(InvoiceNumberPage, "INV123")
         .success
         .value
-        .set(pages.SupplierTaxIdentifierArrivedFromInvoicePage, true).success.value
-        .set(SupplierTaxIdentifierNumberPage, "1234567890").success.value
+        .set(pages.SupplierTaxIdentifierArrivedFromInvoicePage, true)
+        .success
+        .value
+        .set(SupplierTaxIdentifierNumberPage, "1234567890")
+        .success
+        .value
 
       when(mockEuVatRefundsService.getSupplierTaxIdentifierCount(any())(any()))
         .thenReturn(Future.successful(SupplierTaxIdentifierCountResponse(duplicateCount = 1)))
@@ -211,7 +215,7 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
       }
     }
 
-      "must redirect to TotalPurchaseAmountBeforeVat when duplicate count == 0" in {
+    "must redirect to TotalPurchaseAmountBeforeVat when duplicate count == 0" in {
 
       val mockSessionRepository = mock[SessionRepository]
 
@@ -402,9 +406,15 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
       val ua = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel).success.value
-        .set(pages.SupplierTaxNumberPage, models.SupplierTaxNumber.Taxidentifiernumber).success.value
-        .set(pages.RefundingCountryPage, "DE").success.value
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(pages.SupplierTaxNumberPage, models.SupplierTaxNumber.Taxidentifiernumber)
+        .success
+        .value
+        .set(pages.RefundingCountryPage, "DE")
+        .success
+        .value
 
       val application =
         applicationBuilder(userAnswers = Some(ua))

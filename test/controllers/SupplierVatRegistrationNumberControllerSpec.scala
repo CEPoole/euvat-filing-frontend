@@ -19,12 +19,12 @@ package controllers
 import base.SpecBase
 import forms.SupplierVatRegistrationNumberFormProvider
 import models.responses.{AddPurchaseResponse, ApplicationResponse, SupplierVrnCountResponse}
-import models.{CheckMode, NormalMode, UserAnswers, PurchaseType}
+import models.{CheckMode, NormalMode, PurchaseType, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import pages.{AddPurchaseResponsePage, InvoiceNumberPage, PurchaseTypePage, RefundingCountryPage, RefundingCountryPage, SupplierVatRegistrationNumberPage}
+import pages.{AddPurchaseResponsePage, InvoiceNumberPage, PurchaseTypePage, RefundingCountryPage, SupplierVatRegistrationNumberPage}
 import play.api.data.Form
 import play.api.inject.bind
 import play.api.mvc.Call

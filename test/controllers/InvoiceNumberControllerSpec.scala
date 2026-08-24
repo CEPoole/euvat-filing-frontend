@@ -35,7 +35,7 @@ import play.api.mvc.Call
 import scala.concurrent.Future
 import models.CheckMode
 import models.SupplierTaxNumber
-import pages.{RefundingCountryPage, SupplierTaxNumberPage, PurchaseTypePage}
+import pages.{PurchaseTypePage, RefundingCountryPage, SupplierTaxNumberPage}
 import models.PurchaseType
 
 class InvoiceNumberControllerSpec extends SpecBase with MockitoSugar {
@@ -229,8 +229,12 @@ class InvoiceNumberControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
       val ua = emptyUserAnswers
-        .set(InvoiceNumberPage, "INV123").success.value
-        .set(pages.SupplierTaxIdentifierWarningShownPage, true).success.value
+        .set(InvoiceNumberPage, "INV123")
+        .success
+        .value
+        .set(pages.SupplierTaxIdentifierWarningShownPage, true)
+        .success
+        .value
 
       val application =
         applicationBuilder(userAnswers = Some(ua))
@@ -258,8 +262,12 @@ class InvoiceNumberControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
       val ua = emptyUserAnswers
-        .set(InvoiceNumberPage, "INV123").success.value
-        .set(pages.SupplierTaxIdentifierWarningShownPage, true).success.value
+        .set(InvoiceNumberPage, "INV123")
+        .success
+        .value
+        .set(pages.SupplierTaxIdentifierWarningShownPage, true)
+        .success
+        .value
 
       val application =
         applicationBuilder(userAnswers = Some(ua))
@@ -286,10 +294,18 @@ class InvoiceNumberControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
       val ua = emptyUserAnswers
-        .set(InvoiceNumberPage, "INV-1").success.value
-        .set(RefundingCountryPage, "DE").success.value
-        .set(SupplierTaxNumberPage, SupplierTaxNumber.Vatregistrationnumber).success.value
-        .set(PurchaseTypePage, PurchaseType.Fuel).success.value
+        .set(InvoiceNumberPage, "INV-1")
+        .success
+        .value
+        .set(RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(SupplierTaxNumberPage, SupplierTaxNumber.Vatregistrationnumber)
+        .success
+        .value
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
 
       val application =
         applicationBuilder(userAnswers = Some(ua))
@@ -321,10 +337,18 @@ class InvoiceNumberControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
       val ua = emptyUserAnswers
-        .set(InvoiceNumberPage, "INV-1").success.value
-        .set(RefundingCountryPage, "DE").success.value
-        .set(SupplierTaxNumberPage, SupplierTaxNumber.Taxidentifiernumber).success.value
-        .set(PurchaseTypePage, PurchaseType.Fuel).success.value
+        .set(InvoiceNumberPage, "INV-1")
+        .success
+        .value
+        .set(RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(SupplierTaxNumberPage, SupplierTaxNumber.Taxidentifiernumber)
+        .success
+        .value
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
 
       val application =
         applicationBuilder(userAnswers = Some(ua))

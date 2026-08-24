@@ -17,7 +17,7 @@
 package connectors
 
 import models.requests.{AddPurchaseRequest, ApplicationRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest, SupplierVrnCountRequest}
-import models.responses.{AddPurchaseResponse, ApplicationResponse, LatestApplicationResponse, TraderKnownFactsResponse, SupplierTaxIdentifierCountResponse, SupplierVrnCountResponse}
+import models.responses.{AddPurchaseResponse, ApplicationResponse, LatestApplicationResponse, SupplierTaxIdentifierCountResponse, SupplierVrnCountResponse, TraderKnownFactsResponse}
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
@@ -75,18 +75,19 @@ class EuVatRefundsConnector @Inject() (config: ServicesConfig, http: HttpClientV
       .withBody(Json.toJson(request))
       .execute[AddPurchaseResponse]
 
-  def getSupplierTaxIdentifierCount(request: SupplierTaxIdentifierCountRequest)(implicit hc: HeaderCarrier): Future[SupplierTaxIdentifierCountResponse] =
-    {
-      val bodyJson = Json.toJson(request)
-      logger.info(s"EuVatRefundsConnector POST $euVatRefundsBaseUrl/get-supplier-taxIdentifier-count body=$bodyJson")
-      http
-        .post(url"$euVatRefundsBaseUrl/get-supplier-taxIdentifier-count")
-        .withBody(bodyJson)
-        .execute[SupplierTaxIdentifierCountResponse]
-        .map { resp =>
-          logger.info(s"EuVatRefundsConnector response: ${Json.toJson(resp)}")
-          resp
-        }
-    }
+  def getSupplierTaxIdentifierCount(
+    request: SupplierTaxIdentifierCountRequest
+  )(implicit hc: HeaderCarrier): Future[SupplierTaxIdentifierCountResponse] = {
+    val bodyJson = Json.toJson(request)
+    logger.info(s"EuVatRefundsConnector POST $euVatRefundsBaseUrl/get-supplier-taxIdentifier-count body=$bodyJson")
+    http
+      .post(url"$euVatRefundsBaseUrl/get-supplier-taxIdentifier-count")
+      .withBody(bodyJson)
+      .execute[SupplierTaxIdentifierCountResponse]
+      .map { resp =>
+        logger.info(s"EuVatRefundsConnector response: ${Json.toJson(resp)}")
+        resp
+      }
+  }
 
 }

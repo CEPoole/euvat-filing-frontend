@@ -64,12 +64,16 @@ class SupplierTaxIdentifierWarningController @Inject() (
     val cleared = request.userAnswers.remove(pages.SupplierTaxIdentifierWarningShownPage)
     Future
       .fromTry(cleared)
-      .flatMap(ua => sessionRepository.set(ua).map(_ =>
-      mode match {
-        case CheckMode => Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
-        case _         => Redirect(controllers.routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode))
-      }
-    ))
+      .flatMap(ua =>
+        sessionRepository
+          .set(ua)
+          .map(_ =>
+            mode match {
+              case CheckMode => Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+              case _         => Redirect(controllers.routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode))
+            }
+          )
+      )
   }
 
 }

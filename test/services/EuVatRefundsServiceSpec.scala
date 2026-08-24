@@ -20,7 +20,7 @@ import base.SpecBase
 import config.FrontendAppConfig
 import connectors.EuVatRefundsConnector
 import models.requests.{AddPurchaseRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest, SupplierVrnCountRequest}
-import models.responses.{AddPurchaseResponse, LatestApplicationResponse, SupplierVrnCountResponse, TraderKnownFactsResponse, SupplierTaxIdentifierCountResponse}
+import models.responses.{AddPurchaseResponse, LatestApplicationResponse, SupplierTaxIdentifierCountResponse, SupplierVrnCountResponse, TraderKnownFactsResponse}
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.*
 import org.scalatest.concurrent.ScalaFutures

@@ -32,8 +32,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import com.typesafe.config.ConfigFactory
 import models.{CheckMode, NormalMode, PurchaseType}
 import play.api.mvc.Call
-import org.mockito.Mockito.{verify, never, times}
-import org.mockito.ArgumentMatchers.{any => anyA}
+import org.mockito.Mockito.{never, times, verify}
+import org.mockito.ArgumentMatchers.any as anyA
 import org.mockito.ArgumentCaptor
 
 class ControllerHelpersSpec extends SpecBase {
@@ -124,8 +124,12 @@ class ControllerHelpersSpec extends SpecBase {
     "short-circuits to purchase CYA when in CheckMode and value unchanged" in {
       // prepare UserAnswers with a purchase type and stored value
       val ua = emptyUserAnswers
-        .set(pages.PurchaseTypePage, PurchaseType.Fuel).success.value
-        .set(pages.TotalVatPaidPage, BigDecimal(10)).success.value
+        .set(pages.PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(pages.TotalVatPaidPage, BigDecimal(10))
+        .success
+        .value
 
       val mockRepo = mock[SessionRepository]
       when(mockRepo.set(any[models.UserAnswers])) thenReturn Future.successful(true)
