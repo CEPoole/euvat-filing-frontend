@@ -192,7 +192,7 @@ class RefundPeriodController @Inject() (
         updatedAnswer1 <- Future.fromTry(request.userAnswers.set(TraderKnownFactsQuery, traderResponse))
         updatedAnswer2 <- Future.fromTry(updatedAnswer1.set(RefundPeriodPage, refundPeriod))
         _              <- sessionRepository.set(updatedAnswer2)
-      } yield Redirect(controllers.routes.ConfirmRefundPeriodStartDateController.onPageLoad())
+      } yield Redirect(controllers.routes.ConfirmRefundPeriodStartDateController.onPageLoad(mode))
     } else {
       checkEndDateInPast(vrn, traderResponse, startDate, endDate, mode)
     }
