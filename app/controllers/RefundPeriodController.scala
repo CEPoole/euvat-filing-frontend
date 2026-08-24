@@ -36,7 +36,7 @@ import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, CountryCode}
 import views.html.RefundPeriodView
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDateTime, YearMonth}
+import java.time.{LocalDate, LocalDateTime, MonthDay, YearMonth}
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -167,6 +167,39 @@ class RefundPeriodController @Inject() (
     } yield Redirect(navigator.nextPage(RefundPeriodPage, mode, updatedUserAnswers))
   }
 
+  protected def today: LocalDate = LocalDate.now()
+
+  private[controllers] def earliestPermittedStartDate(): YearMonth = {
+    val cutoff = MonthDay.of(9, 30).atYear(today.getYear)
+    if (!today.isAfter(cutoff)) {
+      YearMonth.of(today.getYear - 1, 1)
+    } else {
+      YearMonth.of(today.getYear, 1)
+    }
+  }
+
+  private def checkEarliestStartDate(
+    vrn: String,
+    traderResponse: TraderKnownFactsResponse,
+    startDate: LocalDateTime,
+    endDate: LocalDateTime,
+    mode: Mode
+  )(using request: DataRequest[?], ec: ExecutionContext): Future[Result] = {
+    val startYearMonth = YearMonth.from(startDate)
+    val minAllowed = earliestPermittedStartDate()
+
+    if (startYearMonth.isBefore(minAllowed)) {
+      val refundPeriod = RefundPeriod(startDate, endDate)
+      for {
+        updatedAnswer1 <- Future.fromTry(request.userAnswers.set(TraderKnownFactsQuery, traderResponse))
+        updatedAnswer2 <- Future.fromTry(updatedAnswer1.set(RefundPeriodPage, refundPeriod))
+        _              <- sessionRepository.set(updatedAnswer2)
+      } yield Redirect(controllers.routes.ConfirmRefundPeriodStartDateController.onPageLoad(mode))
+    } else {
+      checkOverlappingPeriod(vrn, traderResponse, startDate, endDate, mode)
+    }
+  }
+
   private def checkOverlappingPeriod(
     vrn: String,
     traderResponse: TraderKnownFactsResponse,
@@ -199,7 +232,6 @@ class RefundPeriodController @Inject() (
             _ <- sessionRepository.set(updatedAnswer3)
           } yield Redirect(controllers.routes.PeriodOverlapWarningController.onPageLoad(mode))
         } else {
-          logger.info(s"F5 overlap check: no overlapping applications found, startDate=$startDate, endDate=$endDate")
           saveAndRedirect(traderResponse, startDate, endDate, mode)
         }
       }
@@ -316,7 +348,7 @@ class RefundPeriodController @Inject() (
                   .orElse(vatDateValidation(value, startDate, endDate, traderResponse, baseForm))
 
                 validationResult match {
-                  case None                => checkOverlappingPeriod(vrn, traderResponse, startDate, endDate, mode)
+                  case None                => checkEarliestStartDate(vrn, traderResponse, startDate, endDate, mode)
                   case Some(formWithError) => renderError(formWithError, mode, isExemptForTrader)
                 }
             )

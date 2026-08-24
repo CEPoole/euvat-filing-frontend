@@ -36,6 +36,16 @@ POST        /refund-period                              controllers.RefundPeriod
 GET         /change-refund-period                       controllers.RefundPeriodController.onPageLoad(mode: Mode = CheckMode)
 POST        /change-refund-period                       controllers.RefundPeriodController.onSubmit(mode: Mode = CheckMode)
 
+GET         /check-refund-period                         controllers.PeriodOverlapWarningController.onPageLoad(mode: Mode = NormalMode)
+POST        /check-refund-period                         controllers.PeriodOverlapWarningController.onSubmit(mode: Mode = NormalMode)
+GET         /change-check-refund-period                  controllers.PeriodOverlapWarningController.onPageLoad(mode: Mode = CheckMode)
+POST        /change-check-refund-period                  controllers.PeriodOverlapWarningController.onSubmit(mode: Mode = CheckMode)
+
+GET         /check-refund-period-start-date             controllers.ConfirmRefundPeriodStartDateController.onPageLoad(mode: Mode = NormalMode)
+POST        /check-refund-period-start-date             controllers.ConfirmRefundPeriodStartDateController.onSubmit(mode: Mode = NormalMode)
+GET         /change-check-refund-period-start-date      controllers.ConfirmRefundPeriodStartDateController.onPageLoad(mode: Mode = CheckMode)
+POST        /change-check-refund-period-start-date      controllers.ConfirmRefundPeriodStartDateController.onSubmit(mode: Mode = CheckMode)
+
 GET         /how-contact-you-about-claim                controllers.ContactDetailsController.onPageLoad(mode: Mode = NormalMode)
 POST        /how-contact-you-about-claim                controllers.ContactDetailsController.onSubmit(mode: Mode = NormalMode)
 GET         /change-how-contact-you-about-claim         controllers.ContactDetailsController.onPageLoad(mode: Mode = CheckMode)
@@ -165,7 +175,6 @@ GET         /check-refund-period                         controllers.PeriodOverl
 POST        /check-refund-period                         controllers.PeriodOverlapWarningController.onSubmit(mode: Mode = NormalMode)
 GET         /change-check-refund-period                  controllers.PeriodOverlapWarningController.onPageLoad(mode: Mode = CheckMode)
 POST        /change-check-refund-period                  controllers.PeriodOverlapWarningController.onSubmit(mode: Mode = CheckMode)
-
 
 GET         /check-purchase-details                      controllers.PurchaseWarningController.onPageLoad(mode: Mode = NormalMode)
 POST        /check-purchase-details                      controllers.PurchaseWarningController.onSubmit(mode: Mode = NormalMode)
