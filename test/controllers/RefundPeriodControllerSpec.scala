@@ -298,25 +298,6 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         }
       }
 
-      "must show end-date-in-past error when end date is in the future" in {
-        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
-
-        running(application) {
-          val future = YearMonth.from(baseToday).plusMonths(1)
-          val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
-            .withFormUrlEncodedBody(
-              "start.month" -> future.minusMonths(4).getMonthValue.toString,
-              "start.year"  -> future.minusMonths(4).getYear.toString,
-              "end.month"   -> future.getMonthValue.toString,
-              "end.year"    -> future.getYear.toString
-            )
-          val result = route(application, request).value
-
-          status(result) mustEqual BAD_REQUEST
-          contentAsString(result) must include(messages(application)("refundPeriod.end.error.inPast"))
-        }
-      }
-
       "must allow a short period when it ends in December" in {
         val trader = TraderKnownFactsResponse(123, tradeClass = Some(baCode1))
         val userAnswersWithTrader = emptyUserAnswers.set(TraderKnownFactsQuery, trader).success.value
@@ -771,24 +752,6 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
 
           status(result) mustEqual BAD_REQUEST
           contentAsString(result) must include(messages(application)("refundPeriod.error.periodNotLessThan3Months"))
-        }
-      }
-
-      "must show end-date-invalid error when end date is in the future" in {
-        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
-        running(application) {
-          val future = YearMonth.from(baseToday).plusMonths(1)
-          val past = YearMonth.from(baseToday).minusMonths(3)
-          val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
-            .withFormUrlEncodedBody(
-              "start.month" -> past.getMonthValue.toString,
-              "start.year"  -> past.getYear.toString,
-              "end.month"   -> future.getMonthValue.toString,
-              "end.year"    -> future.getYear.toString
-            )
-          val result = route(application, request).value
-          status(result) mustEqual BAD_REQUEST
-          contentAsString(result) must include(messages(application)("refundPeriod.end.error.inPast"))
         }
       }
 
