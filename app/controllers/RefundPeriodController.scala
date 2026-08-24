@@ -177,6 +177,7 @@ class RefundPeriodController @Inject() (
   }
 
   private def checkEarliestStartDate(
+    vrn: String,
     traderResponse: TraderKnownFactsResponse,
     startDate: LocalDateTime,
     endDate: LocalDateTime,
