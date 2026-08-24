@@ -106,7 +106,7 @@ class PurchaseWarningControllerSpec extends SpecBase {
       }
     }
 
-    "must redirect to InvoiceTypeController on submit in CheckMode" in {
+    "must redirect to Check Your Purchase Details on submit in CheckMode" in {
 
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
@@ -116,7 +116,7 @@ class PurchaseWarningControllerSpec extends SpecBase {
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual routes.InvoiceTypeController.onPageLoad(CheckMode).url
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
       }
     }
 

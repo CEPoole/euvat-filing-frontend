@@ -21,9 +21,9 @@ import forms.InvoiceTypeFormProvider
 import models.{CheckMode, InvoiceType, NormalMode, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
+import org.mockito.Mockito.{verify, when}
 import org.scalatestplus.mockito.MockitoSugar
-import pages.{DescribeItemsOnInvoicePage, InvoiceTypePage, PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage}
+import pages.{DescribeItemsOnInvoicePage, InvoiceTypePage, PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage, SimplifiedInvoiceVatRegCheckPage, SupplierTaxNumberPage}
 import models.PurchaseType
 import play.api.inject.bind
 import utils.ConfigPurchaseMapping
@@ -107,7 +107,6 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
         .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
-
       running(application) {
         val request = FakeRequest(GET, invoiceTypeRoute)
 
@@ -347,6 +346,49 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "must clear supplier tax and simplified flag when invoice type is changed" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val initialAnswers = emptyUserAnswers
+        .set(InvoiceTypePage, InvoiceType.StandardInvoice)
+        .success
+        .value
+        .set(pages.SupplierTaxNumberPage, models.SupplierTaxNumber.Vatregistrationnumber)
+        .success
+        .value
+        .set(SimplifiedInvoiceVatRegCheckPage, true)
+        .success
+        .value
+
+      val application =
+        applicationBuilder(userAnswers = Some(initialAnswers))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, invoiceTypeRoute)
+            .withFormUrlEncodedBody(("value", InvoiceType.SimplifiedInvoice.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+
+        val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository).set(captor.capture())
+        val saved = captor.getValue
+
+        saved.get(pages.SupplierTaxNumberPage) mustBe None
+        saved.get(SimplifiedInvoiceVatRegCheckPage) mustBe None
+        saved.get(InvoiceTypePage) mustBe Some(InvoiceType.SimplifiedInvoice)
+      }
+    }
+
     "must redirect to the next page when simplified invoice is submitted" in {
 
       val mockSessionRepository = mock[SessionRepository]
@@ -422,6 +464,75 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
         status(result) mustEqual SEE_OTHER
 
         redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
+      }
+
+    }
+
+    "must redirect to Check Your Purchase Details when in CheckMode and value unchanged" in {
+
+      val userAnswers = emptyUserAnswers.set(InvoiceTypePage, InvoiceType.StandardInvoice).success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.InvoiceTypeController.onSubmit(CheckMode).url)
+            .withFormUrlEncodedBody(("value", InvoiceType.StandardInvoice.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+      }
+    }
+
+    "must redirect to SimplifiedInvoiceVatRegCheck in CheckMode when submitted value changes" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(emptyUserAnswers))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.InvoiceTypeController.onSubmit(CheckMode).url)
+            .withFormUrlEncodedBody(("value", InvoiceType.SimplifiedInvoice.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(CheckMode).url
+      }
+    }
+
+    "must redirect to SupplierVatRegistrationNumber in CheckMode when submitted value changes to standard" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(emptyUserAnswers))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.InvoiceTypeController.onSubmit(CheckMode).url)
+            .withFormUrlEncodedBody(("value", InvoiceType.StandardInvoice.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.SupplierVatRegistrationNumberController.onPageLoad(CheckMode).url
       }
     }
   }

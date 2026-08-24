@@ -25,6 +25,7 @@ import org.mockito.{ArgumentCaptor, Mockito}
 import org.scalatestplus.mockito.MockitoSugar
 import pages.DescribeItemsOnInvoicePage
 import play.api.inject.bind
+import navigation.{FakeNavigator, Navigator}
 import play.api.mvc.Call
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
@@ -65,6 +66,56 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "must short-circuit to purchase CYA in CheckMode when value unchanged" in {
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val userAnswers = UserAnswers(userAnswersId).set(DescribeItemsOnInvoicePage, "Fuel and transport costs").success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val controller = application.injector.instanceOf[DescribeItemsOnInvoiceController]
+        val postRequest = FakeRequest(POST, "/").withFormUrlEncodedBody(("value", "Fuel and transport costs"))
+        val result = controller.onSubmit(models.CheckMode).apply(postRequest)
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+        org.mockito.Mockito.verify(mockSessionRepository, org.mockito.Mockito.times(0)).set(any())
+      }
+    }
+
+    "must persist and redirect to next page in CheckMode when value changed" in {
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val userAnswers = emptyUserAnswers
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository),
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute))
+          )
+          .build()
+
+      running(application) {
+        val controller = application.injector.instanceOf[DescribeItemsOnInvoiceController]
+        val postRequest = FakeRequest(POST, "/").withFormUrlEncodedBody(("value", "Fuel and transport costs"))
+        val result = controller.onSubmit(models.CheckMode).apply(postRequest)
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual onwardRoute.url
+        org.mockito.Mockito.verify(mockSessionRepository, org.mockito.Mockito.times(1)).set(any())
+      }
+    }
     "must populate the view correctly on a GET when the question has previously been answered" in {
       val userAnswers = UserAnswers(userAnswersId).set(DescribeItemsOnInvoicePage, "Fuel and transport costs").success.value
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()

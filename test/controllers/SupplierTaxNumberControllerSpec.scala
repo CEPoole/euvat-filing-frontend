@@ -18,12 +18,12 @@ package controllers
 
 import base.SpecBase
 import forms.SupplierTaxNumberFormProvider
-import models.{InvoiceType, NormalMode, SupplierTaxNumber, UserAnswers}
+import models.{CheckMode, InvoiceType, NormalMode, SupplierTaxNumber, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import pages.{InvoiceTypePage, RefundingCountryNamePage, RefundingCountryPage, SupplierTaxNumberPage}
+import pages.{InvoiceTypePage, RefundingCountryNamePage, RefundingCountryPage, SupplierTaxIdentifierNumberPage, SupplierTaxNumberPage, SupplierVatRegistrationNumberPage}
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
@@ -285,6 +285,98 @@ class SupplierTaxNumberControllerSpec extends SpecBase with MockitoSugar {
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
+      }
+    }
+
+    "must redirect to Check Your Purchase Details when data unchanged in CheckMode" in {
+      val userAnswers = germanUserAnswers.set(SupplierTaxNumberPage, SupplierTaxNumber.Vatregistrationnumber).success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.SupplierTaxNumberController.onSubmit(CheckMode).url)
+            .withFormUrlEncodedBody(("value", SupplierTaxNumber.Vatregistrationnumber.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+      }
+    }
+
+    "must redirect to Check Your Purchase Details when selecting Neither in CheckMode" in {
+      val userAnswers = germanUserAnswers.set(SupplierTaxNumberPage, SupplierTaxNumber.Vatregistrationnumber).success.value
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.SupplierTaxNumberController.onSubmit(CheckMode).url)
+            .withFormUrlEncodedBody(("value", SupplierTaxNumber.Neither.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+      }
+    }
+
+    "must clear VAT number and navigate to tax identifier when switching type in CheckMode" in {
+      val userAnswers = germanUserAnswers.set(SupplierVatRegistrationNumberPage, "DE123456789").success.value
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.SupplierTaxNumberController.onSubmit(CheckMode).url)
+            .withFormUrlEncodedBody(("value", SupplierTaxNumber.Taxidentifiernumber.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.routes.SupplierTaxIdentifierNumberController.onPageLoad(CheckMode).url
+      }
+    }
+
+    "must clear tax identifier and navigate to VAT reg when switching type in CheckMode" in {
+      val userAnswers = germanUserAnswers.set(SupplierTaxIdentifierNumberPage, "1234567890").success.value
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.SupplierTaxNumberController.onSubmit(CheckMode).url)
+            .withFormUrlEncodedBody(("value", SupplierTaxNumber.Vatregistrationnumber.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.routes.SupplierVatRegistrationNumberController.onPageLoad(CheckMode).url
       }
     }
   }

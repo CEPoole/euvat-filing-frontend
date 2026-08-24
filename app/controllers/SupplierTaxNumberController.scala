@@ -18,15 +18,18 @@ package controllers
 
 import controllers.actions.*
 import forms.SupplierTaxNumberFormProvider
+import models.requests.DataRequest
 import models.{InvoiceType, Mode, NormalMode, SupplierTaxNumber, UserAnswers}
 import navigation.Navigator
-import pages.{InvoiceTypePage, RefundingCountryPage, SupplierTaxNumberPage}
+import pages.{InvoiceTypePage, SupplierTaxIdentifierNumberPage, SupplierTaxNumberPage, SupplierVatRegistrationNumberPage}
 import play.api.Logger
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.*
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import utils.CheckModeShortCircuit
+import utils.ControllerHelpers.*
 import views.html.SupplierTaxNumberView
 
 import javax.inject.Inject
@@ -51,15 +54,8 @@ class SupplierTaxNumberController @Inject() (
 
   private def backLink: Call = routes.SupplierAddressController.onPageLoad(NormalMode)
 
-  private def resolveCountryCode(userAnswers: UserAnswers): Option[String] =
-    userAnswers.get(pages.RefundingCountryPage).orElse {
-      userAnswers.get(pages.RefundingCountryNamePage).map { stored =>
-        stored.split(",", 2).headOption.getOrElse(stored)
-      }
-    }
-
   private def requireGermany(userAnswers: UserAnswers): Option[Result] =
-    resolveCountryCode(userAnswers) match {
+    utils.CountryCode.findCountryCode(userAnswers) match {
       case Some("DE") => None
       case _ =>
         logger.warn("SupplierTaxNumberController - country is not Germany or missing from session, redirecting to JourneyRecovery")
@@ -67,34 +63,90 @@ class SupplierTaxNumberController @Inject() (
     }
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-
+    // Ensure country is Germany and either return recovery redirect or render
     requireGermany(request.userAnswers).getOrElse {
-      val preparedForm = request.userAnswers.get(SupplierTaxNumberPage) match {
-        case None        => form
-        case Some(value) => form.fill(value)
-      }
+      // Build the prepared form (prefill when a stored answer exists)
+      val preparedForm = preparedFormFromAnswers(_.get(SupplierTaxNumberPage), form)
+      // Determine whether the invoice type is a simplified invoice
       val isSimplifiedInvoice: Boolean = request.userAnswers.get(InvoiceTypePage).contains(InvoiceType.SimplifiedInvoice)
-      Ok(view(preparedForm, mode, backLink, isSimplifiedInvoice))
+      // Render the OK view using the shared helper
+      okView(preparedForm, mode, isSimplifiedInvoice)
     }
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-
+    // Ensure Germany precondition; if not satisfied return the redirect
     requireGermany(request.userAnswers) match {
       case Some(result) => Future.successful(result)
-      case None =>
+      case None         =>
+        // Precompute whether the invoice type is simplified for view rendering
         val isSimplifiedInvoice: Boolean = request.userAnswers.get(InvoiceTypePage).contains(InvoiceType.SimplifiedInvoice)
 
+        // Bind and validate the submitted form
         form
           .bindFromRequest()
           .fold(
-            formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink, isSimplifiedInvoice))),
+            // On errors render BadRequest via helper keeping method small
+            formWithErrors => Future.successful(badRequestView(formWithErrors, mode, isSimplifiedInvoice)),
+
+            // On valid value handle short-circuiting or persist-and-clean
             value =>
-              for {
-                updatedAnswers <- Future.fromTry(request.userAnswers.set(SupplierTaxNumberPage, value))
-                _              <- sessionRepository.set(updatedAnswers)
-              } yield Redirect(navigator.nextPage(SupplierTaxNumberPage, mode, updatedAnswers))
+              // Short-circuit unchanged CheckMode submissions to Purchase CYA
+              CheckModeShortCircuit.shortCircuitIfUnchanged(
+                SupplierTaxNumberPage,
+                value,
+                mode,
+                request.userAnswers,
+                controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+              ) match {
+                // If short-circuit produced a redirect return it immediately
+                case Some(res) => Future.successful(res)
+                // Otherwise persist the new choice and clean stale fields once
+                case None =>
+                  // Build the Try of updated answers (set the selected value)
+                  val userAnswersTry = request.userAnswers.set(SupplierTaxNumberPage, value)
+
+                  // Persist and clean stale supplier identifiers according to selection
+                  persistWithCleaning(userAnswersTry, value).map { cleaned =>
+                    // Redirect to the next page using navigator
+                    Redirect(navigator.nextPage(SupplierTaxNumberPage, mode, cleaned))
+                  }
+              }
           )
     }
   }
+  
+  // Render OK view with supplied form and simplified-invoice flag
+  private def okView(preparedForm: Form[SupplierTaxNumber], mode: Mode, isSimplifiedInvoice: Boolean)(implicit request: DataRequest[?]) =
+    Ok(view(preparedForm, mode, backLink, isSimplifiedInvoice))
+
+  // Render BadRequest view with errors and simplified flag
+  private def badRequestView(formWithErrors: Form[SupplierTaxNumber], mode: Mode, isSimplifiedInvoice: Boolean)(implicit request: DataRequest[?]) =
+    BadRequest(view(formWithErrors, mode, backLink, isSimplifiedInvoice))
+
+  // Persist the provided Try[UserAnswers], then remove stale identifiers based on `value` and save.
+  private def persistWithCleaning(userAnswersTry: scala.util.Try[UserAnswers], value: SupplierTaxNumber)(implicit
+    request: DataRequest[?]
+  ): Future[UserAnswers] =
+    Future.fromTry(userAnswersTry).flatMap { updatedAnswers =>
+      // Clean stale fields based on chosen supplier tax number type
+      val cleaned: UserAnswers = value match {
+        case SupplierTaxNumber.Vatregistrationnumber =>
+          // If VAT registration selected remove any tax identifier
+          updatedAnswers.remove(SupplierTaxIdentifierNumberPage).get
+        case SupplierTaxNumber.Taxidentifiernumber =>
+          // If tax identifier selected remove any VAT registration number
+          updatedAnswers.remove(SupplierVatRegistrationNumberPage).get
+        case SupplierTaxNumber.Neither =>
+          // If neither selected remove both fields
+          updatedAnswers
+            .remove(SupplierVatRegistrationNumberPage)
+            .get
+            .remove(SupplierTaxIdentifierNumberPage)
+            .get
+      }
+
+      // Persist the cleaned answers once and return them as the future result
+      sessionRepository.set(cleaned).map(_ => cleaned)
+    }
 }

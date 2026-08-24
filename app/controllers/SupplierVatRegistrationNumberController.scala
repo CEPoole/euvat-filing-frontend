@@ -18,19 +18,22 @@ package controllers
 
 import controllers.actions.*
 import forms.SupplierVatRegistrationNumberFormProvider
-
-import javax.inject.Inject
-import models.Mode
+import models.requests.DataRequest
+import models.{CheckMode, Mode}
 import navigation.Navigator
-import pages.{RefundingCountryPage, SupplierTaxIdentifierNumberPage, SupplierVatRegistrationNumberPage}
+import pages.{PurchaseTypePage, RefundingCountryPage, SupplierTaxIdentifierNumberPage, SupplierVatRegistrationNumberPage}
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import utils.CheckModeShortCircuit
+import utils.ControllerHelpers.*
 import views.html.SupplierVatRegistrationNumberView
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 class SupplierVatRegistrationNumberController @Inject() (
   override val messagesApi: MessagesApi,
@@ -50,28 +53,79 @@ class SupplierVatRegistrationNumberController @Inject() (
 
   private def backLink(mode: Mode) = routes.SupplierTaxNumberController.onPageLoad(mode)
 
+  // TODO: Add a supplier-VAT-registration-number warning flow analogous to
+  // `SupplierTaxIdentifierWarningController`. When the user arrives from the
+  // Invoice number page in `CheckMode` and updates the VAT registration number we
+  // should short-circuit into that warning flow. The warning controller and
+  // related session flag are not yet implemented for VAT registration numbers.
+
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
+    // Remove any lingering SupplierTaxIdentifierNumber as VAT reg number page takes precedence
+    // Execute the cleanup asynchronously but continue to prepare and render the page
     for {
       updatedAnswers <- Future.fromTry(request.userAnswers.remove(SupplierTaxIdentifierNumberPage))
       _              <- sessionRepository.set(updatedAnswers)
     } yield None
-    val preparedForm = request.userAnswers.get(SupplierVatRegistrationNumberPage).fold(form)(form.fill)
+
+    // Prepare the form pre-filling from session when present
+    val preparedForm = preparedFormFromAnswers(_.get(SupplierVatRegistrationNumberPage), form)
+
+    // Detect whether refunding country is Germany to inform the view
     val isGermany = request.userAnswers.get(RefundingCountryPage).exists(_.equalsIgnoreCase("DE"))
-    Ok(view(preparedForm, mode, backLink(mode), isGermany))
+
+    // Render the page using the shared helper
+    okView(preparedForm, mode, isGermany)
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
+    // Determine whether the refunding country is Germany for the form view
     val isGermany = request.userAnswers.get(RefundingCountryPage).exists(_.equalsIgnoreCase("DE"))
+
+    // Bind form and handle validation/result
     form
       .bindFromRequest()
       .fold(
-        formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode), isGermany))),
+        // On errors render BadRequest via helper
+        formWithErrors => Future.successful(badRequestView(formWithErrors, mode, isGermany)),
+
+        // On valid submission attempt CheckMode short-circuiting or persist once
         value =>
-          for {
-            updatedAnswers <- Future.fromTry(request.userAnswers.set(SupplierVatRegistrationNumberPage, value))
-            _              <- sessionRepository.set(updatedAnswers)
-          } yield Redirect(navigator.nextPage(SupplierVatRegistrationNumberPage, mode, updatedAnswers))
+          // Prefer the session flag over Referer detection
+          val cameFromInvoicePage = request.userAnswers.get(pages.SupplierVatRegistrationArrivedFromInvoicePage).contains(true)
+
+          if (mode == CheckMode && request.userAnswers.get(SupplierVatRegistrationNumberPage).contains(value) && !cameFromInvoicePage)
+            Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
+          else {
+            // Persist: remove the transient arrived flag before persisting final state
+            val userAnswersTry = for {
+              setVal <- request.userAnswers.set(SupplierVatRegistrationNumberPage, value)
+              removed <- setVal.remove(pages.SupplierVatRegistrationArrivedFromInvoicePage)
+            } yield removed
+
+            persistAndRedirect(userAnswersTry, mode)
+          }
       )
   }
+
+  // Render OK with form and the Germany flag
+  private def okView(preparedForm: Form[String], mode: Mode, isGermany: Boolean)(implicit request: DataRequest[?]) =
+    Ok(view(preparedForm, mode, backLink(mode), isGermany))
+
+  // Render BadRequest for invalid form submissions
+  private def badRequestView(formWithErrors: Form[String], mode: Mode, isGermany: Boolean)(implicit request: DataRequest[?]) =
+    BadRequest(view(formWithErrors, mode, backLink(mode), isGermany))
+
+  // Persist once and compute redirect target according to mode and purchase flow
+  private def persistAndRedirect(userAnswersTry: Try[models.UserAnswers], mode: Mode)(implicit
+    request: DataRequest[?]
+  ): Future[play.api.mvc.Result] =
+    persistAndThen(userAnswersTry, sessionRepository) { persisted =>
+      Future.successful(
+        if (mode == CheckMode && request.userAnswers.get(PurchaseTypePage).isDefined)
+          Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+        else
+          Redirect(navigator.nextPage(SupplierVatRegistrationNumberPage, mode, persisted))
+      )
+    }
 
 }

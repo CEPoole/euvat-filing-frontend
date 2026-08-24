@@ -20,13 +20,15 @@ import controllers.actions.*
 import forms.TotalVatClaimFormProvider
 
 import javax.inject.Inject
-import models.Mode
+import models.{CheckMode, Mode}
 import navigation.Navigator
-import pages.{RefundingCurrencyPage, TotalVatClaimPage, TotalVatPaidPage}
+import pages.{RefundingCurrencyPage, TotalVatClaimPage, TotalVatPaidPage, PurchaseTypePage}
 import play.api.data.Form
-import utils.ConfigCurrencyMapping
+import utils.{CheckModeShortCircuit, ConfigCurrencyMapping}
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
+import utils.ControllerHelpers.*
+import models.requests.DataRequest
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import views.html.TotalVatClaimView
@@ -52,58 +54,47 @@ class TotalVatClaimController @Inject() (
 
   private def backLink(mode: Mode): Call = routes.TotalVatPaidController.onPageLoad(mode)
 
-  private def resolveCurrencyPrefix(userAnswers: models.UserAnswers): String = {
-    val maybeCountry = userAnswers.get(pages.RefundingCountryPage).orElse {
-      userAnswers.get(pages.RefundingCountryNamePage).map { stored =>
-        stored.split(",", 2).headOption.getOrElse(stored)
-      }
-    }
-
-    val defaultSymbol = "€"
-
-    maybeCountry match {
-      case None => defaultSymbol
-      case Some(countryCode) =>
-        userAnswers.get(RefundingCurrencyPage) match {
-          case Some(currencyCode) =>
-            configCurrencyMapping
-              .currenciesFor(countryCode)
-              .find(_._2 == currencyCode)
-              .map(_._3)
-              .getOrElse(configCurrencyMapping.currenciesFor(countryCode).headOption.map(_._3).getOrElse(defaultSymbol))
-          case None =>
-            configCurrencyMapping.currenciesFor(countryCode).headOption.map(_._3).getOrElse(defaultSymbol)
-        }
-    }
-  }
-
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    val preparedForm = request.userAnswers.get(TotalVatClaimPage) match {
-      case None        => form
-      case Some(value) => form.fill(value)
-    }
-    val currencySymbol = resolveCurrencyPrefix(request.userAnswers)
-    Ok(view(preparedForm, mode, backLink(mode), currencySymbol))
+    // Prepare the form pre-filling from session when present
+    val preparedForm = preparedFormFromAnswers(_.get(TotalVatClaimPage), form)
+
+    // Resolve the display currency symbol (fallback to Euro)
+    val currencySymbol = currencySymbolFromSession(request.userAnswers, configCurrencyMapping)
+
+    // Render the OK view using the shared helper
+    okView(preparedForm, mode, currencySymbol)
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-    val currencySymbol = resolveCurrencyPrefix(request.userAnswers)
+    // Bind form and handle invalid/valid branches using shared helpers
     form
       .bindFromRequest()
       .fold(
-        formWithErrors => Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode), currencySymbol))),
-        value =>
-          for {
-            updatedAnswers <- Future.fromTry(request.userAnswers.set(TotalVatClaimPage, value))
-            _              <- sessionRepository.set(updatedAnswers)
-          } yield {
-            val totalVatPaid = request.userAnswers.get(TotalVatPaidPage).getOrElse(BigDecimal(0))
-            if (value > totalVatPaid) {
-              Redirect(routes.VatClaimWarningController.onPageLoad(mode))
-            } else {
-              Redirect(navigator.nextPage(TotalVatClaimPage, mode, updatedAnswers))
-            }
-          }
+        // On validation errors render BadRequest with consistent currency symbol
+        formWithErrors => Future.successful(badRequestView(formWithErrors, mode)),
+
+        value => handleSubmit(value, mode)
       )
   }
+
+  private def handleSubmit(value: BigDecimal, mode: Mode)(implicit request: DataRequest[?]) = {
+    shortCircuitPersistAndThen(
+      TotalVatClaimPage,
+      value,
+      mode,
+      request.userAnswers,
+      sessionRepository,
+      navigator.nextPage(TotalVatClaimPage, mode, request.userAnswers),
+      controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+    ) { updated =>
+      if (compareWithPage(value, TotalVatPaidPage, updated)(_ > _)) Future.successful(Redirect(routes.VatClaimWarningController.onPageLoad(mode)))
+      else Future.successful(Redirect(navigator.nextPage(TotalVatClaimPage, mode, updated)))
+    }
+  }
+
+  private def okView(preparedForm: Form[BigDecimal], mode: Mode, currencySymbol: String)(implicit request: DataRequest[?]) =
+    Ok(view(preparedForm, mode, backLink(mode), currencySymbol))
+
+  private def badRequestView(formWithErrors: Form[?], mode: Mode)(implicit request: DataRequest[?]) =
+    BadRequest(view(formWithErrors, mode, backLink(mode), currencySymbolFromSession(request.userAnswers, configCurrencyMapping)))
 }

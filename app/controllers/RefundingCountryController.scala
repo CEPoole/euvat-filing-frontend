@@ -133,7 +133,10 @@ class RefundingCountryController @Inject() (
                                      } else { Future.successful(updatedAnswers2) }
                   updatedAnswers4 <- {
                     val currencies = configCurrencyMapping.currenciesFor(value)
-                    if (currencies.size == 1 && languages.size == 1) {
+                    // If the country has a single configured currency persist it into session
+                    // regardless of the number of available languages. This covers cases
+                    // where a country (e.g. BE) has multiple languages but only one currency.
+                    if (currencies.size == 1) {
                       Future.fromTry(updatedAnswers3.set(RefundingCurrencyPage, currencies.head._2))
                     } else {
                       Future.successful(updatedAnswers3)

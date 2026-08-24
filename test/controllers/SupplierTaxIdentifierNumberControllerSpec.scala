@@ -29,6 +29,8 @@ import models.responses.{AddPurchaseResponse, ApplicationResponse}
 import pages.{AddPurchaseResponsePage, InvoiceNumberPage}
 import queries.ClaimApplicationResponseQuery
 import pages.SupplierTaxIdentifierNumberPage
+import pages.PurchaseTypePage
+import models.PurchaseType
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
@@ -167,6 +169,48 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
       }
     }
 
+    "must trigger duplicate-check in CheckMode even if value unchanged when arrived-from-invoice flag set" in {
+
+      val ua = emptyUserAnswers
+        .set(ClaimApplicationResponseQuery, ApplicationResponse(123, "GB123456789", 1))
+        .success
+        .value
+        .set(AddPurchaseResponsePage, AddPurchaseResponse(itemNumber = 1, updateSequenceNumber = 1))
+        .success
+        .value
+        .set(InvoiceNumberPage, "INV123")
+        .success
+        .value
+        .set(pages.SupplierTaxIdentifierArrivedFromInvoicePage, true).success.value
+        .set(SupplierTaxIdentifierNumberPage, "1234567890").success.value
+
+      when(mockEuVatRefundsService.getSupplierTaxIdentifierCount(any())(any()))
+        .thenReturn(Future.successful(SupplierTaxIdentifierCountResponse(duplicateCount = 1)))
+
+      val application =
+        applicationBuilder(userAnswers = Some(ua))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute))
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.SupplierTaxIdentifierNumberController.onSubmit(CheckMode).url)
+            .withFormUrlEncodedBody(("value", "1234567890"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.SupplierTaxIdentifierWarningController.onPageLoad(CheckMode).url
+
+        // follow the redirect to the warning page which will set the flag
+        val getRequest = FakeRequest(GET, routes.SupplierTaxIdentifierWarningController.onPageLoad(CheckMode).url)
+        val getResult = route(application, getRequest).value
+        status(getResult) mustEqual OK
+      }
+    }
+
       "must redirect to TotalPurchaseAmountBeforeVat when duplicate count == 0" in {
 
         val mockSessionRepository = mock[SessionRepository]
@@ -206,9 +250,9 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
           status(result) mustEqual SEE_OTHER
           redirectLocation(result).value mustEqual routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode).url
           val captor: ArgumentCaptor[UserAnswers] = ArgumentCaptor.forClass(classOf[UserAnswers])
-          verify(mockSessionRepository, org.mockito.Mockito.times(2)).set(captor.capture())
-          // second save should have cleared the flag
-          captor.getAllValues.get(1).get(pages.SupplierTaxIdentifierWarningShownPage) mustBe None
+          verify(mockSessionRepository, org.mockito.Mockito.times(1)).set(captor.capture())
+          // single save should have cleared the flag (final state)
+          captor.getAllValues.get(0).get(pages.SupplierTaxIdentifierWarningShownPage) mustBe None
         }
       }
 
@@ -344,6 +388,36 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual onwardRoute.url
+      }
+    }
+
+    "must persist changed value and return to Purchase CYA when submitted in CheckMode for a purchase flow (DE)" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val ua = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Fuel).success.value
+        .set(pages.SupplierTaxNumberPage, models.SupplierTaxNumber.Taxidentifiernumber).success.value
+        .set(pages.RefundingCountryPage, "DE").success.value
+
+      val application =
+        applicationBuilder(userAnswers = Some(ua))
+          .overrides(
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.SupplierTaxIdentifierNumberController.onSubmit(CheckMode).url)
+            .withFormUrlEncodedBody(("value", "NEWVALUE123"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
       }
     }
 

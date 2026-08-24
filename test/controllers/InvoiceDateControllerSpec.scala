@@ -391,6 +391,87 @@ class InvoiceDateControllerSpec extends SpecBase with MockitoSugar {
           verify(mockSessionRepository).set(any())
         }
       }
+
+      "must redirect back to purchase CYA when in CheckMode and invoice date unchanged" in {
+        val savedPeriod = models.RefundPeriod(LocalDateTime.of(2025, 3, 1, 0, 0), LocalDateTime.of(2025, 8, 1, 23, 59))
+        val userAnswers = emptyUserAnswers
+          .set(RefundPeriodPage, savedPeriod)
+          .success
+          .value
+          .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+          .success
+          .value
+          .set(pages.InvoiceDatePage, LocalDate.of(2025, 4, 15))
+          .success
+          .value
+
+        val mockSessionRepository = mock[repositories.SessionRepository]
+        when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+
+        val application = applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+        running(application) {
+          val request = FakeRequest(POST, routes.InvoiceDateController.onSubmit(models.CheckMode).url)
+            .withFormUrlEncodedBody(
+              "value.day"   -> "15",
+              "value.month" -> "04",
+              "value.year"  -> "2025"
+            )
+
+          val result = route(application, request).value
+
+          status(result) mustEqual SEE_OTHER
+          redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+          // unchanged -> should not persist a new session
+          org.mockito.Mockito.verify(mockSessionRepository, org.mockito.Mockito.never()).set(any())
+        }
+      }
+
+      "must persist and redirect to purchase CYA when in CheckMode and invoice date changed" in {
+        val savedPeriod = models.RefundPeriod(LocalDateTime.of(2025, 3, 1, 0, 0), LocalDateTime.of(2025, 8, 1, 23, 59))
+        val userAnswers = emptyUserAnswers
+          .set(RefundPeriodPage, savedPeriod)
+          .success
+          .value
+          .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+          .success
+          .value
+          .set(pages.InvoiceDatePage, LocalDate.of(2025, 4, 15))
+          .success
+          .value
+
+        val mockSessionRepository = mock[repositories.SessionRepository]
+        when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+
+        val application = applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+        running(application) {
+          val request = FakeRequest(POST, routes.InvoiceDateController.onSubmit(models.CheckMode).url)
+            .withFormUrlEncodedBody(
+              "value.day"   -> "16",
+              "value.month" -> "04",
+              "value.year"  -> "2025"
+            )
+
+          val result = route(application, request).value
+
+          status(result) mustEqual SEE_OTHER
+          redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+
+          val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+          org.mockito.Mockito.verify(mockSessionRepository).set(captor.capture())
+          val saved = captor.getValue
+          saved.get(pages.InvoiceDatePage) mustBe Some(LocalDate.of(2025, 4, 16))
+        }
+      }
     }
   }
 }

@@ -27,7 +27,11 @@ object CountryCode {
       .orElse(
         userAnswers
           .get(RefundingCountryNamePage)
-          .map(stored => stored.split(",", 2).headOption.getOrElse(stored))
+          .map { stored =>
+            val parts = stored.split(",", 2).map(_.trim).filter(_.nonEmpty)
+            val isoLike = parts.find(p => p.matches("(?i)^[A-Z]{2}$"))
+            isoLike.map(_.toUpperCase).getOrElse(parts.lastOption.getOrElse(stored.trim))
+          }
       )
   }
 

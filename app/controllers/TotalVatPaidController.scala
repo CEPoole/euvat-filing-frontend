@@ -18,21 +18,30 @@ package controllers
 
 import controllers.actions.*
 import forms.TotalVatPaidFormProvider
-
-import javax.inject.Inject
-import models.Mode
+import models.requests.DataRequest
+import utils.CheckModeShortCircuit
+import models.{CheckMode, Mode}
 import navigation.Navigator
-import utils.ConfigCurrencyMapping
-import pages.{RefundingCurrencyPage, TotalPurchaseAmountBeforeVatPage, TotalVatPaidPage}
+import pages.{PurchaseTypePage, TotalPurchaseAmountBeforeVatPage, TotalVatPaidPage}
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import utils.ConfigCurrencyMapping
+import utils.ControllerHelpers.*
 import views.html.TotalVatPaidView
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
+/** Handles the total VAT paid input.
+  *
+  * Behaviour notes:
+  *   - Uses `utils.CurrencyResolver.currencyNameAndPrefix` to render currency prefixes consistently across views.
+  *   - In purchase journeys running in `CheckMode` we short-circuit unchanged submissions back to the Purchase CYA without persisting to maintain a
+  *     single-write invariant. If the value changes we persist once and then redirect appropriately.
+  */
 class TotalVatPaidController @Inject() (
   override val messagesApi: MessagesApi,
   sessionRepository: SessionRepository,
@@ -51,102 +60,48 @@ class TotalVatPaidController @Inject() (
   val form: Form[BigDecimal] = formProvider()
 
   private def backLink(mode: Mode) = routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
-
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    val preparedForm = request.userAnswers.get(TotalVatPaidPage) match {
-      case None        => form
-      case Some(value) => form.fill(value)
-    }
+    // Prepare the form by reading any stored TotalVatPaid from session
+    val preparedForm = preparedFormFromAnswers(_.get(TotalVatPaidPage), form)
 
-    val (currencyName, prefix) = resolveCurrency(request.userAnswers)
-    Ok(view(preparedForm, mode, backLink(mode), prefix, currencyName))
+    // Resolve the currency display name and prefix for the view
+    val (currencyName, prefix) = currencyNameAndPrefix(request.userAnswers, configCurrencyMapping)
+
+    // Render OK view using shared helper
+    okView(preparedForm, mode, prefix, currencyName)
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
     form
       .bindFromRequest()
       .fold(
-        formWithErrors => {
-          val (currencyName, prefix) = resolveCurrency(request.userAnswers)
-          Future.successful(BadRequest(view(formWithErrors, mode, backLink(mode), prefix, currencyName)))
-        },
-        value =>
-          for {
-            updatedAnswers <- Future.fromTry(request.userAnswers.set(TotalVatPaidPage, value))
-            _              <- sessionRepository.set(updatedAnswers)
-          } yield {
-            val totalPurchaseAmt: BigDecimal = request.userAnswers.get(TotalPurchaseAmountBeforeVatPage).getOrElse(BigDecimal(0))
-            if (value >= totalPurchaseAmt) {
-              Redirect(routes.VatPaidWarningController.onPageLoad(mode))
-            } else {
-              Redirect(navigator.nextPage(TotalVatPaidPage, mode, updatedAnswers))
-            }
-          }
+        formWithErrors => Future.successful(badRequestView(formWithErrors, mode)),
+        value => handleSubmit(value, mode)
       )
   }
 
-  private def resolveCurrencyPrefix(userAnswers: models.UserAnswers): String = {
-    val maybeCountry = userAnswers.get(pages.RefundingCountryPage).orElse {
-      userAnswers.get(pages.RefundingCountryNamePage).map { stored =>
-        stored.split(",", 2).headOption.getOrElse(stored)
-      }
-    }
-
-    val defaultSymbol = "€"
-
-    maybeCountry match {
-      case None => defaultSymbol
-      case Some(countryCode) =>
-        userAnswers.get(RefundingCurrencyPage) match {
-          case Some(currencyCode) =>
-            configCurrencyMapping
-              .currenciesFor(countryCode)
-              .find(_._2 == currencyCode)
-              .map(_._3)
-              .getOrElse(configCurrencyMapping.currenciesFor(countryCode).headOption.map(_._3).getOrElse(defaultSymbol))
-          case None =>
-            configCurrencyMapping.currenciesFor(countryCode).headOption.map(_._3).getOrElse(defaultSymbol)
-        }
+  private def handleSubmit(value: BigDecimal, mode: Mode)(implicit request: DataRequest[?]) = {
+    shortCircuitPersistAndThen(
+      TotalVatPaidPage,
+      value,
+      mode,
+      request.userAnswers,
+      sessionRepository,
+      navigator.nextPage(TotalVatPaidPage, mode, request.userAnswers),
+      controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+    ) { updated =>
+      if (compareWithPage(value, TotalPurchaseAmountBeforeVatPage, updated)(_ >= _)) Future.successful(Redirect(routes.VatPaidWarningController.onPageLoad(mode)))
+      else Future.successful(Redirect(navigator.nextPage(TotalVatPaidPage, mode, updated)))
     }
   }
 
-  private def resolveCurrency(userAnswers: models.UserAnswers)(implicit request: play.api.mvc.Request[?]): (String, String) = {
-    val maybeCountry = userAnswers.get(pages.RefundingCountryPage).orElse {
-      userAnswers.get(pages.RefundingCountryNamePage).map { stored =>
-        stored.split(",", 2).headOption.getOrElse(stored)
-      }
-    }
+  // Render OK view with prepared form and currency details
+  private def okView(preparedForm: Form[BigDecimal], mode: Mode, prefix: String, currencyName: String)(implicit request: DataRequest[?]) =
+    Ok(view(preparedForm, mode, backLink(mode), prefix, currencyName))
 
-    val defaultSymbol = "€"
-    val defaultName = "Euro"
-
-    maybeCountry match {
-      case None => (defaultName, defaultSymbol)
-      case Some(countryCode) =>
-        val selection = userAnswers.get(RefundingCurrencyPage) match {
-          case Some(currencyCode) =>
-            configCurrencyMapping
-              .currenciesFor(countryCode)
-              .find(_._2 == currencyCode)
-              .orElse(configCurrencyMapping.currenciesFor(countryCode).headOption)
-          case None =>
-            configCurrencyMapping.currenciesFor(countryCode).headOption
-        }
-
-        selection match {
-          case Some((name, _code, symbol)) => (humanizeName(name), symbol)
-          case _                           => (defaultName, defaultSymbol)
-        }
-    }
+  // Render BadRequest view for invalid forms with consistent currency info
+  private def badRequestView(formWithErrors: Form[?], mode: Mode)(implicit request: DataRequest[?]) = {
+    val (currencyName, prefix) = currencyNameAndPrefix(request.userAnswers, configCurrencyMapping)
+    BadRequest(view(formWithErrors, mode, backLink(mode), prefix, currencyName))
   }
-
-  private def humanizeName(name: String): String = {
-    name
-      .replaceAll("([a-z])([A-Z])", "$1 $2")
-      .split("[ _-]+")
-      .filter(_.nonEmpty)
-      .map(s => s.head.toUpper.toString + s.tail)
-      .mkString(" ")
-  }
-
 }

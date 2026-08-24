@@ -40,6 +40,7 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
     "must return OK when subcategories exist" in {
       val fakeConfig = new ConfigPurchaseMapping() {
         override def subcategoriesFor(country: String, parentKey: String, subcode: String) = Seq(("1.1", "purchase.sub.test.1.1"))
+        override def subcodesFor(country: String, parentKey: String) = Seq(("1.1", "purchase.sub.test.1"))
         override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
       }
 
@@ -55,6 +56,30 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual OK
+      }
+    }
+
+    "must render form action with change- prefix in CheckMode" in {
+      val fakeConfig = new ConfigPurchaseMapping() {
+        override def subcategoriesFor(country: String, parentKey: String, subcode: String) = Seq(("1.1", "purchase.sub.test.1.1"))
+        override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
+      }
+
+      val userAnswers =
+        emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value.set(pages.PurchaseTypePage, models.PurchaseType.Fuel).success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig))
+        .build()
+
+      running(application) {
+        // Use the CheckMode reverse route (context prefix already included)
+        val url = controllers.purchase.routes.PurchaseSubCategoryController.onPageLoad(models.CheckMode).url
+        val request = FakeRequest(GET, url)
+        val result = route(application, request).value
+
+        status(result) mustEqual OK
+        contentAsString(result) must include("change-fuel")
       }
     }
 
@@ -162,6 +187,79 @@ class PurchaseSubCategoryControllerSpec extends SpecBase with MockitoSugar {
         val saved = captor.getValue
         saved.get(pages.PurchaseSubCategoryPage) mustBe Some("1.1")
         saved.get(pages.PurchaseSubCategoryLabelPage).isDefined mustBe true
+      }
+    }
+
+    "must short-circuit to purchase CYA in CheckMode when value unchanged" in {
+      val fakeConfig = new ConfigPurchaseMapping() {
+        override def subcategoriesFor(country: String, parentKey: String, subcode: String) = Seq(("1.1", "purchase.sub.fuel.1.1"))
+        override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
+      }
+
+      val userAnswers = emptyUserAnswers
+        .set(pages.RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .success
+        .value
+        .set(pages.PurchaseSubCategoryPage, "1.1")
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig))
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, controllers.purchase.routes.PurchaseSubCategoryController.onSubmit(models.CheckMode).url)
+          .withFormUrlEncodedBody(("value", "1.1"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+      }
+    }
+
+    "must persist and redirect to CYA in CheckMode when value changed" in {
+      val fakeConfig = new ConfigPurchaseMapping() {
+        override def subcategoriesFor(country: String, parentKey: String, subcode: String) = Seq(("1.1", "purchase.sub.fuel.1.1"))
+        override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
+      }
+
+      val mockSessionRepository = mock[repositories.SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
+
+      val userAnswers = emptyUserAnswers
+        .set(pages.RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .success
+        .value
+        .set(pages.PurchaseSubCategoryPage, "old")
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[ConfigPurchaseMapping].toInstance(fakeConfig),
+          bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, controllers.purchase.routes.PurchaseSubCategoryController.onSubmit(models.CheckMode).url)
+          .withFormUrlEncodedBody(("value", "1.1"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+        val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        captor.getValue.get(pages.PurchaseSubCategoryPage) mustBe Some("1.1")
       }
     }
 

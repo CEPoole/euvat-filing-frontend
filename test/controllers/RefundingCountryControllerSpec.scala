@@ -469,6 +469,26 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "must auto-set currency when country has single currency even if multiple languages" in {
+        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+          .overrides(bind[repositories.SessionRepository].toInstance(mockSessionRepository))
+          .build()
+
+        running(application) {
+          val request = FakeRequest(POST, routes.RefundingCountryController.onSubmit(models.NormalMode).url)
+            .withFormUrlEncodedBody(("value", "BE"))
+
+          val result = route(application, request).value
+          status(result) mustEqual SEE_OTHER
+
+          import org.mockito.ArgumentCaptor
+          val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+          verify(mockSessionRepository, times(1)).set(captor.capture())
+          val saved = captor.getValue
+          saved.get(pages.RefundingCurrencyPage) mustBe Some("EUR")
+        }
+      }
+
     "must return a Bad Request and errors when invalid data is submitted" in {
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 

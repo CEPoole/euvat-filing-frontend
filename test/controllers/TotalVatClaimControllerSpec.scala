@@ -18,12 +18,15 @@ package controllers
 
 import base.SpecBase
 import forms.TotalVatClaimFormProvider
-import models.{NormalMode, UserAnswers}
+import models.{CheckMode, NormalMode, UserAnswers}
+import pages.PurchaseTypePage
+import models.PurchaseType
+import org.mockito.Mockito.verify
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import pages.{RefundingCountryPage, RefundingCurrencyPage, TotalVatClaimPage, TotalVatPaidPage}
+import pages.{RefundingCountryPage, RefundingCurrencyPage, TotalVatClaimPage, TotalVatPaidPage, TotalPurchaseAmountBeforeVatPage}
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
@@ -134,6 +137,34 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "must redirect to the warning page if total vat claim equals total purchase before VAT" in {
+      val userAnswers = emptyUserAnswers
+        .set(TotalVatPaidPage, BigDecimal("10")).success.value
+        .set(TotalPurchaseAmountBeforeVatPage, validAnswer).success.value
+      val mockSessionRepository = mock[SessionRepository]
+
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, totalVatClaimRoute)
+            .withFormUrlEncodedBody(("value", validAnswer.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.VatClaimWarningController.onPageLoad(NormalMode).url
+      }
+    }
+
     "must return a Bad Request and errors when invalid data is submitted" in {
 
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
@@ -200,82 +231,194 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
-    "must display the kr symbol when the chosen currency is Estonian Kroon" in {
-
+    "must redirect to CYA when in CheckMode and total vat claim unchanged for purchase journey" in {
       val userAnswers = UserAnswers(userAnswersId)
-        .set(RefundingCountryPage, "EE")
+        .set(PurchaseTypePage, PurchaseType.Fuel)
         .success
         .value
-        .set(RefundingCurrencyPage, "EEK")
+        .set(TotalVatClaimPage, validAnswer)
         .success
         .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
       running(application) {
-        val request = FakeRequest(GET, totalVatClaimRoute)
-
-        val view = application.injector.instanceOf[TotalVatClaimView]
+        val request = FakeRequest(POST, routes.TotalVatClaimController.onSubmit(CheckMode).url)
+          .withFormUrlEncodedBody(("value", validAnswer.toString))
 
         val result = route(application, request).value
 
-        status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
-          view(form, NormalMode, backLink, "kr")(request, messages(application)).toString
-        )
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
       }
     }
 
-    "must display the € symbol when the chosen currency is Euro for a multi-currency country" in {
-
+    "must redirect to warning when in CheckMode and total vat claim unchanged but total vat paid triggers warning (arrived from prior page)" in {
       val userAnswers = UserAnswers(userAnswersId)
-        .set(RefundingCountryPage, "EE")
+        .set(PurchaseTypePage, PurchaseType.Fuel)
         .success
         .value
-        .set(RefundingCurrencyPage, "EUR")
+        .set(TotalVatClaimPage, BigDecimal("150.00"))
+        .success
+        .value
+        .set(TotalVatPaidPage, BigDecimal("100.00"))
         .success
         .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
       running(application) {
-        val request = FakeRequest(GET, totalVatClaimRoute)
-
-        val view = application.injector.instanceOf[TotalVatClaimView]
+        val request = FakeRequest(POST, routes.TotalVatClaimController.onSubmit(CheckMode).url)
+          .withHeaders("Referer" -> "/total-vat-paid")
+          .withFormUrlEncodedBody(("value", "150.00"))
 
         val result = route(application, request).value
 
-        status(result) mustEqual OK
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLink, "€")(request, messages(application)).toString)
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
       }
     }
 
-    "must display the kr symbol on the error page when invalid data is submitted" in {
-
+    "must persist updated total vat claim and continue journey when in CheckMode and total vat claim changed for purchase journey" in {
       val userAnswers = UserAnswers(userAnswersId)
-        .set(RefundingCountryPage, "EE")
+        .set(PurchaseTypePage, PurchaseType.Fuel)
         .success
         .value
-        .set(RefundingCurrencyPage, "EEK")
+        .set(TotalVatPaidPage, BigDecimal("200.00"))
         .success
         .value
 
-      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
 
       running(application) {
-        val request = FakeRequest(POST, totalVatClaimRoute).withFormUrlEncodedBody(("value", "invalid value"))
-
-        val boundForm = form.bind(Map("value" -> "invalid value"))
-
-        val view = application.injector.instanceOf[TotalVatClaimView]
+        val request = FakeRequest(POST, routes.TotalVatClaimController.onSubmit(CheckMode).url)
+          // Emulate that we were redirected from the prior page after editing it by setting the session marker
+          .withSession("arrival" -> "total-purchase-before-vat")
+          .withFormUrlEncodedBody(("value", validAnswer.toString))
 
         val result = route(application, request).value
 
-        status(result) mustEqual BAD_REQUEST
-        normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
-          view(boundForm, NormalMode, backLink, "kr")(request, messages(application)).toString
-        )
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual onwardRoute.url
+        verify(mockSessionRepository).set(any())
       }
+    }
+
+    "must persist updated total vat claim and redirect to warning when in CheckMode and total vat claim > total vat paid" in {
+      val userAnswers = emptyUserAnswers
+        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(TotalVatPaidPage, BigDecimal("50.00"))
+        .success
+        .value
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+
+      val application =
+        applicationBuilder(userAnswers = Some(userAnswers))
+          .overrides(
+            bind[repositories.SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.TotalVatClaimController.onSubmit(CheckMode).url).withFormUrlEncodedBody(("value", validAnswer.toString))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.VatClaimWarningController.onPageLoad(CheckMode).url
+        verify(mockSessionRepository).set(any())
+      }
+    }
+  }
+
+  "must display the kr symbol when the chosen currency is Estonian Kroon" in {
+
+    val userAnswers = UserAnswers(userAnswersId)
+      .set(RefundingCountryPage, "EE")
+      .success
+      .value
+      .set(RefundingCurrencyPage, "EEK")
+      .success
+      .value
+
+    val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+    running(application) {
+      val request = FakeRequest(GET, totalVatClaimRoute)
+
+      val view = application.injector.instanceOf[TotalVatClaimView]
+
+      val result = route(application, request).value
+
+      status(result) mustEqual OK
+      normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+        view(form, NormalMode, backLink, "kr")(request, messages(application)).toString
+      )
+    }
+  }
+
+  "must display the € symbol when the chosen currency is Euro for a multi-currency country" in {
+
+    val userAnswers = UserAnswers(userAnswersId)
+      .set(RefundingCountryPage, "EE")
+      .success
+      .value
+      .set(RefundingCurrencyPage, "EUR")
+      .success
+      .value
+
+    val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+    running(application) {
+      val request = FakeRequest(GET, totalVatClaimRoute)
+
+      val view = application.injector.instanceOf[TotalVatClaimView]
+
+      val result = route(application, request).value
+
+      status(result) mustEqual OK
+      normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLink, "€")(request, messages(application)).toString)
+    }
+  }
+
+  "must display the kr symbol on the error page when invalid data is submitted" in {
+
+    val userAnswers = UserAnswers(userAnswersId)
+      .set(RefundingCountryPage, "EE")
+      .success
+      .value
+      .set(RefundingCurrencyPage, "EEK")
+      .success
+      .value
+
+    val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+    running(application) {
+      val request = FakeRequest(POST, totalVatClaimRoute).withFormUrlEncodedBody(("value", "invalid value"))
+
+      val boundForm = form.bind(Map("value" -> "invalid value"))
+
+      val view = application.injector.instanceOf[TotalVatClaimView]
+
+      val result = route(application, request).value
+
+      status(result) mustEqual BAD_REQUEST
+      normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
+        view(boundForm, NormalMode, backLink, "kr")(request, messages(application)).toString
+      )
     }
   }
 }

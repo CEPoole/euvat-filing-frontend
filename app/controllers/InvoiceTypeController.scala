@@ -17,26 +17,33 @@
 package controllers
 
 import controllers.actions.*
-import forms.InvoiceTypeFormProvider
-
-import javax.inject.Inject
-import models.Mode
-import navigation.Navigator
-import pages.{DescribeItemsOnInvoicePage, InvoiceTypePage, PurchaseSubCategoryLabelPage, PurchaseSubCategoryPage, PurchaseSubTypeLabelPage, PurchaseSubTypePage, PurchaseTypePage}
-import models.requests.DataRequest
-import models.PurchaseType
-import models.PurchaseSubCategoryType
 import controllers.helpers.PurchaseBackLinkHelper
-import utils.ConfigPurchaseMapping
+import forms.InvoiceTypeFormProvider
+import models.requests.DataRequest
+import models.{CheckMode, InvoiceType, Mode, PurchaseType, UserAnswers}
+import navigation.Navigator
+import pages.{InvoiceTypePage, PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage}
+import play.api.Logging
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
+import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import utils.{ConfigPurchaseMapping, CountryCode}
 import views.html.InvoiceTypeView
-import play.api.mvc.Call
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
+/** Controller for selecting `InvoiceType`.
+  *
+  * Notes for maintainers:
+  *   - Uses `utils.CheckModeShortCircuit.shortCircuitIfUnchanged` to avoid persisting when a CheckMode submission does not change stored data.
+  *   - When the invoice type changes we clear stale supplier-identification answers (VAT reg / tax id) before persisting; callers should rely on
+  *     `buildUpdatedTry` to compose the correct `Try[UserAnswers]` and the `persistAndRedirect` helper to persist once and perform post-persist
+  *     routing. This keeps a single call to `sessionRepository.set` per action.
+  *   - Special-case: when the country is DE there is a different next step (supplier tax number) after persisting.
+  */
 class InvoiceTypeController @Inject() (
   override val messagesApi: MessagesApi,
   sessionRepository: SessionRepository,
@@ -51,54 +58,48 @@ class InvoiceTypeController @Inject() (
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport
-    with play.api.Logging {
+    with Logging {
 
   val form = formProvider()
 
+  // Helper to render the InvoiceType view with validation errors and wrap
+  // the result in a Future so it can be returned from async handlers.
+  private def badRequestView(formWithErrors: play.api.data.Form[?], mode: Mode)(implicit request: DataRequest[?]): Future[play.api.mvc.Result] = {
+    // Render the view explicitly supplying the current request and messages
+    val html = view(formWithErrors, mode, computeBackTarget(mode))(request, messagesApi.preferred(request))
+    Future.successful(BadRequest(html))
+  }
+
   /** Compute the back target Call without mutating session. Used to render the back link.
     */
-  private def computeBackTarget(mode: Mode)(implicit request: DataRequest[?]): play.api.mvc.Call = {
-    try {
+  // Compute the appropriate back link for InvoiceType. When the purchase
+  // type is `Other` and either parent/child indicate the 'none' sentinel
+  // we prefer returning to DescribeItemsOnInvoice so users can review free
+  // text details before changing types. Otherwise use the generic helper.
+  private def computeBackTarget(mode: Mode)(implicit request: DataRequest[?]): Call = {
+    // Safe logging
+    try
       logger.info(
         s"InvoiceTypeController.backLink - purchaseType=${request.userAnswers.get(PurchaseTypePage)}, parent=${request.userAnswers.get(PurchaseSubTypePage)}, child=${request.userAnswers.get(PurchaseSubCategoryPage)}"
       )
-    } catch { case _: Throwable => }
+    catch { case _: Throwable => }
 
-    // If PurchaseType is Other and a saved subtype ends with `.99` then
-    // consult the configured options for that country. If the country's
-    // `other` subcodes contained more than one option, send the user back to
-    // the PurchaseSubType page so they can change the choice. Otherwise fall
-    // back to the existing DescribeItemsOnInvoice behaviour when appropriate.
-    val isOther = request.userAnswers.get(PurchaseTypePage).contains(PurchaseType.Other)
+    // Helper predicate: the parent sub-type indicates the sentinel 'none' value
+    def parentIsNone = request.userAnswers.get(PurchaseSubTypePage).exists(v => v.split("\\.").lastOption.contains("99"))
 
-    if (isOther) {
-      val parentIsNone = request.userAnswers.get(PurchaseSubTypePage).exists(v => v.split("\\.").lastOption.contains("99"))
-      val childIsNone = request.userAnswers.get(PurchaseSubCategoryPage).exists(v => v.split("\\.").lastOption.contains("99"))
+    // Helper predicate: the child sub-category indicates the sentinel 'none' value
+    def childIsNone = request.userAnswers.get(PurchaseSubCategoryPage).exists(v => v.split("\\.").lastOption.contains("99"))
 
-      if (parentIsNone) {
-        val countryOpt = request.userAnswers
-          .get(pages.RefundingCountryPage)
-          .orElse(request.userAnswers.get(pages.RefundingCountryNamePage).map(_.split(",").last.trim))
+    // Helper predicate: the purchase type stored in session is `Other`
+    def isOther = request.userAnswers.get(PurchaseTypePage).contains(PurchaseType.Other)
 
-        val multipleOptions = countryOpt
-          .flatMap { c =>
-            try {
-              val opts = configPurchaseMapping.subcodesFor(c, "other")
-              if (opts.nonEmpty) Some(opts.size > 1) else None
-            } catch { case _: Throwable => None }
-          }
-          .getOrElse(false)
-
-        // Previously we sent users directly to the PurchaseSubType page when
-        // multiple `other` options existed. This caused the DescribeItemsOnInvoice
-        // page to be skipped when navigating back from InvoiceType. Prefer
-        // returning to DescribeItemsOnInvoice so the user can review or change
-        // the free-text details before reselecting sub-type.
-        controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(mode)
-      } else if (childIsNone) {
-        controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(mode)
-      } else PurchaseBackLinkHelper.computeBackTarget(mode)
-    } else PurchaseBackLinkHelper.computeBackTarget(mode)
+    // If not `Other`, delegate to the generic back-link helper
+    if (!isOther) PurchaseBackLinkHelper.computeBackTarget(mode)
+    // If `Other` and either parent/child is the 'none' sentinel prefer the
+    // free-text DescribeItemsOnInvoice page so users can review details.
+    else if (parentIsNone || childIsNone) controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(mode)
+    // Fallback to the generic helper
+    else PurchaseBackLinkHelper.computeBackTarget(mode)
   }
 
   /** Back-link endpoint: when the user clicks the back link this endpoint is hit, clears the appropriate session keys and then redirects to the
@@ -106,28 +107,93 @@ class InvoiceTypeController @Inject() (
     */
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
+    // Prepare the form value, prefilling when a selection exists in session
     val preparedForm = request.userAnswers.get(InvoiceTypePage) match {
-      case None        => form
-      case Some(value) => form.fill(value)
+      case None        => form // no stored invoice type
+      case Some(value) => form.fill(value) // pre-fill with stored value
     }
 
+    // Compute the back link target without mutating session
     val back = computeBackTarget(mode)
+
+    // Render the page asynchronously
     Future.successful(Ok(view(preparedForm, mode, back)))
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-
+    // Bind submitted form and validate
     form
       .bindFromRequest()
       .fold(
-        formWithErrors =>
-          // render errors
-          Future.successful(BadRequest(view(formWithErrors, mode, computeBackTarget(mode)))),
-        value =>
-          for {
-            updatedAnswers <- Future.fromTry(request.userAnswers.set(InvoiceTypePage, value))
-            _              <- sessionRepository.set(updatedAnswers)
-          } yield Redirect(navigator.nextPage(InvoiceTypePage, mode, updatedAnswers))
+        // Render validation errors using helper to keep code concise
+        formWithErrors => badRequestView(formWithErrors, mode),
+
+        // On success, either short-circuit when unchanged in CheckMode or persist
+        value => {
+          utils.CheckModeShortCircuit.shortCircuitIfUnchanged(
+            InvoiceTypePage,
+            value,
+            mode,
+            request.userAnswers,
+            controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
+          ) match {
+            case Some(res) => Future.successful(res)
+            case None      => persistAndRedirect(value, mode)
+          }
+        }
       )
+  }
+
+  // Persist changes to InvoiceType and redirect. This helper handles the
+  // special-case flag for CheckMode and returns the appropriate next
+  // page depending on value and country (DE special-case).
+  private def persistAndRedirect(value: InvoiceType, mode: Mode)(implicit request: DataRequest[?]): Future[play.api.mvc.Result] = {
+    // Build the Try of updated UserAnswers, persist and then compute the
+    // post-persist redirect. When in CheckMode we additionally set a
+    // transient `InvoiceTypeChangedPage` flag before persisting so callers
+    // can detect a change occurred.
+    val userAnswersTry = buildUpdatedTry(value)
+
+    for {
+      builtAnswers <- Future.fromTry(userAnswersTry)
+      answersWithChangeFlag <-
+        if (mode == CheckMode) Future.fromTry(builtAnswers.set(pages.InvoiceTypeChangedPage, true)) else Future.successful(builtAnswers)
+      _ <- sessionRepository.set(answersWithChangeFlag)
+    } yield postPersistRedirect(mode, value, builtAnswers)
+  }
+
+  // Build an updated Try[UserAnswers] for a changed InvoiceType, clearing
+  // stale supplier VAT/identifier details when necessary.
+  private def buildUpdatedTry(value: InvoiceType)(implicit request: DataRequest[?]): Try[UserAnswers] =
+    request.userAnswers.get(InvoiceTypePage) match {
+      case Some(prev) if prev != value =>
+        for {
+          a <- request.userAnswers.remove(pages.SupplierTaxNumberPage)
+          b <- a.remove(pages.SimplifiedInvoiceVatRegCheckPage)
+          c <- b.remove(pages.SupplierVatRegistrationNumberPage)
+          d <- c.set(InvoiceTypePage, value)
+        } yield d
+      case _ => request.userAnswers.set(InvoiceTypePage, value)
+    }
+
+  private def postPersistRedirect(mode: Mode, value: InvoiceType, updatedAnswers: UserAnswers)(implicit request: DataRequest[?]) = {
+    // When in CheckMode we prefer to route back into the purchase flow so the
+    // user can immediately see the updated value in the CYA. For Germany (DE)
+    // there is a specialist next page (SupplierTaxNumber); otherwise decide
+    // based on the selected InvoiceType.
+    if (mode == CheckMode) {
+      val countryOpt = CountryCode.findCountryCode(request.userAnswers)
+      countryOpt match {
+        case Some("DE") => Redirect(controllers.routes.SupplierTaxNumberController.onPageLoad(CheckMode))
+        case _ =>
+          value match {
+            case InvoiceType.StandardInvoice   => Redirect(controllers.routes.SupplierVatRegistrationNumberController.onPageLoad(CheckMode))
+            case InvoiceType.SimplifiedInvoice => Redirect(controllers.routes.SimplifiedInvoiceVatRegCheckController.onPageLoad(CheckMode))
+          }
+      }
+    } else {
+      // In NormalMode continue the normal navigation using the navigator
+      Redirect(navigator.nextPage(InvoiceTypePage, mode, updatedAnswers))
+    }
   }
 }

@@ -373,6 +373,6 @@ class ConfigPurchaseMapping @Inject() (config: Configuration = Configuration.emp
     } :+ RadioItem(
       content = Text("None"),
       value   = Some(ConfigPurchaseMapping.NoneValue),
-      id      = Some(s"value_none")
+      id      = Some(s"value_${options.size}")
     )
 }

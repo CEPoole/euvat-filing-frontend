@@ -33,6 +33,7 @@ class VatPaidWarningController @Inject() (
   getData: DataRetrievalAction,
   requireData: DataRequiredAction,
   val controllerComponents: MessagesControllerComponents,
+  navigator: navigation.Navigator,
   view: VatPaidWarningView
 ) extends FrontendBaseController
     with I18nSupport
@@ -48,9 +49,9 @@ class VatPaidWarningController @Inject() (
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    mode match {
-      case NormalMode => Redirect(routes.TotalVatClaimController.onPageLoad(NormalMode))
-      case CheckMode  => Redirect(routes.JourneyRecoveryController.onPageLoad()) // TODO - redirect to Check your purchase details
-    }
+    // Ensure deterministic forward-navigation from the warning page to the
+    // the next page by delegating to the navigator so per-mode routing is
+    // respected (e.g. NormalMode vs CheckMode destinations).
+    Redirect(navigator.nextPage(TotalVatPaidPage, mode, request.userAnswers))
   }
 }

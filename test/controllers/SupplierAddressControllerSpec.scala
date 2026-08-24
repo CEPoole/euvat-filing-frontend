@@ -121,6 +121,71 @@ class SupplierAddressControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "must short-circuit to purchase CYA in CheckMode when address unchanged" in {
+      val supplierAddress = SupplierAddress(
+        line1 = "1 High Street",
+        line2 = Some("Apartment 3"),
+        line3 = Some("London")
+      )
+
+      val userAnswers = emptyUserAnswers
+        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .success
+        .value
+        .set(SupplierAddressPage, supplierAddress)
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.SupplierAddressController.onSubmit(models.CheckMode).url).withFormUrlEncodedBody(
+          "addressLine1" -> "1 High Street",
+          "addressLine2" -> "Apartment 3",
+          "addressLine3" -> "London"
+        )
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+      }
+    }
+
+    "must persist and redirect to CYA in CheckMode when address changed" in {
+      val existingAddress = SupplierAddress(line1 = "Old Street", line2 = None, line3 = None)
+      val userAnswers = emptyUserAnswers
+        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .success
+        .value
+        .set(SupplierAddressPage, existingAddress)
+        .success
+        .value
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.SupplierAddressController.onSubmit(models.CheckMode).url).withFormUrlEncodedBody(
+          "addressLine1" -> "1 High Street",
+          "addressLine2" -> "Apartment 3",
+          "addressLine3" -> "London"
+        )
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+        verify(mockSessionRepository).set(any())
+      }
+    }
+
     "must redirect to the next page when only the mandatory line1 is submitted" in {
       val mockSessionRepository = mock[SessionRepository]
       when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
