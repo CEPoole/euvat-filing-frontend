@@ -278,6 +278,42 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         }
       }
 
+      "must redirect to ConfirmRefundPeriodEndDateController if end date is in the past" in {
+        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+
+        running(application) {
+          val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
+            .withFormUrlEncodedBody(
+              "start.month" -> "03",
+              "start.year"  -> baseToday.getYear.toString,
+              "end.month"   -> "05",
+              "end.year"    -> baseToday.getYear.toString
+            )
+          val result = route(application, request).value
+
+          status(result) mustEqual SEE_OTHER
+          redirectLocation(result).value mustEqual routes.ConfirmRefundPeriodEndDateController.onPageLoad(NormalMode).url
+        }
+      }
+
+      "must redirect to ConfirmRefundPeriodEndDateController in CheckMode if end date is in the past" in {
+        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+
+        running(application) {
+          val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(CheckMode).url)
+            .withFormUrlEncodedBody(
+              "start.month" -> "03",
+              "start.year"  -> baseToday.getYear.toString,
+              "end.month"   -> "05",
+              "end.year"    -> baseToday.getYear.toString
+            )
+          val result = route(application, request).value
+
+          status(result) mustEqual SEE_OTHER
+          redirectLocation(result).value mustEqual routes.ConfirmRefundPeriodEndDateController.onPageLoad(CheckMode).url
+        }
+      }
+
       "must show minimum-length error when period is less than 3 months" in {
         val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
           .overrides(bind[RefundPeriodFormProvider].toInstance(formProviderAfterSept30))
