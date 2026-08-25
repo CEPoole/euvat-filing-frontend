@@ -758,11 +758,13 @@ class NavigatorSpec extends SpecBase {
     "must go from TotalVatClaimPage to CheckYourPurchaseDetailsController in CheckMode" in {
       navigator.nextPage(TotalVatClaimPage, CheckMode, userAnswers) mustBe
         controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
-    }"must go from SimplifiedInvoiceVatRegCheckPage to TotalPurchaseAmountBeforeVatController if no selected" in {
+    }
+
+    "must go from SimplifiedInvoiceVatRegCheckPage to TotalPurchaseAmountBeforeVatController if no selected" in {
         val ua = userAnswers.set(SimplifiedInvoiceVatRegCheckPage, false).success.value
         navigator.nextPage(SimplifiedInvoiceVatRegCheckPage, CheckMode, ua) mustBe
           routes.TotalPurchaseAmountBeforeVatController.onPageLoad(CheckMode)
-      }
+    }
 
     "must go from CheckYourStateDetailsPage to CheckYourClaimDetailsController in CheckMode if no selected" in {
       val ua = userAnswers.set(CheckYourStateDetailsPage, false).success.value
@@ -770,5 +772,4 @@ class NavigatorSpec extends SpecBase {
         routes.CheckYourClaimDetailsController.onPageLoad()
     }
   }
-}
 }
