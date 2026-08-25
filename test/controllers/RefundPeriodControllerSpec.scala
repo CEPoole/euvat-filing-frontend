@@ -17,9 +17,7 @@
 package controllers
 
 import base.SpecBase
-import controllers.actions.{CustomIdentifierAction, FakeIdentifierAction, IdentifierAction}
 import forms.{RefundPeriodData, RefundPeriodFormProvider}
-import models.requests.DataRequest
 import models.responses.{LatestApplication, LatestApplicationResponse, TraderKnownFactsResponse}
 import models.{CheckMode, NormalMode, RefundPeriod, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
@@ -29,15 +27,14 @@ import org.scalatestplus.mockito.MockitoSugar
 import pages.{ClaimDetailsCompletedPage, RefundPeriodPage}
 import play.api.i18n.Messages
 import play.api.inject.bind
-import play.api.mvc.{Call, PlayBodyParsers, Request}
+import play.api.mvc.Call
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import queries.TraderKnownFactsQuery
 
 import repositories.SessionRepository
-import services.EuVatRefundsService
 
-import java.time.{LocalDate, LocalDateTime, YearMonth}
+import java.time.{LocalDate, LocalDateTime}
 import scala.concurrent.Future
 
 class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
@@ -311,6 +308,24 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
 
           status(result) mustEqual SEE_OTHER
           redirectLocation(result).value mustEqual routes.ConfirmRefundPeriodEndDateController.onPageLoad(CheckMode).url
+        }
+      }
+
+      "must not redirect to ConfirmRefundPeriodEndDateController if end date is in the current month" in {
+        val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
+
+        running(application) {
+          val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
+            .withFormUrlEncodedBody(
+              "start.month" -> "06",
+              "start.year"  -> baseToday.getYear.toString,
+              "end.month"   -> baseToday.getMonthValue.toString,
+              "end.year"    -> baseToday.getYear.toString
+            )
+          val result = route(application, request).value
+
+          status(result) mustEqual SEE_OTHER
+          redirectLocation(result).value must not equal routes.ConfirmRefundPeriodEndDateController.onPageLoad(NormalMode).url
         }
       }
 
