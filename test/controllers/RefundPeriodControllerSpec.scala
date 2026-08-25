@@ -156,7 +156,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             .withFormUrlEncodedBody(
               "start.month" -> "03",
               "start.year"  -> "2026",
-              "end.month"   -> "08",
+              "end.month"   -> "05",
               "end.year"    -> "2026"
             )
           val result = route(application, request).value
@@ -275,16 +275,16 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         }
       }
 
-      "must redirect to ConfirmRefundPeriodEndDateController if end date is in the past" in {
+      "must redirect to ConfirmRefundPeriodEndDateController if end date is not in the past" in {
         val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
         running(application) {
           val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
             .withFormUrlEncodedBody(
               "start.month" -> "03",
-              "start.year"  -> baseToday.getYear.toString,
+              "start.year"  -> safeFutureYear.toString,
               "end.month"   -> "05",
-              "end.year"    -> baseToday.getYear.toString
+              "end.year"    -> safeFutureYear.toString
             )
           val result = route(application, request).value
 
@@ -293,16 +293,16 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         }
       }
 
-      "must redirect to ConfirmRefundPeriodEndDateController in CheckMode if end date is in the past" in {
+      "must redirect to ConfirmRefundPeriodEndDateController in CheckMode if end date is not in the past" in {
         val application = applicationBuilder(userAnswers = Some(emptyUserAnswers)).build()
 
         running(application) {
           val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(CheckMode).url)
             .withFormUrlEncodedBody(
               "start.month" -> "03",
-              "start.year"  -> baseToday.getYear.toString,
+              "start.year"  -> safeFutureYear.toString,
               "end.month"   -> "05",
-              "end.year"    -> baseToday.getYear.toString
+              "end.year"    -> safeFutureYear.toString
             )
           val result = route(application, request).value
 
@@ -325,7 +325,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
           val result = route(application, request).value
 
           status(result) mustEqual SEE_OTHER
-          redirectLocation(result).value must not equal routes.ConfirmRefundPeriodEndDateController.onPageLoad(NormalMode).url
+          redirectLocation(result).value mustEqual routes.ConfirmRefundPeriodEndDateController.onPageLoad(NormalMode).url
         }
       }
 
@@ -364,9 +364,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
           val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
             .withFormUrlEncodedBody(
               "start.month" -> "11",
-              "start.year"  -> safeFutureYear.toString,
+              "start.year"  -> (baseToday.getYear - 1).toString,
               "end.month"   -> "12",
-              "end.year"    -> safeFutureYear.toString
+              "end.year"    -> (baseToday.getYear - 1).toString
             )
           val result = route(application, request).value
 
@@ -390,9 +390,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
           val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
             .withFormUrlEncodedBody(
               "start.month" -> "02",
-              "start.year"  -> safeFutureYear.toString,
+              "start.year"  -> (baseToday.getYear - 1).toString,
               "end.month"   -> "04",
-              "end.year"    -> safeFutureYear.toString
+              "end.year"    -> (baseToday.getYear - 1).toString
             )
           val result = route(application, request).value
 
@@ -745,9 +745,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
           val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
             .withFormUrlEncodedBody(
               "start.month" -> "01",
-              "start.year"  -> safeFutureYear.toString,
+              "start.year"  -> (baseToday.getYear - 1).toString,
               "end.month"   -> "03",
-              "end.year"    -> safeFutureYear.toString
+              "end.year"    -> (baseToday.getYear - 1).toString
             )
 
           val result = route(application, request).value
@@ -775,9 +775,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
           val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
             .withFormUrlEncodedBody(
               "start.month" -> "03",
-              "start.year"  -> safeFutureYear.toString,
+              "start.year"  -> (baseToday.getYear - 1).toString,
               "end.month"   -> "05",
-              "end.year"    -> safeFutureYear.toString
+              "end.year"    -> (baseToday.getYear - 1).toString
             )
           val result = route(application, request).value
 
@@ -1004,7 +1004,7 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
               .withFormUrlEncodedBody(
                 "start.month" -> "01",
                 "start.year"  -> afterSept30Year.toString,
-                "end.month"   -> "12",
+                "end.month"   -> "06",
                 "end.year"    -> afterSept30Year.toString
               )
             val result = route(application, request).value
@@ -1054,9 +1054,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
               .withFormUrlEncodedBody(
                 "start.month" -> "01",
-                "start.year"  -> safeFutureYear.toString,
+                "start.year"  -> previousYearBeforeSept30.toString,
                 "end.month"   -> "06",
-                "end.year"    -> safeFutureYear.toString
+                "end.year"    -> previousYearBeforeSept30.toString
               )
             val result = route(application, request).value
 
@@ -1082,9 +1082,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
               .withFormUrlEncodedBody(
                 "start.month" -> "10",
-                "start.year"  -> "2026",
+                "start.year"  -> (baseToday.getYear - 1).toString,
                 "end.month"   -> "12",
-                "end.year"    -> "2026"
+                "end.year"    -> (baseToday.getYear - 1).toString
               )
             val result = route(application, request).value
 
@@ -1109,9 +1109,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
               .withFormUrlEncodedBody(
                 "start.month" -> "03",
-                "start.year"  -> "2026",
+                "start.year"  -> (baseToday.getYear - 1).toString,
                 "end.month"   -> "08",
-                "end.year"    -> "2026"
+                "end.year"    -> (baseToday.getYear - 1).toString
               )
             val result = route(application, request).value
 
@@ -1135,9 +1135,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
               .withFormUrlEncodedBody(
                 "start.month" -> "03",
-                "start.year"  -> "2026",
+                "start.year"  -> (baseToday.getYear - 1).toString,
                 "end.month"   -> "08",
-                "end.year"    -> "2026"
+                "end.year"    -> (baseToday.getYear - 1).toString
               )
             val result = route(application, request).value
 
@@ -1157,12 +1157,12 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
                     LatestApplication(
                       applicationId        = 1L,
                       refundingCountryCode = "LV",
-                      periodStartDate      = LocalDateTime.of(safeFutureYear, 3, 1, 0, 0),
-                      periodEndDate        = LocalDateTime.of(safeFutureYear, 8, 31, 23, 59),
+                      periodStartDate      = LocalDateTime.of(baseToday.getYear - 1, 3, 1, 0, 0),
+                      periodEndDate        = LocalDateTime.of(baseToday.getYear - 1, 8, 31, 23, 59),
                       applicationNumber    = "GB001",
                       applicationStatus    = Some("D"),
                       submissionStatus     = Some("S"),
-                      applicationVersion   = LocalDateTime.of(safeFutureYear, 1, 1, 0, 0)
+                      applicationVersion   = LocalDateTime.of(baseToday.getYear - 1, 1, 1, 0, 0)
                     )
                   ),
                   totalApplication = 1
@@ -1179,9 +1179,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
               .withFormUrlEncodedBody(
                 "start.month" -> "03",
-                "start.year"  -> safeFutureYear.toString,
+                "start.year"  -> (baseToday.getYear - 1).toString,
                 "end.month"   -> "06",
-                "end.year"    -> safeFutureYear.toString
+                "end.year"    -> (baseToday.getYear - 1).toString
               )
             val result = route(application, request).value
 
@@ -1202,12 +1202,12 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
                     LatestApplication(
                       applicationId        = 1L,
                       refundingCountryCode = "LV",
-                      periodStartDate      = LocalDateTime.of(safeFutureYear, 3, 1, 0, 0),
-                      periodEndDate        = LocalDateTime.of(safeFutureYear, 8, 31, 23, 59),
+                      periodStartDate      = LocalDateTime.of(baseToday.getYear - 1, 3, 1, 0, 0),
+                      periodEndDate        = LocalDateTime.of(baseToday.getYear - 1, 8, 31, 23, 59),
                       applicationNumber    = "GB001",
                       applicationStatus    = Some("d"),
                       submissionStatus     = None,
-                      applicationVersion   = LocalDateTime.of(safeFutureYear, 1, 1, 0, 0)
+                      applicationVersion   = LocalDateTime.of(baseToday.getYear - 1, 1, 1, 0, 0)
                     )
                   ),
                   totalApplication = 1
@@ -1224,9 +1224,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
               .withFormUrlEncodedBody(
                 "start.month" -> "03",
-                "start.year"  -> safeFutureYear.toString,
+                "start.year"  -> (baseToday.getYear - 1).toString,
                 "end.month"   -> "08",
-                "end.year"    -> safeFutureYear.toString
+                "end.year"    -> (baseToday.getYear - 1).toString
               )
             val result = route(application, request).value
 
@@ -1269,9 +1269,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
               .withFormUrlEncodedBody(
                 "start.month" -> "06",
-                "start.year"  -> safeFutureYear.toString,
+                "start.year"  -> "2025",
                 "end.month"   -> "09",
-                "end.year"    -> safeFutureYear.toString
+                "end.year"    -> "2025"
               )
             val result = route(application, request).value
 
@@ -1306,9 +1306,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
               .withFormUrlEncodedBody(
                 "start.month" -> "01",
-                "start.year"  -> safeFutureYear.toString,
+                "start.year"  -> (baseToday.getYear - 1).toString,
                 "end.month"   -> "06",
-                "end.year"    -> safeFutureYear.toString
+                "end.year"    -> (baseToday.getYear - 1).toString
               )
             val result = route(application, request).value
 
@@ -1320,7 +1320,10 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         "must accept as valid period if vat registration date is in second quarter of year" in {
           when(mockEuVatRefundsService.retrieveTraderKnownFacts()(any())).thenReturn(
             Future.successful(
-              TraderKnownFactsResponse(123, tradeClass = Some(baCode1), dateOfRegistration = Some(LocalDateTime.of(safeFutureYear, 5, 20, 10, 38)))
+              TraderKnownFactsResponse(123,
+                                       tradeClass         = Some(baCode1),
+                                       dateOfRegistration = Some(LocalDateTime.of(baseToday.getYear - 1, 5, 20, 10, 38))
+                                      )
             )
           )
           when(mockEuVatRefundsService.getLatestApplications(any())(any()))
@@ -1340,9 +1343,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
               .withFormUrlEncodedBody(
                 "start.month" -> "05",
-                "start.year"  -> safeFutureYear.toString,
+                "start.year"  -> (baseToday.getYear - 1).toString,
                 "end.month"   -> "07",
-                "end.year"    -> safeFutureYear.toString
+                "end.year"    -> (baseToday.getYear - 1).toString
               )
             val result = route(application, request).value
 
@@ -1357,8 +1360,8 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
               TraderKnownFactsResponse(
                 123,
                 tradeClass           = Some(baCode1),
-                dateOfRegistration   = Some(LocalDateTime.of(safeFutureYear, 2, 1, 0, 0)),
-                dateOfDeregistration = Some(LocalDateTime.of(safeFutureYear, 12, 31, 23, 59))
+                dateOfRegistration   = Some(LocalDateTime.of(baseToday.getYear - 1, 2, 1, 0, 0)),
+                dateOfDeregistration = Some(LocalDateTime.of(baseToday.getYear - 1, 12, 31, 23, 59))
               )
             )
           )
@@ -1379,9 +1382,9 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
             val request = FakeRequest(POST, routes.RefundPeriodController.onSubmit(NormalMode).url)
               .withFormUrlEncodedBody(
                 "start.month" -> "05",
-                "start.year"  -> safeFutureYear.toString,
+                "start.year"  -> (baseToday.getYear - 1).toString,
                 "end.month"   -> "10",
-                "end.year"    -> safeFutureYear.toString
+                "end.year"    -> (baseToday.getYear - 1).toString
               )
             val result = route(application, request).value
 

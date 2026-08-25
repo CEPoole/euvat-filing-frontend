@@ -194,21 +194,21 @@ class RefundPeriodController @Inject() (
         _              <- sessionRepository.set(updatedAnswer2)
       } yield Redirect(controllers.routes.ConfirmRefundPeriodStartDateController.onPageLoad(mode))
     } else {
-      checkEndDateInPast(vrn, traderResponse, startDate, endDate, mode)
+      checkEndDateNotInPast(vrn, traderResponse, startDate, endDate, mode)
     }
   }
 
-  private def isEndDateInPast(endDate: LocalDateTime, today: LocalDate = LocalDate.now()): Boolean =
-    YearMonth.from(endDate).isBefore(YearMonth.from(today))
+  private def isEndDateNotInPast(endDate: LocalDateTime, today: LocalDate = LocalDate.now()): Boolean =
+    !YearMonth.from(endDate).isBefore(YearMonth.from(today))
 
-  private def checkEndDateInPast(
+  private def checkEndDateNotInPast(
     vrn: String,
     traderResponse: TraderKnownFactsResponse,
     startDate: LocalDateTime,
     endDate: LocalDateTime,
     mode: Mode
   )(using request: DataRequest[?], ec: ExecutionContext): Future[Result] = {
-    if (isEndDateInPast(endDate)) {
+    if (isEndDateNotInPast(endDate)) {
       val refundPeriod = RefundPeriod(startDate, endDate)
       for {
         updatedUserAnswers <- updateUserAnswers(traderResponse, refundPeriod)
