@@ -54,6 +54,12 @@ class SupplierVrnWarningController @Inject() (
     for {
       cleared <- Future.fromTry(request.userAnswers.remove(VrnWarningFlowPage))
       _       <- sessionRepository.set(cleared)
-    } yield Redirect(navigator.nextPage(SupplierVatRegistrationNumberPage, mode, cleared))
+    } yield {
+      if (mode == CheckMode) {
+        Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+      } else {
+        Redirect(navigator.nextPage(SupplierVatRegistrationNumberPage, mode, cleared))
+      }
+    }
   }
 }

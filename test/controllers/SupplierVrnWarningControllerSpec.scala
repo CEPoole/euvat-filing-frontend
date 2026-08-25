@@ -17,7 +17,7 @@
 package controllers
 
 import base.SpecBase
-import models.NormalMode
+import models.{CheckMode, NormalMode}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, when}
 import play.api.test.FakeRequest
@@ -97,6 +97,25 @@ class SupplierVrnWarningControllerSpec extends SpecBase {
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual routes.RefundingCurrencyController.onPageLoad(NormalMode).url
+      }
+    }
+
+    "must redirect to Check Your Purchase Details on submit in CheckMode" in {
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+
+      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "FR").success.value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, routes.SupplierVrnWarningController.onSubmit(CheckMode).url)
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
       }
     }
   }

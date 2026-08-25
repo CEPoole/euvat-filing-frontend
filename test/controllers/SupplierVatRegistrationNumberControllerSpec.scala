@@ -303,7 +303,7 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
       }
     }
 
-    "must redirect to the next page when no duplicate is found in CheckMode" in {
+    "must redirect to Check Your Purchase Details when no duplicate is found in CheckMode" in {
       val mockSessionRepository = mock[SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
       when(mockEuVatRefundsService.getSupplierVrnCount(any())(any()))
@@ -325,7 +325,85 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+      }
+    }
+
+    "must redirect to the next page (navigator) when no duplicate is found in NormalMode" in {
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+      when(mockEuVatRefundsService.getSupplierVrnCount(any())(any()))
+        .thenReturn(Future.successful(SupplierVrnCountResponse(0)))
+
+      val application =
+        applicationBuilder(userAnswers = Some(seededAnswers))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.SupplierVatRegistrationNumberController.onSubmit(NormalMode).url)
+            .withFormUrlEncodedBody(("value", "FR123456789"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual onwardRoute.url
+      }
+    }
+
+    "must redirect to the VRN warning page when a duplicate is found in NormalMode" in {
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+      when(mockEuVatRefundsService.getSupplierVrnCount(any())(any()))
+        .thenReturn(Future.successful(SupplierVrnCountResponse(1)))
+
+      val application =
+        applicationBuilder(userAnswers = Some(seededAnswers))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.SupplierVatRegistrationNumberController.onSubmit(NormalMode).url)
+            .withFormUrlEncodedBody(("value", "FR123456789"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.SupplierVrnWarningController.onPageLoad(NormalMode).url
+      }
+    }
+
+    "must redirect to the VRN warning page when a duplicate is found in CheckMode" in {
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
+      when(mockEuVatRefundsService.getSupplierVrnCount(any())(any()))
+        .thenReturn(Future.successful(SupplierVrnCountResponse(1)))
+
+      val application =
+        applicationBuilder(userAnswers = Some(seededAnswers))
+          .overrides(
+            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+            bind[SessionRepository].toInstance(mockSessionRepository)
+          )
+          .build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, routes.SupplierVatRegistrationNumberController.onSubmit(CheckMode).url)
+            .withFormUrlEncodedBody(("value", "FR123456789"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.SupplierVrnWarningController.onPageLoad(CheckMode).url
       }
     }
 

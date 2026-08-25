@@ -32,14 +32,11 @@ import services.EuVatRefundsService
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
-import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import utils.CheckModeShortCircuit
 import utils.ControllerHelpers.*
 import views.html.SupplierVatRegistrationNumberView
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 class SupplierVatRegistrationNumberController @Inject() (
   override val messagesApi: MessagesApi,
@@ -71,12 +68,6 @@ class SupplierVatRegistrationNumberController @Inject() (
     }
   }
 
-  // TODO: Add a supplier-VAT-registration-number warning flow analogous to
-  // `SupplierTaxIdentifierWarningController`. When the user arrives from the
-  // Invoice number page in `CheckMode` and updates the VAT registration number we
-  // should short-circuit into that warning flow. The warning controller and
-  // related session flag are not yet implemented for VAT registration numbers.
-
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     // Remove any lingering SupplierTaxIdentifierNumber as VAT reg number page takes precedence
     // Execute the cleanup asynchronously but continue to prepare and render the page
@@ -85,13 +76,8 @@ class SupplierVatRegistrationNumberController @Inject() (
       _              <- sessionRepository.set(updatedAnswers)
     } yield None
 
-    // Prepare the form pre-filling from session when present
     val preparedForm = preparedFormFromAnswers(_.get(SupplierVatRegistrationNumberPage), form)
-
-    // Detect whether refunding country is Germany to inform the view
     val isGermany = request.userAnswers.get(RefundingCountryPage).exists(_.equalsIgnoreCase("DE"))
-
-    // Render the page using the shared helper
     okView(preparedForm, mode, isGermany)
   }
 
@@ -105,7 +91,6 @@ class SupplierVatRegistrationNumberController @Inject() (
         value => {
           val changed = !request.userAnswers.get(SupplierVatRegistrationNumberPage).contains(value)
           val cameFromInvoicePage = request.userAnswers.get(pages.SupplierVatRegistrationArrivedFromInvoicePage).contains(true)
-
           // CheckMode short-circuit: unchanged and not arrived from invoice → straight back to CYA
           if (mode == CheckMode && !changed && !cameFromInvoicePage)
             Future.successful(Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()))
@@ -151,13 +136,20 @@ class SupplierVatRegistrationNumberController @Inject() (
         euVatRefundsService
           .getSupplierVrnCount(req)
           .flatMap { response =>
-            if (response.duplicateCount > 0)
+            if (response.duplicateCount > 0) {
               Future.successful(Redirect(routes.SupplierVrnWarningController.onPageLoad(mode)))
-            else
+            } else {
               for {
                 cleared <- Future.fromTry(answers.remove(VrnWarningFlowPage))
                 _       <- sessionRepository.set(cleared)
-              } yield Redirect(navigator.nextPage(SupplierVatRegistrationNumberPage, mode, cleared))
+              } yield {
+                if (mode == CheckMode) {
+                  Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+                } else {
+                  Redirect(navigator.nextPage(SupplierVatRegistrationNumberPage, mode, cleared))
+                }
+              }
+            }
           }
           .recover { case ex: Exception =>
             logger.error("Error retrieving supplier VRN count", ex)
