@@ -95,13 +95,13 @@ object CheckYourPurchaseDetailsSummary {
     val keyLabel = if (messages.isDefinedAt(msgKey)) messages(msgKey) else parentSlug.replace('-', ' ').capitalize
 
     // value should come from PurchaseSubTypeLabelPage in session
-      val valueOpt: Option[String] = answers.get(PurchaseSubTypeLabelPage)
-      // If the stored label is the None sentinel, display Not provided instead
-      val displayValueOpt: Option[String] = valueOpt.map(v => if (v == ConfigPurchaseMapping.NoneValue) messages("site.notProvided") else v)
+    val valueOpt: Option[String] = answers.get(PurchaseSubTypeLabelPage)
+    // If the stored label is the None sentinel, display Not provided instead
+    val displayValueOpt: Option[String] = valueOpt.map(v => if (v == ConfigPurchaseMapping.NoneValue) messages("site.notProvided") else v)
 
     val url = controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(parentSlug, CheckMode).url
 
-      Some((keyLabel, displayValueOpt, Seq((url, "site.change", "purchase.subType.change.hidden"))))
+    Some((keyLabel, displayValueOpt, Seq((url, "site.change", "purchase.subType.change.hidden"))))
   }
 
   def rowPurchaseSubCategoryLabel(answers: UserAnswers)(implicit messages: Messages, request: RequestHeader): Option[Row] =
@@ -156,9 +156,11 @@ object CheckYourPurchaseDetailsSummary {
       // a camelCase suffix (e.g. "standardInvoice"). Convert to that form
       // and fallback to a title-cased raw value if no message key exists.
       val parts = it.toString.split("\\s+").toSeq.filter(_.nonEmpty)
-      val keySuffix = parts.headOption.map { first =>
-        first + parts.drop(1).map(_.capitalize).mkString("")
-      }.getOrElse(it.toString)
+      val keySuffix = parts.headOption
+        .map { first =>
+          first + parts.drop(1).map(_.capitalize).mkString("")
+        }
+        .getOrElse(it.toString)
 
       val display = if (messages.isDefinedAt(s"invoiceType.$keySuffix")) {
         messages(s"invoiceType.$keySuffix")

@@ -156,7 +156,9 @@ class PurchaseTypeController @Inject() (
             // the bug report where users navigate back without making any
             // edits and are sent back to describe-items repeatedly.
             val arrivedFromDescribe = request.userAnswers.get(pages.DescribeItemsArrivedFromCheckYourAnswersPage).contains(true)
-            val arrivedFromSubTypeOrCategory = request.userAnswers.get(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage).contains(true) || request.userAnswers.get(pages.PurchaseSubCategoryArrivedFromCheckYourAnswersPage).contains(true)
+            val arrivedFromSubTypeOrCategory = request.userAnswers
+              .get(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage)
+              .contains(true) || request.userAnswers.get(pages.PurchaseSubCategoryArrivedFromCheckYourAnswersPage).contains(true)
 
             if (arrivedFromDescribe && !arrivedFromSubTypeOrCategory) {
               // Only return to the describe-items change page when there is
@@ -206,12 +208,11 @@ class PurchaseTypeController @Inject() (
                 controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
               ) match {
                 case Some(res) => Future.successful(res)
-                case None      =>
+                case None =>
                   Future.failed(new IllegalStateException("Expected short-circuit result for unchanged CheckMode submission"))
               }
             }
-          }
-          else {
+          } else {
             // Submission handling summary:
             // 1. Attempt a CheckMode short-circuit: if the user is in CheckMode
             //    and the submitted value equals the stored value we immediately

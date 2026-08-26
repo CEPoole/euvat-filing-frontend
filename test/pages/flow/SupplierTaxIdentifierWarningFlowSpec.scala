@@ -17,18 +17,18 @@
 package page.flow
 
 import base.SpecBase
-import models.{NormalMode, UserAnswers, SupplierTaxNumber}
+import models.{NormalMode, SupplierTaxNumber, UserAnswers}
 import models.responses.SupplierTaxIdentifierCountResponse
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import pages.{RefundingCountryPage, SupplierTaxNumberPage, InvoiceNumberPage, SupplierTaxIdentifierWarningShownPage, AddPurchaseResponsePage}
+import pages.{AddPurchaseResponsePage, InvoiceNumberPage, RefundingCountryPage, SupplierTaxIdentifierWarningShownPage, SupplierTaxNumberPage}
 import queries.ClaimApplicationResponseQuery
 import models.responses.{AddPurchaseResponse, ApplicationResponse}
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import repositories.SessionRepository
 
 import scala.concurrent.Future
@@ -45,11 +45,21 @@ class SupplierTaxIdentifierWarningFlowSpec extends SpecBase with MockitoSugar {
         .thenReturn(Future.successful(SupplierTaxIdentifierCountResponse(duplicateCount = 1)))
 
       val userAnswers: UserAnswers = emptyUserAnswers
-        .set(RefundingCountryPage, "DE").success.value
-        .set(SupplierTaxNumberPage, SupplierTaxNumber.Taxidentifiernumber).success.value
-        .set(InvoiceNumberPage, "INV1").success.value
-        .set(ClaimApplicationResponseQuery, ApplicationResponse(applicationId = 123, applicationNumber = "APP123", updateSeqNumber = 1)).success.value
-        .set(AddPurchaseResponsePage, AddPurchaseResponse(itemNumber = 1, updateSequenceNumber = 1)).success.value
+        .set(RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(SupplierTaxNumberPage, SupplierTaxNumber.Taxidentifiernumber)
+        .success
+        .value
+        .set(InvoiceNumberPage, "INV1")
+        .success
+        .value
+        .set(ClaimApplicationResponseQuery, ApplicationResponse(applicationId = 123, applicationNumber = "APP123", updateSeqNumber = 1))
+        .success
+        .value
+        .set(AddPurchaseResponsePage, AddPurchaseResponse(itemNumber = 1, updateSequenceNumber = 1))
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
@@ -80,11 +90,21 @@ class SupplierTaxIdentifierWarningFlowSpec extends SpecBase with MockitoSugar {
         .thenReturn(Future.successful(SupplierTaxIdentifierCountResponse(duplicateCount = 0)))
 
       val userAnswers: UserAnswers = emptyUserAnswers
-        .set(RefundingCountryPage, "DE").success.value
-        .set(SupplierTaxNumberPage, SupplierTaxNumber.Taxidentifiernumber).success.value
-        .set(InvoiceNumberPage, "INV1").success.value
-        .set(ClaimApplicationResponseQuery, ApplicationResponse(applicationId = 123, applicationNumber = "APP123", updateSeqNumber = 1)).success.value
-        .set(AddPurchaseResponsePage, AddPurchaseResponse(itemNumber = 1, updateSequenceNumber = 1)).success.value
+        .set(RefundingCountryPage, "DE")
+        .success
+        .value
+        .set(SupplierTaxNumberPage, SupplierTaxNumber.Taxidentifiernumber)
+        .success
+        .value
+        .set(InvoiceNumberPage, "INV1")
+        .success
+        .value
+        .set(ClaimApplicationResponseQuery, ApplicationResponse(applicationId = 123, applicationNumber = "APP123", updateSeqNumber = 1))
+        .success
+        .value
+        .set(AddPurchaseResponsePage, AddPurchaseResponse(itemNumber = 1, updateSequenceNumber = 1))
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
@@ -105,8 +125,12 @@ class SupplierTaxIdentifierWarningFlowSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
       val userAnswers: UserAnswers = emptyUserAnswers
-        .set(SupplierTaxIdentifierWarningShownPage, true).success.value
-        .set(InvoiceNumberPage, "INV1").success.value
+        .set(SupplierTaxIdentifierWarningShownPage, true)
+        .success
+        .value
+        .set(InvoiceNumberPage, "INV1")
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(bind[SessionRepository].toInstance(mockSessionRepository))
@@ -127,8 +151,12 @@ class SupplierTaxIdentifierWarningFlowSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
       val userAnswers: UserAnswers = emptyUserAnswers
-        .set(SupplierTaxIdentifierWarningShownPage, true).success.value
-        .set(InvoiceNumberPage, "INV1").success.value
+        .set(SupplierTaxIdentifierWarningShownPage, true)
+        .success
+        .value
+        .set(InvoiceNumberPage, "INV1")
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(bind[SessionRepository].toInstance(mockSessionRepository))

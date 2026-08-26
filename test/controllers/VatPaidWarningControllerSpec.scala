@@ -84,7 +84,7 @@ class VatPaidWarningControllerSpec extends SpecBase {
         val request = FakeRequest(POST, routes.VatPaidWarningController.onSubmit(CheckMode).url)
         val result = route(application, request).value
         status(result) mustEqual SEE_OTHER
-          redirectLocation(result).value mustEqual routes.TotalVatClaimController.onPageLoad(CheckMode).url
+        redirectLocation(result).value mustEqual routes.TotalVatClaimController.onPageLoad(CheckMode).url
       }
     }
   }

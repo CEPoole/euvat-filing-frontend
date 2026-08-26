@@ -16,8 +16,8 @@
 
 package connectors
 
-import models.requests.{AddPurchaseRequest, ApplicationRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest}
-import models.responses.{AddPurchaseResponse, ApplicationResponse, LatestApplicationResponse, TraderKnownFactsResponse, SupplierTaxIdentifierCountResponse}
+import models.requests.{AddPurchaseRequest, ApplicationRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest, SupplierVrnCountRequest}
+import models.responses.{AddPurchaseResponse, ApplicationResponse, LatestApplicationResponse, SupplierTaxIdentifierCountResponse, SupplierVrnCountResponse, TraderKnownFactsResponse}
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
@@ -62,24 +62,32 @@ class EuVatRefundsConnector @Inject() (config: ServicesConfig, http: HttpClientV
       .execute[ApplicationResponse]
   }
 
+  def getSupplierVrnCount(request: SupplierVrnCountRequest)(implicit hc: HeaderCarrier): Future[SupplierVrnCountResponse] = {
+    http
+      .post(url"$euVatRefundsBaseUrl/get-supplier-vrn-count")
+      .withBody(Json.toJson(request))
+      .execute[SupplierVrnCountResponse]
+  }
+
   def addPurchase(request: AddPurchaseRequest)(implicit hc: HeaderCarrier): Future[AddPurchaseResponse] =
     http
       .post(url"$euVatRefundsBaseUrl/add-purchase")
       .withBody(Json.toJson(request))
       .execute[AddPurchaseResponse]
 
-  def getSupplierTaxIdentifierCount(request: SupplierTaxIdentifierCountRequest)(implicit hc: HeaderCarrier): Future[SupplierTaxIdentifierCountResponse] =
-    {
-      val bodyJson = Json.toJson(request)
-      logger.info(s"EuVatRefundsConnector POST $euVatRefundsBaseUrl/get-supplier-taxIdentifier-count body=$bodyJson")
-      http
-        .post(url"$euVatRefundsBaseUrl/get-supplier-taxIdentifier-count")
-        .withBody(bodyJson)
-        .execute[SupplierTaxIdentifierCountResponse]
-        .map { resp =>
-          logger.info(s"EuVatRefundsConnector response: ${Json.toJson(resp)}")
-          resp
-        }
-    }
+  def getSupplierTaxIdentifierCount(
+    request: SupplierTaxIdentifierCountRequest
+  )(implicit hc: HeaderCarrier): Future[SupplierTaxIdentifierCountResponse] = {
+    val bodyJson = Json.toJson(request)
+    logger.info(s"EuVatRefundsConnector POST $euVatRefundsBaseUrl/get-supplier-taxIdentifier-count body=$bodyJson")
+    http
+      .post(url"$euVatRefundsBaseUrl/get-supplier-taxIdentifier-count")
+      .withBody(bodyJson)
+      .execute[SupplierTaxIdentifierCountResponse]
+      .map { resp =>
+        logger.info(s"EuVatRefundsConnector response: ${Json.toJson(resp)}")
+        resp
+      }
+  }
 
 }

@@ -120,7 +120,6 @@ class CheckYourPurchaseDetailsSummarySpec extends SpecBase {
       }
     }
 
-
     "sections should include currency and amount rows when currency provided" in {
       val ua = emptyUserAnswers
         .set(RefundingCountryPage, "AT")

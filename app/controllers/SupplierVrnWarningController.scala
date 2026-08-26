@@ -18,62 +18,48 @@ package controllers
 
 import controllers.actions.*
 import models.{CheckMode, Mode, NormalMode}
+import navigation.Navigator
+import pages.{SupplierVatRegistrationNumberPage, VrnWarningFlowPage}
 
 import javax.inject.Inject
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
-import scala.concurrent.{ExecutionContext, Future}
+import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import views.html.SupplierTaxIdentifierWarningView
+import views.html.SupplierVrnWarningView
 
-class SupplierTaxIdentifierWarningController @Inject() (
+import scala.concurrent.{ExecutionContext, Future}
+
+class SupplierVrnWarningController @Inject() (
   override val messagesApi: MessagesApi,
-  sessionRepository: repositories.SessionRepository,
+  sessionRepository: SessionRepository,
   identify: IdentifierAction,
   getData: DataRetrievalAction,
   requireData: DataRequiredAction,
+  navigator: Navigator,
   val controllerComponents: MessagesControllerComponents,
-  view: SupplierTaxIdentifierWarningView
+  view: SupplierVrnWarningView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport {
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-    // mark that the warning was shown and persist, then render the view
-    val flagged = request.userAnswers.set(pages.SupplierTaxIdentifierWarningShownPage, true)
-    Future
-      .fromTry(flagged)
-      .flatMap(ua =>
-        sessionRepository
-          .set(ua)
-          .map(_ =>
-            Ok(
-              view(
-                controllers.routes.SupplierTaxIdentifierNumberController.onPageLoad(mode),
-                controllers.routes.InvoiceNumberController.onPageLoad(mode),
-                controllers.routes.TotalPurchaseAmountBeforeVatController.onPageLoad(NormalMode),
-                mode
-              )
-            )
-          )
-      )
+    for {
+      updated <- Future.fromTry(request.userAnswers.set(VrnWarningFlowPage, true))
+      _       <- sessionRepository.set(updated)
+    } yield Ok(view(routes.SupplierVatRegistrationNumberController.onPageLoad(mode), mode))
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-    // clear the warning flag and continue
-    val cleared = request.userAnswers.remove(pages.SupplierTaxIdentifierWarningShownPage)
-    Future
-      .fromTry(cleared)
-      .flatMap(ua =>
-        sessionRepository
-          .set(ua)
-          .map(_ =>
-            mode match {
-              case CheckMode => Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
-              case _         => Redirect(controllers.routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode))
-            }
-          )
-      )
+    for {
+      cleared <- Future.fromTry(request.userAnswers.remove(VrnWarningFlowPage))
+      _       <- sessionRepository.set(cleared)
+    } yield {
+      if (mode == CheckMode) {
+        Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+      } else {
+        Redirect(navigator.nextPage(SupplierVatRegistrationNumberPage, mode, cleared))
+      }
+    }
   }
-
 }

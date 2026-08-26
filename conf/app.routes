@@ -129,6 +129,11 @@ POST        /what-supplier-vat-registration-number                       control
 GET         /change-what-supplier-vat-registration-number                controllers.SupplierVatRegistrationNumberController.onPageLoad(mode: Mode = CheckMode)
 POST        /change-what-supplier-vat-registration-number                controllers.SupplierVatRegistrationNumberController.onSubmit(mode: Mode = CheckMode)
 
+GET         /check-supplier-vat-registration-number       controllers.SupplierVrnWarningController.onPageLoad(mode: Mode = NormalMode)
+POST        /check-supplier-vat-registration-number       controllers.SupplierVrnWarningController.onSubmit(mode: Mode = NormalMode)
+GET         /change-check-supplier-vat-registration-number  controllers.SupplierVrnWarningController.onPageLoad(mode: Mode = CheckMode)
+POST        /change-check-supplier-vat-registration-number  controllers.SupplierVrnWarningController.onSubmit(mode: Mode = CheckMode)
+
 GET         /supplier-tax-identifier-number               controllers.SupplierTaxIdentifierNumberController.onPageLoad(mode: Mode = NormalMode)
 POST        /supplier-tax-identifier-number               controllers.SupplierTaxIdentifierNumberController.onSubmit(mode: Mode = NormalMode)
 GET         /change-supplier-tax-identifier-number        controllers.SupplierTaxIdentifierNumberController.onPageLoad(mode: Mode = CheckMode)

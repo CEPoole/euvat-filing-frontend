@@ -90,7 +90,8 @@ class TotalVatPaidController @Inject() (
       navigator.nextPage(TotalVatPaidPage, mode, request.userAnswers),
       controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
     ) { updated =>
-      if (compareWithPage(value, TotalPurchaseAmountBeforeVatPage, updated)(_ >= _)) Future.successful(Redirect(routes.VatPaidWarningController.onPageLoad(mode)))
+      if (compareWithPage(value, TotalPurchaseAmountBeforeVatPage, updated)(_ >= _))
+        Future.successful(Redirect(routes.VatPaidWarningController.onPageLoad(mode)))
       else Future.successful(Redirect(navigator.nextPage(TotalVatPaidPage, mode, updated)))
     }
   }

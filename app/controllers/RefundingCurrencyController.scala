@@ -24,7 +24,7 @@ import navigation.Navigator
 import pages.{ClaimDetailsAmendedPage, ClaimDetailsCompletedPage, CurrencyChangedPage, RefundingCurrencyPage}
 import play.api.Logger
 import play.api.data.Form
-import play.api.i18n.{I18nSupport, MessagesApi, Messages}
+import play.api.i18n.{I18nSupport, Messages, MessagesApi}
 import play.api.mvc.*
 import repositories.SessionRepository
 import uk.gov.hmrc.govukfrontend.views.Aliases.Text
@@ -187,16 +187,16 @@ class RefundingCurrencyController @Inject() (
     currencies.zipWithIndex.flatMap { case ((name, _, symbol), idx) =>
       RefundingCurrency.values.find(_.toString.equalsIgnoreCase(name)).map { v =>
         RadioItem(
-          content = Text(msgs(s"refundingCurrency.${v.toString}", symbol)),
-          value   = Some(v.toString),
-          id      = Some(if (idx == 0) "value" else s"value_$idx"),
-          label   = None,
-          hint    = None,
-          divider = None,
-          checked = false,
+          content         = Text(msgs(s"refundingCurrency.${v.toString}", symbol)),
+          value           = Some(v.toString),
+          id              = Some(if (idx == 0) "value" else s"value_$idx"),
+          label           = None,
+          hint            = None,
+          divider         = None,
+          checked         = false,
           conditionalHtml = None,
-          disabled = false,
-          attributes = Map.empty
+          disabled        = false,
+          attributes      = Map.empty
         )
       }
     }

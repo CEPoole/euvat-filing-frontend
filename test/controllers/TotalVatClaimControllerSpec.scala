@@ -26,7 +26,7 @@ import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import pages.{RefundingCountryPage, RefundingCurrencyPage, TotalVatClaimPage, TotalVatPaidPage, TotalPurchaseAmountBeforeVatPage}
+import pages.{RefundingCountryPage, RefundingCurrencyPage, TotalPurchaseAmountBeforeVatPage, TotalVatClaimPage, TotalVatPaidPage}
 import play.api.inject.bind
 import play.api.mvc.Call
 import play.api.test.FakeRequest
@@ -139,8 +139,12 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
 
     "must redirect to the warning page if total vat claim equals total purchase before VAT" in {
       val userAnswers = emptyUserAnswers
-        .set(TotalVatPaidPage, BigDecimal("10")).success.value
-        .set(TotalPurchaseAmountBeforeVatPage, validAnswer).success.value
+        .set(TotalVatPaidPage, BigDecimal("10"))
+        .success
+        .value
+        .set(TotalPurchaseAmountBeforeVatPage, validAnswer)
+        .success
+        .value
       val mockSessionRepository = mock[SessionRepository]
 
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
@@ -333,7 +337,8 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
           .build()
 
       running(application) {
-        val request = FakeRequest(POST, routes.TotalVatClaimController.onSubmit(CheckMode).url).withFormUrlEncodedBody(("value", validAnswer.toString))
+        val request =
+          FakeRequest(POST, routes.TotalVatClaimController.onSubmit(CheckMode).url).withFormUrlEncodedBody(("value", validAnswer.toString))
 
         val result = route(application, request).value
 

@@ -47,7 +47,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
     case PurchaseSubCategoryPage           => userAnswers => navigateFromPurchaseSubCategoryPage(NormalMode, userAnswers)
     case DescribeItemsOnInvoicePage        => _ => routes.InvoiceTypeController.onPageLoad(NormalMode)
     case InvoiceTypePage                   => userAnswer => navigateFromInvoiceTypePage(NormalMode)(userAnswer)
-    case InvoiceNumberPage                 => _ => routes.InvoiceDateController.onPageLoad(NormalMode)
+    case InvoiceNumberPage                 => userAnswers => navigateFromInvoiceNumberPage(NormalMode)(userAnswers)
     case InvoiceDatePage                   => _ => routes.SuppliersNameController.onPageLoad(NormalMode)
     case SuppliersNamePage                 => _ => routes.SupplierAddressController.onPageLoad(NormalMode)
     case SupplierAddressPage               => userAnswers => navigateFromSupplierAddressPage(NormalMode)(userAnswers)
@@ -75,7 +75,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
     case PurchaseSubCategoryPage           => userAnswers => navigateFromPurchaseSubCategoryPage(CheckMode, userAnswers)
     case DescribeItemsOnInvoicePage        => _ => controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
     case InvoiceTypePage                   => userAnswer => navigateFromInvoiceTypePage(CheckMode)(userAnswer)
-    case InvoiceNumberPage                 => _ => routes.InvoiceDateController.onPageLoad(CheckMode)
+    case InvoiceNumberPage                 => userAnswers => navigateFromInvoiceNumberPage(CheckMode)(userAnswers)
     case InvoiceDatePage                   => _ => routes.SuppliersNameController.onPageLoad(CheckMode)
     case SuppliersNamePage                 => _ => routes.SupplierAddressController.onPageLoad(CheckMode)
     case SupplierAddressPage               => userAnswers => navigateFromSupplierAddressPage(CheckMode)(userAnswers)
@@ -289,7 +289,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
           case Some(code) if configCurrencyMapping.requiresCurrencySelection(code) =>
             routes.RefundingCurrencyController.onPageLoad(mode)
           case Some("DE") => routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
-          case _           => routes.JourneyRecoveryController.onPageLoad()
+          case _          => routes.JourneyRecoveryController.onPageLoad()
         }
     }
   }
@@ -299,6 +299,13 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
       case Some(true)  => routes.JourneyRecoveryController.onPageLoad() // TODO: replace when F8 delete application is in place
       case Some(false) => routes.CheckYourClaimDetailsController.onPageLoad()
       case _           => routes.JourneyRecoveryController.onPageLoad()
+    }
+
+  private def navigateFromInvoiceNumberPage(mode: Mode)(answers: UserAnswers): Call =
+    answers.get(VrnWarningFlowPage) match {
+      case Some(true)  => routes.SupplierVrnWarningController.onPageLoad(mode)
+      case Some(false) => routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
+      case None        => routes.InvoiceDateController.onPageLoad(mode)
     }
 
 }

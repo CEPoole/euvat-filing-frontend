@@ -22,7 +22,7 @@ import forms.TotalVatClaimFormProvider
 import javax.inject.Inject
 import models.{CheckMode, Mode}
 import navigation.Navigator
-import pages.{RefundingCurrencyPage, TotalVatClaimPage, TotalVatPaidPage, PurchaseTypePage}
+import pages.{PurchaseTypePage, RefundingCurrencyPage, TotalVatClaimPage, TotalVatPaidPage}
 import play.api.data.Form
 import utils.{CheckModeShortCircuit, ConfigCurrencyMapping}
 import play.api.i18n.{I18nSupport, MessagesApi}
@@ -72,7 +72,6 @@ class TotalVatClaimController @Inject() (
       .fold(
         // On validation errors render BadRequest with consistent currency symbol
         formWithErrors => Future.successful(badRequestView(formWithErrors, mode)),
-
         value => handleSubmit(value, mode)
       )
   }

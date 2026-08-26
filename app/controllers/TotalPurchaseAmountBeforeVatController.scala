@@ -65,7 +65,7 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
           case None =>
             userAnswers.get(SupplierTaxNumberPage) match {
               case Some(SupplierTaxNumber.Vatregistrationnumber) => routes.SupplierVatRegistrationNumberController.onPageLoad(mode)
-              case Some(SupplierTaxNumber.Taxidentifiernumber)  => routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)
+              case Some(SupplierTaxNumber.Taxidentifiernumber)   => routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)
               case _ =>
                 if (userAnswers.get(SupplierTaxIdentifierNumberPage).isDefined) {
                   routes.SupplierTaxIdentifierNumberController.onPageLoad(mode)
@@ -100,7 +100,6 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
       .fold(
         // Invalid form: render the page with validation errors and currency info
         formWithErrors => Future.successful(badRequestView(formWithErrors, mode)),
-
         value => handleSubmit(value, mode)
       )
   }

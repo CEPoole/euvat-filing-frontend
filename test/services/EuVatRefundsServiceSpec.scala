@@ -19,9 +19,8 @@ package services
 import base.SpecBase
 import config.FrontendAppConfig
 import connectors.EuVatRefundsConnector
-import models.requests.{AddPurchaseRequest, LatestApplicationRequest}
-import models.requests.{AddPurchaseRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest}
-import models.responses.{AddPurchaseResponse, LatestApplicationResponse, TraderKnownFactsResponse, SupplierTaxIdentifierCountResponse}
+import models.requests.{AddPurchaseRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest, SupplierVrnCountRequest}
+import models.responses.{AddPurchaseResponse, LatestApplicationResponse, SupplierTaxIdentifierCountResponse, SupplierVrnCountResponse, TraderKnownFactsResponse}
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.*
 import org.scalatest.concurrent.ScalaFutures
@@ -89,6 +88,39 @@ class EuVatRefundsServiceSpec extends SpecBase with MockitoSugar with ScalaFutur
         .thenReturn(Future.failed(failure))
 
       val result = service.getLatestApplications(request)
+
+      whenReady(result.failed) { ex =>
+        ex mustEqual failure
+      }
+    }
+  }
+
+  "EuVatRefundsService.getSupplierVrnCount" - {
+
+    val request = SupplierVrnCountRequest(
+      applicationId = 133,
+      itemNumber    = 4,
+      vatNumber     = "500000881",
+      invoiceNumber = "a444"
+    )
+
+    val expectedResponse = SupplierVrnCountResponse(duplicateCount = 1)
+
+    "should return the supplier VRN count from the connector" in {
+      when(mockConnector.getSupplierVrnCount(any())(any()))
+        .thenReturn(Future.successful(expectedResponse))
+
+      val result = service.getSupplierVrnCount(request)(hc).futureValue
+      result mustEqual expectedResponse
+    }
+
+    "should propagate an exception from the connector" in {
+      val failure = new RuntimeException("Connector failed")
+
+      when(mockConnector.getSupplierVrnCount(any())(any()))
+        .thenReturn(Future.failed(failure))
+
+      val result = service.getSupplierVrnCount(request)
 
       whenReady(result.failed) { ex =>
         ex mustEqual failure

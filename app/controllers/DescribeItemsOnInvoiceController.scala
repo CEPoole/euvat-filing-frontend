@@ -131,7 +131,7 @@ class DescribeItemsOnInvoiceController @Inject() (
     form
       .bindFromRequest()
       .fold(
-        { formWithErrors =>
+        formWithErrors =>
           if (formWithErrors.errors.exists(_.message == "describeItemsOnInvoice.error.required"))
             for {
               updatedAnswers <- Future.fromTry(request.userAnswers.set(DescribeItemsOnInvoicePage, ""))
@@ -139,8 +139,7 @@ class DescribeItemsOnInvoiceController @Inject() (
             } yield Redirect(routes.PurchaseWarningController.onPageLoad(mode))
           else
             // validation errors -> re-render the page with errors and back target
-            Future.successful(BadRequest(view(formWithErrors, mode, computeBackTarget(mode))))
-        },
+            Future.successful(BadRequest(view(formWithErrors, mode, computeBackTarget(mode)))),
         // successful bind -> process the submitted value
         value =>
           if (mode == CheckMode) {
@@ -155,8 +154,8 @@ class DescribeItemsOnInvoiceController @Inject() (
               sessionRepository,
               // redirect target when unchanged in CheckMode
               controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad(),
-                // onSaved: once persisted, follow the normal navigator for this page (so warnings still display)
-                updated => Future.successful(Redirect(navigator.nextPage(DescribeItemsOnInvoicePage, mode, updated)))
+              // onSaved: once persisted, follow the normal navigator for this page (so warnings still display)
+              updated => Future.successful(Redirect(navigator.nextPage(DescribeItemsOnInvoicePage, mode, updated)))
             )
           } else {
             // Normal mode: persist and redirect according to the navigator

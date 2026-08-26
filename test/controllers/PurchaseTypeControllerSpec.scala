@@ -33,6 +33,7 @@ import play.api.test.Helpers.*
 import queries.ClaimApplicationResponseQuery
 import repositories.SessionRepository
 import utils.ConfigPurchaseMapping
+import services.EuVatRefundsService
 import views.html.PurchaseTypeView
 
 import scala.concurrent.Future
@@ -396,39 +397,6 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
-    "must redirect to Journey Recovery when the addPurchase call fails" in {
-      val mockSessionRepository = mock[SessionRepository]
-      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
-      when(mockEuVatRefundsService.addPurchase(any())(any()))
-        .thenReturn(Future.failed(new RuntimeException("boom")))
-
-      val userAnswers = emptyUserAnswers
-        .set(ClaimApplicationResponseQuery, ApplicationResponse(134, "GB123134", 1))
-        .success
-        .value
-
-      val application = applicationBuilder(userAnswers = Some(userAnswers))
-        .overrides(
-          bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
-          bind[SessionRepository].toInstance(mockSessionRepository)
-        )
-        .build()
-
-      running(application) {
-        val request = FakeRequest(POST, purchaseTypeSubmitRoute)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
-
-        val result = route(application, request).value
-
-        status(result) mustEqual SEE_OTHER
-
-        val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
-        verify(mockSessionRepository, times(1)).set(captor.capture())
-        val saved = captor.getValue
-        saved.get(pages.DescribeItemsOnInvoicePage) mustBe None
-      }
-    }
-
     "must short-circuit to purchase CYA in CheckMode when value unchanged" in {
       val userAnswers = emptyUserAnswers.set(pages.PurchaseTypePage, PurchaseType.Fuel).success.value
 
@@ -500,69 +468,69 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
-      "must redirect to change-describe-items when arrived-from-describe flag set and value unchanged" in {
-        val mockSessionRepository = mock[SessionRepository]
-        when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+    "must redirect to change-describe-items when arrived-from-describe flag set and value unchanged" in {
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
 
-        val userAnswers = emptyUserAnswers
-          .set(pages.PurchaseTypePage, PurchaseType.Fuel)
-          .success
-          .value
-          .set(pages.DescribeItemsArrivedFromCheckYourAnswersPage, true)
-          .success
-          .value
+      val userAnswers = emptyUserAnswers
+        .set(pages.PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(pages.DescribeItemsArrivedFromCheckYourAnswersPage, true)
+        .success
+        .value
 
-        val application = applicationBuilder(userAnswers = Some(userAnswers))
-          .overrides(
-            bind[SessionRepository].toInstance(mockSessionRepository)
-          )
-          .build()
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
 
-        running(application) {
-          val request = FakeRequest(POST, routes.PurchaseTypeController.onSubmit(CheckMode).url)
-            .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
+      running(application) {
+        val request = FakeRequest(POST, routes.PurchaseTypeController.onSubmit(CheckMode).url)
+          .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
 
-          val result = route(application, request).value
+        val result = route(application, request).value
 
-          status(result) mustEqual SEE_OTHER
-          redirectLocation(result).value mustEqual controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(CheckMode).url
-          verify(mockSessionRepository, times(1)).set(any())
-        }
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(CheckMode).url
+        verify(mockSessionRepository, times(1)).set(any())
       }
+    }
 
-      "must short-circuit to CYA when arrived-from-describe and also arrived-from-subtype present and value unchanged" in {
-        val mockSessionRepository = mock[SessionRepository]
-        when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+    "must short-circuit to CYA when arrived-from-describe and also arrived-from-subtype present and value unchanged" in {
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
 
-        val userAnswers = emptyUserAnswers
-          .set(pages.PurchaseTypePage, PurchaseType.Fuel)
-          .success
-          .value
-          .set(pages.DescribeItemsArrivedFromCheckYourAnswersPage, true)
-          .success
-          .value
-          .set(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage, true)
-          .success
-          .value
+      val userAnswers = emptyUserAnswers
+        .set(pages.PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(pages.DescribeItemsArrivedFromCheckYourAnswersPage, true)
+        .success
+        .value
+        .set(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage, true)
+        .success
+        .value
 
-        val application = applicationBuilder(userAnswers = Some(userAnswers))
-          .overrides(
-            bind[SessionRepository].toInstance(mockSessionRepository)
-          )
-          .build()
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
 
-        running(application) {
-          val request = FakeRequest(POST, routes.PurchaseTypeController.onSubmit(CheckMode).url)
-            .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
+      running(application) {
+        val request = FakeRequest(POST, routes.PurchaseTypeController.onSubmit(CheckMode).url)
+          .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
 
-          val result = route(application, request).value
+        val result = route(application, request).value
 
-          status(result) mustEqual SEE_OTHER
-          // unchanged submission should short-circuit to CYA despite describe-items arrival when subtype-arrival also present
-          redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
-          verify(mockSessionRepository, times(0)).set(any())
-        }
+        status(result) mustEqual SEE_OTHER
+        // unchanged submission should short-circuit to CYA despite describe-items arrival when subtype-arrival also present
+        redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
+        verify(mockSessionRepository, times(0)).set(any())
       }
+    }
 
     "must persist and redirect to CYA in CheckMode when value changed and no subcodes exist" in {
       val mockSessionRepository = mock[SessionRepository]
@@ -613,7 +581,9 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Fuel), models.CheckMode).url
+        redirectLocation(result).value mustEqual controllers.purchase.routes.PurchaseSubTypeController
+          .onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Fuel), models.CheckMode)
+          .url
         verify(mockSessionRepository, times(2)).set(any())
       }
     }
@@ -623,12 +593,12 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
 
       val userAnswers = emptyUserAnswers
-      .set(pages.PurchaseTypePage, PurchaseType.Fuel)
-      .success
-      .value
-      .set(pages.PurchaseSubCategoryArrivedFromCheckYourAnswersPage, true)
-      .success
-      .value
+        .set(pages.PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(pages.PurchaseSubCategoryArrivedFromCheckYourAnswersPage, true)
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -673,7 +643,9 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Fuel), models.CheckMode).url
+        redirectLocation(result).value mustEqual controllers.purchase.routes.PurchaseSubTypeController
+          .onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Fuel), models.CheckMode)
+          .url
         verify(mockSessionRepository, times(2)).set(any())
       }
     }
@@ -683,12 +655,12 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
 
       val userAnswers = emptyUserAnswers
-      .set(pages.PurchaseTypePage, PurchaseType.Fuel)
-      .success
-      .value
-      .set(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage, true)
-      .success
-      .value
+        .set(pages.PurchaseTypePage, PurchaseType.Fuel)
+        .success
+        .value
+        .set(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage, true)
+        .success
+        .value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -708,8 +680,6 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         verify(mockSessionRepository, times(0)).set(any())
       }
     }
-
-    
 
     "must clear the purchase chain when CountryChangedPage is true" in {
       val mockSessionRepository = mock[SessionRepository]
@@ -754,6 +724,94 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
         saved.get(pages.PurchaseSubCategoryPage) mustBe None
         saved.get(pages.PurchaseSubCategoryLabelPage) mustBe None
         saved.get(pages.CountryChangedPage) mustBe None
+      }
+    }
+
+    "must add the purchase, persist the response, and redirect when valid data is submitted" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+      when(mockEuVatRefundsService.addPurchase(any())(any()))
+        .thenReturn(Future.successful(AddPurchaseResponse(itemNumber = 1, updateSequenceNumber = 2)))
+
+      val userAnswers = emptyUserAnswers
+        .set(ClaimApplicationResponseQuery, ApplicationResponse(134, "GB123134", 1))
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, purchaseTypeSubmitRoute)
+          .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual ("/file-eu-vat" + onwardRoute.url)
+        verify(mockEuVatRefundsService, times(1)).addPurchase(any())(any())
+      }
+    }
+
+    "must redirect to Journey Recovery when the addPurchase call fails" in {
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+      when(mockEuVatRefundsService.addPurchase(any())(any()))
+        .thenReturn(Future.failed(new RuntimeException("boom")))
+
+      val userAnswers = emptyUserAnswers
+        .set(ClaimApplicationResponseQuery, ApplicationResponse(134, "GB123134", 1))
+        .success
+        .value
+
+      val application = applicationBuilder(userAnswers = Some(userAnswers))
+        .overrides(
+          bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, purchaseTypeSubmitRoute)
+          .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual routes.JourneyRecoveryController.onPageLoad().url
+
+        val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        verify(mockSessionRepository, times(1)).set(captor.capture())
+        val saved = captor.getValue
+        saved.get(pages.DescribeItemsOnInvoicePage) mustBe None
+      }
+    }
+
+    "must redirect to the next page when applicationId is missing on submit" in {
+
+      val mockSessionRepository = mock[SessionRepository]
+      when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
+
+      val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
+        .overrides(
+          bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
+          bind[SessionRepository].toInstance(mockSessionRepository)
+        )
+        .build()
+
+      running(application) {
+        val request = FakeRequest(POST, purchaseTypeSubmitRoute)
+          .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual ("/file-eu-vat" + onwardRoute.url)
+        verify(mockEuVatRefundsService, never).addPurchase(any())(any())
       }
     }
   }

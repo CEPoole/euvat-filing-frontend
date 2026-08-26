@@ -25,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 import play.api.libs.json.Format
 import play.api.mvc.Results.*
-import models.{Mode, UserAnswers, CheckMode}
+import models.{CheckMode, Mode, UserAnswers}
 
 object ControllerHelpers {
 
@@ -97,20 +97,18 @@ object ControllerHelpers {
   //
   // Example usage:
   // `compareWithPage(value, TotalPurchaseAmountBeforeVatPage, updated)(_ >= _)`
-  def compareWithPage(value: BigDecimal, page: pages.QuestionPage[BigDecimal],
-                      updated: models.UserAnswers)(cmp: (BigDecimal, BigDecimal) => Boolean): Boolean =
+  def compareWithPage(value: BigDecimal, page: pages.QuestionPage[BigDecimal], updated: models.UserAnswers)(
+    cmp: (BigDecimal, BigDecimal) => Boolean
+  ): Boolean =
     updated.get(page).exists(stored => cmp(value, stored))
 
-  /** Shared submit helper that centralises the common CheckMode short-circuit
-    * pattern used across monetary input controllers.
+  /** Shared submit helper that centralises the common CheckMode short-circuit pattern used across monetary input controllers.
     *
     * Behaviour:
-    *  - If in CheckMode and a `PurchaseTypePage` is present in `userAnswers` the
-    *    `purchaseCya` call is used as the unchanged-redirect target.
-    *  - Otherwise `navigatorNext` is used as the unchanged-redirect target.
+    *   - If in CheckMode and a `PurchaseTypePage` is present in `userAnswers` the `purchaseCya` call is used as the unchanged-redirect target.
+    *   - Otherwise `navigatorNext` is used as the unchanged-redirect target.
     *
-    * The `onSaved` continuation is invoked with the updated `UserAnswers` when
-    * the value changes (or when not in CheckMode) so callers can decide the
+    * The `onSaved` continuation is invoked with the updated `UserAnswers` when the value changes (or when not in CheckMode) so callers can decide the
     * appropriate redirect (including any warning-page checks).
     */
   def shortCircuitPersistAndThen[T](
@@ -133,9 +131,8 @@ object ControllerHelpers {
     CheckModeShortCircuit(page, newValue, mode, userAnswers, sessionRepository, unchangedRedirect, onSaved)
   }
 
-  /** If running in CheckMode and the arrival flag page is not set, set it
-    * and persist the updated `UserAnswers`. Otherwise call `render` with
-    * the existing `UserAnswers`.
+  /** If running in CheckMode and the arrival flag page is not set, set it and persist the updated `UserAnswers`. Otherwise call `render` with the
+    * existing `UserAnswers`.
     */
   def markArrivalAndRender(page: QuestionPage[Boolean], mode: Mode, userAnswers: UserAnswers, sessionRepository: SessionRepository)(
     render: UserAnswers => Future[Result]

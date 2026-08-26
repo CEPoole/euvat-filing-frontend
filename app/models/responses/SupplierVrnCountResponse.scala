@@ -14,3 +14,12 @@
  * limitations under the License.
  */
 
+package models.responses
+
+import play.api.libs.json.{Json, OFormat}
+
+case class SupplierVrnCountResponse(duplicateCount: Int)
+
+object SupplierVrnCountResponse {
+  implicit val format: OFormat[SupplierVrnCountResponse] = Json.format[SupplierVrnCountResponse]
+}
