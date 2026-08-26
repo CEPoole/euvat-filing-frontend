@@ -29,9 +29,9 @@ timeout.message = For security reasons, you will be signed out of this service i
 timeout.keepAlive = Stay signed in
 timeout.signOut = Sign out
 
-error.title.prefix = Error:
-error.prefix = Error
-error.summary.title = There is a problem
+error.title.prefix = Gwall:
+error.prefix = Gwall
+error.summary.title = Mae problem wedi codi
 
 journeyRecovery.continue.title = Sorry, there is a problem with the service
 journeyRecovery.continue.heading = Sorry, there is a problem with the service
