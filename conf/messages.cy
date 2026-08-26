@@ -158,7 +158,6 @@ refundPeriod.end.error.required.year = Enter the end year
 refundPeriod.end.error.invalidDateFormat = Enter a valid end date
 refundPeriod.end.error.invalidDateFormat.month = Enter a valid end month
 refundPeriod.end.error.invalidDateFormat.year = Enter a valid end year
-refundPeriod.end.error.inPast = Refund period end date must be in the past
 refundPeriod.end.error.afterVatDeRegDate = Refund period end date must not be after the VAT deregistration date
 refundPeriod.error.startDateNotAfterEndDate = Refund period start date must be earlier than the refund period end date
 refundPeriod.error.startAndEndInSameYear = Refund period start date and end date must be in the same calendar year
