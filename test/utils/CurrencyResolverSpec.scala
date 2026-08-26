@@ -19,7 +19,7 @@ package utils
 import base.SpecBase
 import com.typesafe.config.ConfigFactory
 import play.api.Configuration
-import utils.ConfigCurrencyMapping
+import utils.CurrencyConfig
 import pages.RefundingCurrencyPage
 
 class CurrencyResolverSpec extends SpecBase {
@@ -34,7 +34,7 @@ class CurrencyResolverSpec extends SpecBase {
         """.stripMargin
 
       val cfg = Configuration(ConfigFactory.parseString(confString))
-      val mapping = new ConfigCurrencyMapping(cfg)
+      val mapping = new CurrencyConfig(cfg)
 
       val ua = emptyUserAnswers
         .set(pages.RefundingCountryPage, "BG")
@@ -43,15 +43,15 @@ class CurrencyResolverSpec extends SpecBase {
         .set(RefundingCurrencyPage, "BGN")
         .success
         .value
-      val (name, symbol) = CurrencyResolver.currencyNameAndPrefix(ua, mapping)
+      val (name, symbol) = CurrencyResolver.currencyNameAndPrefix(ua, mapping.currencyConfig)
       name.toLowerCase must include("bulgarian")
       symbol mustBe "лв"
     }
 
     "must fall back to default when nothing present" in {
       val cfg = Configuration(ConfigFactory.parseString("currency.mapping = { }"))
-      val mapping = new ConfigCurrencyMapping(cfg)
-      val (name, symbol) = CurrencyResolver.currencyNameAndPrefix(emptyUserAnswers, mapping)
+      val mapping = new CurrencyConfig(cfg)
+      val (name, symbol) = CurrencyResolver.currencyNameAndPrefix(emptyUserAnswers, mapping.currencyConfig)
       name mustBe "Euro"
       symbol mustBe "€"
     }

@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import forms.TotalVatPaidFormProvider
-import models.{CheckMode, NormalMode, UserAnswers}
+import models.{CheckMode, NormalMode, UserAnswers, Fuel}
 import pages.PurchaseTypePage
 import models.PurchaseType
 import org.mockito.Mockito.verify
@@ -191,7 +191,7 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
     }
     "must redirect to CYA when in CheckMode and VAT paid unchanged for purchase journey" in {
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(TotalVatPaidPage, BigDecimal("50.00"))
@@ -212,7 +212,7 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
 
     "must redirect to warning when in CheckMode and VAT paid unchanged but total purchase amount triggers warning (arrived from prior page)" in {
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(TotalVatPaidPage, BigDecimal("60.00"))
@@ -239,7 +239,7 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
 
     "must persist updated VAT paid and continue journey when in CheckMode and VAT paid changed for purchase journey" in {
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(TotalPurchaseAmountBeforeVatPage, BigDecimal("200.00"))
@@ -273,7 +273,7 @@ class TotalVatPaidControllerSpec extends SpecBase with MockitoSugar {
 
     "must persist updated VAT paid and redirect to warning when in CheckMode and VAT paid >= total purchase amount" in {
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(TotalPurchaseAmountBeforeVatPage, BigDecimal("50.00"))

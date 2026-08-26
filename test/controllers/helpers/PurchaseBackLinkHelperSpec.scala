@@ -17,7 +17,7 @@
 package controllers.helpers
 
 import base.SpecBase
-import models.{NormalMode, PurchaseType}
+import models.{Fuel, NormalMode, PurchaseType}
 import models.requests.DataRequest
 import pages.{PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage}
 import play.api.test.FakeRequest
@@ -31,7 +31,7 @@ class PurchaseBackLinkHelperSpec extends SpecBase {
   "PurchaseBackLinkHelper.computeBackTarget" - {
     implicit val messages: Messages = stubMessages()
     "should return PurchaseTypeController when no user answers available" in {
-      implicit val request: DataRequest[AnyContent] = DataRequest(FakeRequest(GET, "/"), userAnswersId, None, None, emptyUserAnswers)
+      implicit val request: DataRequest[AnyContent] = DataRequest(FakeRequest(GET, "/"), userAnswersId, "", "", emptyUserAnswers)
 
       val result: Call = PurchaseBackLinkHelper.computeBackTarget(NormalMode)
 
@@ -40,14 +40,14 @@ class PurchaseBackLinkHelperSpec extends SpecBase {
 
     "should return mounted slug when PurchaseType and PurchaseSubType present and no subcategory" in {
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(PurchaseSubTypePage, "1")
         .success
         .value
 
-      implicit val request: DataRequest[AnyContent] = DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, None, None, userAnswers)
+      implicit val request: DataRequest[AnyContent] = DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, "", "", userAnswers)
 
       val result: Call = PurchaseBackLinkHelper.computeBackTarget(NormalMode)
 
@@ -57,14 +57,14 @@ class PurchaseBackLinkHelperSpec extends SpecBase {
 
     "should fallback to PurchaseType when child present but parent missing (child without dot)" in {
       val userAnswers: models.UserAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(PurchaseSubCategoryPage, "1")
         .success
         .value
 
-      implicit val request: DataRequest[AnyContent] = DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, None, None, userAnswers)
+      implicit val request: DataRequest[AnyContent] = DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, "", "", userAnswers)
 
       val result: Call = PurchaseBackLinkHelper.computeBackTarget(NormalMode)
 
@@ -73,7 +73,7 @@ class PurchaseBackLinkHelperSpec extends SpecBase {
 
     "should map to first available slug when child contains dot and parent missing" in {
       val userAnswers: models.UserAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(PurchaseSubCategoryPage, "1.1")
@@ -81,7 +81,7 @@ class PurchaseBackLinkHelperSpec extends SpecBase {
         .value
 
       implicit val request: DataRequest[AnyContentAsEmpty.type] =
-        DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, None, None, userAnswers)
+        DataRequest(FakeRequest(GET, "/file-eu-vat/foo"), userAnswersId, "", "", userAnswers)
 
       val result: Call = PurchaseBackLinkHelper.computeBackTarget(NormalMode)
 

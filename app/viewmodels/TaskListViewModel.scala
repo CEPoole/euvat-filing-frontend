@@ -16,13 +16,14 @@
 
 package viewmodels
 
-import com.google.inject.Inject
 import models.UserAnswers
 import pages.ClaimDetailsCompletedPage
 import play.api.i18n.Messages
 import uk.gov.hmrc.govukfrontend.views.viewmodels.content.Text
 import uk.gov.hmrc.govukfrontend.views.viewmodels.tag.Tag
 import uk.gov.hmrc.govukfrontend.views.viewmodels.tasklist.{TaskList, TaskListItem, TaskListItemStatus, TaskListItemTitle}
+
+import javax.inject.Inject
 
 class TaskListViewModel @Inject() () {
 

@@ -89,7 +89,7 @@ object CheckYourPurchaseDetailsSummary {
   }
 
   private def renderSubTypeRow(answers: UserAnswers, pt: models.PurchaseType)(implicit messages: Messages): Option[Row] = {
-    val parentSlug = models.PurchaseType.slugOf(pt)
+    val parentSlug = models.PurchaseType.urlSlugForPurchaseType(pt)
     val msgKey = s"purchase.subType.$parentSlug"
 
     val keyLabel = if (messages.isDefinedAt(msgKey)) messages(msgKey) else parentSlug.replace('-', ' ').capitalize
@@ -118,7 +118,7 @@ object CheckYourPurchaseDetailsSummary {
       // e.g. 7.1.2 -> try 7.1.2, then 7.1 -> mapping exists for 7.1 -> who-food-drink-for
       def findSlug(pk: String, c: String): String = {
         def loop(curr: String): Option[String] =
-          models.PurchaseSubCategoryType.slugFor(pk, curr) match {
+          models.PurchaseSubCategoryType.purchaseSubCategoryUrlSlugFor(pk, curr) match {
             case s @ Some(_) => s
             case None        => if (curr.contains('.')) loop(curr.substring(0, curr.lastIndexOf('.'))) else None
           }
@@ -141,7 +141,7 @@ object CheckYourPurchaseDetailsSummary {
       // include the configured mount prefix so the link points to the
       // externally mounted context (e.g. "/file-eu-vat"). Use the implicit
       // RequestHeader to compute the mount via `MountPrefix.get`.
-      val mount = MountPrefix.get
+      val mount = MountPrefix.getFromRequest
       val url = if (mount.isEmpty) s"/change-$slug" else s"$mount/change-$slug"
 
       (keyLabel, Some(displayValue), Seq((url, "site.change", "purchase.subCategory.change.hidden")))

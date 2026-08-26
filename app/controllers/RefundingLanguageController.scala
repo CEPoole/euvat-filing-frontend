@@ -44,7 +44,6 @@ class RefundingLanguageController @Inject() (
   requireData: DataRequiredAction,
   formProvider: RefundingLanguageFormProvider,
   configLanguageMapping: ConfigLanguageMapping,
-  configCurrencyMapping: ConfigCurrencyMapping,
   val controllerComponents: MessagesControllerComponents,
   view: RefundingLanguageView
 )(implicit ec: ExecutionContext)

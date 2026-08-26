@@ -22,7 +22,7 @@ class PurchaseSubCategoryTypeSpec extends SpecBase {
 
   "PurchaseSubCategoryType" - {
     "slugFor should return configured slug when present" in {
-      PurchaseSubCategoryType.slugFor("fuel", "1.1") mustBe Some("fuel-type")
+      PurchaseSubCategoryType.purchaseSubCategoryUrlSlugFor("fuel", "1.1") mustBe Some("fuel-type")
     }
 
     "pathFor should return configured slug when present" in {

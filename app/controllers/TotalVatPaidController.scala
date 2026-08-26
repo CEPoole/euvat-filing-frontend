@@ -18,18 +18,17 @@ package controllers
 
 import controllers.actions.*
 import forms.TotalVatPaidFormProvider
+import models.Mode
 import models.requests.DataRequest
-import utils.CheckModeShortCircuit
-import models.{CheckMode, Mode}
 import navigation.Navigator
-import pages.{PurchaseTypePage, TotalPurchaseAmountBeforeVatPage, TotalVatPaidPage}
+import pages.{TotalPurchaseAmountBeforeVatPage, TotalVatPaidPage}
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import utils.ConfigCurrencyMapping
 import utils.ControllerHelpers.*
+import utils.CurrencyConfig
 import views.html.TotalVatPaidView
 
 import javax.inject.Inject
@@ -43,16 +42,16 @@ import scala.concurrent.{ExecutionContext, Future}
   *     single-write invariant. If the value changes we persist once and then redirect appropriately.
   */
 class TotalVatPaidController @Inject() (
-  override val messagesApi: MessagesApi,
-  sessionRepository: SessionRepository,
-  navigator: Navigator,
-  configCurrencyMapping: ConfigCurrencyMapping,
-  identify: IdentifierAction,
-  getData: DataRetrievalAction,
-  requireData: DataRequiredAction,
-  formProvider: TotalVatPaidFormProvider,
-  val controllerComponents: MessagesControllerComponents,
-  view: TotalVatPaidView
+                                         override val messagesApi: MessagesApi,
+                                         sessionRepository: SessionRepository,
+                                         navigator: Navigator,
+                                         currencyConfig: CurrencyConfig,
+                                         identify: IdentifierAction,
+                                         getData: DataRetrievalAction,
+                                         requireData: DataRequiredAction,
+                                         formProvider: TotalVatPaidFormProvider,
+                                         val controllerComponents: MessagesControllerComponents,
+                                         view: TotalVatPaidView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport {
@@ -65,7 +64,7 @@ class TotalVatPaidController @Inject() (
     val preparedForm = preparedFormFromAnswers(_.get(TotalVatPaidPage), form)
 
     // Resolve the currency display name and prefix for the view
-    val (currencyName, prefix) = currencyNameAndPrefix(request.userAnswers, configCurrencyMapping)
+    val (currencyName, prefix) = currencyNameAndPrefix(request.userAnswers, currencyConfig.currencyConfig)
 
     // Render OK view using shared helper
     okView(preparedForm, mode, prefix, currencyName)
@@ -102,7 +101,7 @@ class TotalVatPaidController @Inject() (
 
   // Render BadRequest view for invalid forms with consistent currency info
   private def badRequestView(formWithErrors: Form[?], mode: Mode)(implicit request: DataRequest[?]) = {
-    val (currencyName, prefix) = currencyNameAndPrefix(request.userAnswers, configCurrencyMapping)
+    val (currencyName, prefix) = currencyNameAndPrefix(request.userAnswers, currencyConfig.currencyConfig)
     BadRequest(view(formWithErrors, mode, backLink(mode), prefix, currencyName))
   }
 }

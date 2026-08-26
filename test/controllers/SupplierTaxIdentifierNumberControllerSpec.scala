@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import forms.SupplierTaxIdentifierNumberFormProvider
-import models.{CheckMode, NormalMode, UserAnswers}
+import models.{CheckMode, NormalMode, UserAnswers, Fuel}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, when}
@@ -406,7 +406,7 @@ class SupplierTaxIdentifierNumberControllerSpec extends SpecBase with MockitoSug
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
       val ua = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(pages.SupplierTaxNumberPage, models.SupplierTaxNumber.Taxidentifiernumber)

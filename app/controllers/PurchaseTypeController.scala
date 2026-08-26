@@ -19,7 +19,7 @@ package controllers
 import controllers.actions.*
 import forms.PurchaseTypeFormProvider
 import models.requests.{AddPurchaseRequest, DataRequest}
-import models.{Mode, PurchaseType, PurchaseTypeCode, UserAnswers}
+import models.{Mode, PurchaseType, UserAnswers}
 import navigation.Navigator
 import pages.*
 import play.api.Logging
@@ -179,7 +179,7 @@ class PurchaseTypeController @Inject() (
                 Future.fromTry(removedTry).flatMap { ua =>
                   sessionRepository.set(ua).map { _ =>
                     val call = controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(models.CheckMode)
-                    val prefix = MountPrefix.get
+                    val prefix = MountPrefix.getFromRequest
                     if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
                     else Redirect(Call(call.method, s"$prefix${call.url}"))
                   }
@@ -337,7 +337,7 @@ class PurchaseTypeController @Inject() (
       Future.fromTry(removeTry).flatMap { ua =>
         sessionRepository.set(ua).map { _ =>
           val call = controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(models.CheckMode)
-          val prefix = MountPrefix.get
+          val prefix = MountPrefix.getFromRequest
           if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
           else Redirect(Call(call.method, s"$prefix${call.url}"))
         }
@@ -346,8 +346,8 @@ class PurchaseTypeController @Inject() (
       val removeTry = updatedAnswers.remove(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage)
       Future.fromTry(removeTry).flatMap { ua =>
         sessionRepository.set(ua).map { _ =>
-          val call = controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(PurchaseType.slugOf(value), models.CheckMode)
-          val prefix = MountPrefix.get
+          val call = controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(PurchaseType.urlSlugForPurchaseType(value), models.CheckMode)
+          val prefix = MountPrefix.getFromRequest
           if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
           else Redirect(Call(call.method, s"$prefix${call.url}"))
         }
@@ -356,8 +356,8 @@ class PurchaseTypeController @Inject() (
       val removeTry = updatedAnswers.remove(pages.PurchaseSubCategoryArrivedFromCheckYourAnswersPage)
       Future.fromTry(removeTry).flatMap { ua =>
         sessionRepository.set(ua).map { _ =>
-          val call = controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(PurchaseType.slugOf(value), models.CheckMode)
-          val prefix = MountPrefix.get
+          val call = controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(PurchaseType.urlSlugForPurchaseType(value), models.CheckMode)
+          val prefix = MountPrefix.getFromRequest
           if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
           else Redirect(Call(call.method, s"$prefix${call.url}"))
         }
@@ -366,8 +366,8 @@ class PurchaseTypeController @Inject() (
     else {
       // Build a change-<slug> path and redirect there so users complete
       // any newly-required pages for the changed purchase type.
-      val slug = PurchaseType.slugOf(value)
-      val prefix = MountPrefix.get
+      val slug = PurchaseType.urlSlugForPurchaseType(value)
+      val prefix = MountPrefix.getFromRequest
       val changePath = s"${if (prefix.isEmpty) "" else prefix}/change-$slug"
       Future.successful(Redirect(Call("GET", changePath)))
     }
@@ -377,7 +377,7 @@ class PurchaseTypeController @Inject() (
     // NormalMode redirect: compute the navigator target and apply the
     // mount prefix if the application is hosted under a non-root path.
     val call = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)
-    val prefix = MountPrefix.get
+    val prefix = MountPrefix.getFromRequest
     if (prefix.isEmpty || call.url.startsWith(prefix)) Future.successful(Redirect(call))
     else Future.successful(Redirect(Call(call.method, s"$prefix${call.url}")))
   }
@@ -405,7 +405,7 @@ class PurchaseTypeController @Inject() (
         // Build a minimal AddPurchaseRequest using the available information
         val purchaseRequest = AddPurchaseRequest(
           applicationId              = claimResponse.applicationId.toLong,
-          goodsDescriptionCategory   = PurchaseTypeCode.codeFor(purchaseType),
+          goodsDescriptionCategory   = PurchaseType.codes(purchaseType),
           goodsDescriptionText       = None,
           purchaseSubcategory        = None,
           simplifiedInvoiceIndicator = None,
@@ -439,7 +439,7 @@ class PurchaseTypeController @Inject() (
             } yield {
               // Navigate to the next page, applying mount prefix when needed
               val call = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)
-              val prefix = MountPrefix.get
+              val prefix = MountPrefix.getFromRequest
 
               if (prefix.isEmpty || call.url.startsWith(prefix)) {
                 Redirect(call)

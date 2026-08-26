@@ -56,13 +56,13 @@ object PurchaseSubCategoryType {
     )
   )
 
-  def slugFor(parentKey: String, parentCode: String): Option[String] =
+  def purchaseSubCategoryUrlSlugFor(parentKey: String, parentCode: String): Option[String] =
     mapping.get(parentKey).flatMap(_.get(parentCode))
 
   /** Returns the first available slug for a parent key, if any. Used as a sensible default when a specific parent code does not have an explicit
     * mapping.
     */
-  def firstSlugFor(parentKey: String): Option[String] =
+  def defaultSlugFor(parentKey: String): Option[String] =
     // Choose a deterministic first slug by sorting parent codes numerically/alphabetically
     mapping.get(parentKey).flatMap(m => m.toSeq.sortBy(_._1).headOption.map(_._2))
 
@@ -74,7 +74,7 @@ object PurchaseSubCategoryType {
     // child's mapping (e.g. "1.1" -> "fuel-type") and reuse that slug so
     // friendly routes like `/fuel-type` still work when the parent code is
     // the shorter form.
-    slugFor(parentKey, parentCode)
+    purchaseSubCategoryUrlSlugFor(parentKey, parentCode)
       .orElse(
         if (!parentCode.contains('.'))
           mapping.get(parentKey).flatMap(m => m.toSeq.filter { case (k, _) => k.startsWith(parentCode + ".") }.sortBy(_._1).headOption.map(_._2))

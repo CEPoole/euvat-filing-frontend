@@ -18,12 +18,12 @@ package controllers
 
 import base.SpecBase
 import forms.InvoiceTypeFormProvider
-import models.{CheckMode, InvoiceType, NormalMode, UserAnswers}
+import models.{CheckMode, InvoiceType, NormalMode, UserAnswers, Fuel, Transport, Other}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, when}
 import org.scalatestplus.mockito.MockitoSugar
-import pages.{DescribeItemsOnInvoicePage, InvoiceTypePage, PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage, SimplifiedInvoiceVatRegCheckPage, SupplierTaxNumberPage}
+import pages.*
 import models.PurchaseType
 import play.api.inject.bind
 import utils.ConfigPurchaseMapping
@@ -67,7 +67,7 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
     "must show backlink to PurchaseSubType when PurchaseSubTypePage present" in {
 
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(PurchaseSubTypePage, "1")
@@ -96,7 +96,7 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
     "must show backlink to PurchaseSubCategory when PurchaseSubCategoryPage present" in {
 
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(PurchaseSubTypePage, "1")
@@ -127,7 +127,7 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
     "must show backlink to DescribeItemsOnInvoice when PurchaseType is Other and subcategory ends with 99" in {
 
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Other)
+        .set(PurchaseTypePage, Other)
         .success
         .value
         .set(PurchaseSubCategoryPage, "1.99")
@@ -156,7 +156,7 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
     "must show backlink to DescribeItemsOnInvoice when PurchaseType is Other and parent sub-type ends with 99" in {
 
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Other)
+        .set(PurchaseTypePage, Other)
         .success
         .value
         .set(PurchaseSubTypePage, "1.99")
@@ -186,7 +186,7 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
 
       val child = "1.2"
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Transport)
+        .set(PurchaseTypePage, Transport)
         .success
         .value
         .set(PurchaseSubCategoryPage, child)
@@ -241,7 +241,7 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
 
     "must render OK when PurchaseSubTypePage contains dotted parent code" in {
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(PurchaseSubTypePage, "1.10")
@@ -290,7 +290,7 @@ class InvoiceTypeControllerSpec extends SpecBase with MockitoSugar {
       }
 
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Other)
+        .set(PurchaseTypePage, Other)
         .success
         .value
         .set(PurchaseSubTypePage, "10.99")

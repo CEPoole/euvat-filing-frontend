@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import forms.SimplifiedInvoiceVatRegCheckFormProvider
-import models.{NormalMode, SupplierAddress, UserAnswers}
+import models.{NormalMode, SupplierAddress, UserAnswers, Fuel}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, when}
@@ -167,7 +167,7 @@ class SimplifiedInvoiceVatRegCheckControllerSpec extends SpecBase with MockitoSu
     }
 
     "must redirect to Supplier VAT entry when in CheckMode and Yes selected for purchase journey" in {
-      val userAnswers = userAnswersWithAddress.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+      val userAnswers = userAnswersWithAddress.set(PurchaseTypePage, Fuel).success.value
 
       val mockSessionRepository = mock[repositories.SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
@@ -192,7 +192,7 @@ class SimplifiedInvoiceVatRegCheckControllerSpec extends SpecBase with MockitoSu
 
     "must short-circuit to purchase CYA when in CheckMode and selection unchanged (true)" in {
       val userAnswers = userAnswersWithAddress
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(SimplifiedInvoiceVatRegCheckPage, true)
@@ -223,7 +223,7 @@ class SimplifiedInvoiceVatRegCheckControllerSpec extends SpecBase with MockitoSu
 
     "must clear supplier VAT reg number and redirect to purchase CYA when No selected in CheckMode for purchase journey" in {
       val userAnswers = userAnswersWithAddress
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(SupplierVatRegistrationNumberPage, "FR123")

@@ -23,10 +23,8 @@ import play.api.mvc.*
 import scala.concurrent.{ExecutionContext, Future}
 
 class FakeIdentifierAction @Inject() (bodyParsers: PlayBodyParsers) extends IdentifierAction {
-  protected def identifierValue: Option[String] = Some("999900108")
-
   override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] =
-    block(IdentifierRequest(request, "id", Some("IdKey"), identifierValue))
+    block(IdentifierRequest(request, "id", "IdKey", "999900108"))
 
   override def parser: BodyParser[AnyContent] = bodyParsers.default
 

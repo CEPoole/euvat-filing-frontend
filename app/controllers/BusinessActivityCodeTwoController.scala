@@ -27,7 +27,6 @@ import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import utils.BusinessActivityList
 import views.html.BusinessActivityCodeTwoView
 
 import javax.inject.Inject
@@ -49,15 +48,9 @@ class BusinessActivityCodeTwoController @Inject() (
     extends FrontendBaseController
     with I18nSupport {
 
-  private def buildListAndForm() = {
-    val activities = BusinessActivityList.fromConfig(config)
-    val form = formProvider()
-    (activities, form)
-  }
-
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
     val userAnswers = request.userAnswers
-    val (activities, form) = buildListAndForm()
+    val form = formProvider()
     val keyValue = request.getQueryString("key").getOrElse("") // check if page 3 Change link clicked otherwise empty
 
     for {
@@ -75,7 +68,7 @@ class BusinessActivityCodeTwoController @Inject() (
     val ba1 = baseAnswers.get(BusinessActivityCodePage)
     val ba2 = baseAnswers.get(BusinessActivityCodeTwoPage)
     val ba3 = baseAnswers.get(BusinessActivityCodeThreePage)
-    val (activities, form) = buildListAndForm()
+    val form = formProvider()
     val page3 = baseAnswers.get(BusinessActivityThreePage)
 
     val boundResult = form

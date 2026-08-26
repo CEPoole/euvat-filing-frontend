@@ -20,7 +20,7 @@ import base.SpecBase
 import controllers.routes
 import models.*
 import pages.*
-import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, ConfigPurchaseMapping}
+import utils.{CurrencyConfig, ConfigLanguageMapping, ConfigPurchaseMapping}
 import play.api.Configuration
 import com.typesafe.config.ConfigFactory
 import play.api.mvc.Call
@@ -28,7 +28,7 @@ import play.api.mvc.Call
 class NavigatorSpec extends SpecBase {
 
   val navigator = new Navigator(
-    new ConfigCurrencyMapping(
+    new CurrencyConfig(
       Configuration(
         ConfigFactory.parseString("""
           currency.mapping {
@@ -146,22 +146,22 @@ class NavigatorSpec extends SpecBase {
       }
 
       "must go from PurchaseTypePage to PurchaseSubTypeController when mapping exists for country" in {
-        // fake ConfigPurchaseMapping that returns a subcode for AT and parent PurchaseType.Fuel
+        // fake ConfigPurchaseMapping that returns a subcode for AT and parent Fuel
         val fakePurchaseConfig = new utils.ConfigPurchaseMapping() {
           override def subcodesFor(country: String, parentKey: String): Seq[(String, String)] =
-            if (country == "AT" && parentKey == PurchaseType.Fuel.toString) Seq(("1", "purchase.sub.fuel.1")) else Seq.empty
+            if (country == "AT" && parentKey == Fuel.toString) Seq(("1", "purchase.sub.fuel.1")) else Seq.empty
         }
 
         val nav = new Navigator(
-          new ConfigCurrencyMapping(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
+          new CurrencyConfig(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
           new ConfigLanguageMapping(Configuration(ConfigFactory.parseString("""language.mapping = {}"""))),
           fakePurchaseConfig
         )
 
-        val ua = userAnswers.set(pages.RefundingCountryPage, "AT").success.value.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+        val ua = userAnswers.set(pages.RefundingCountryPage, "AT").success.value.set(PurchaseTypePage, Fuel).success.value
 
         nav.nextPage(PurchaseTypePage, NormalMode, ua) mustBe
-          play.api.mvc.Call("GET", s"/${PurchaseType.slugOf(PurchaseType.Fuel)}")
+          play.api.mvc.Call("GET", s"/${PurchaseType.urlSlugForPurchaseType(Fuel)}")
       }
 
       "must go from PurchaseTypePage to InvoiceTypeController when mapping is empty for country" in {
@@ -170,12 +170,12 @@ class NavigatorSpec extends SpecBase {
         }
 
         val nav = new Navigator(
-          new ConfigCurrencyMapping(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
+          new CurrencyConfig(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
           new ConfigLanguageMapping(Configuration(ConfigFactory.parseString("""language.mapping = {}"""))),
           fakePurchaseConfig
         )
 
-        val ua = userAnswers.set(pages.RefundingCountryPage, "AT").success.value.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+        val ua = userAnswers.set(pages.RefundingCountryPage, "AT").success.value.set(PurchaseTypePage, Fuel).success.value
 
         nav.nextPage(PurchaseTypePage, NormalMode, ua) mustBe
           routes.InvoiceTypeController.onPageLoad(NormalMode)
@@ -187,35 +187,35 @@ class NavigatorSpec extends SpecBase {
         }
 
         val nav = new Navigator(
-          new ConfigCurrencyMapping(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
+          new CurrencyConfig(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
           new ConfigLanguageMapping(Configuration(ConfigFactory.parseString("""language.mapping = {}"""))),
           fakePurchaseConfig
         )
 
         // store country as "Austria,AT" style value
-        val ua = userAnswers.set(pages.RefundingCountryNamePage, "Austria,AT").success.value.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+        val ua = userAnswers.set(pages.RefundingCountryNamePage, "Austria,AT").success.value.set(PurchaseTypePage, Fuel).success.value
 
         nav.nextPage(PurchaseTypePage, NormalMode, ua) mustBe
-          play.api.mvc.Call("GET", s"/${PurchaseType.slugOf(PurchaseType.Fuel)}")
+          play.api.mvc.Call("GET", s"/${PurchaseType.urlSlugForPurchaseType(Fuel)}")
       }
 
       "must go from PurchaseTypePage to PurchaseSubTypeController when country stored as name-only string is used" in {
         val fakePurchaseConfig = new utils.ConfigPurchaseMapping() {
           override def subcodesFor(country: String, parentKey: String): Seq[(String, String)] =
-            if (country == "Austria" && parentKey == PurchaseType.Fuel.toString) Seq(("1", "purchase.sub.fuel.1")) else Seq.empty
+            if (country == "Austria" && parentKey == Fuel.toString) Seq(("1", "purchase.sub.fuel.1")) else Seq.empty
         }
 
         val nav = new Navigator(
-          new ConfigCurrencyMapping(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
+          new CurrencyConfig(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
           new ConfigLanguageMapping(Configuration(ConfigFactory.parseString("""language.mapping = {}"""))),
           fakePurchaseConfig
         )
 
         // store country as name-only value
-        val ua = userAnswers.set(pages.RefundingCountryNamePage, "Austria").success.value.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+        val ua = userAnswers.set(pages.RefundingCountryNamePage, "Austria").success.value.set(PurchaseTypePage, Fuel).success.value
 
         nav.nextPage(PurchaseTypePage, NormalMode, ua) mustBe
-          play.api.mvc.Call("GET", s"/${PurchaseType.slugOf(PurchaseType.Fuel)}")
+          play.api.mvc.Call("GET", s"/${PurchaseType.urlSlugForPurchaseType(Fuel)}")
       }
 
       "must go from PurchaseTypePage to InvoiceTypeController when country stored as name-only and mapping empty" in {
@@ -224,25 +224,25 @@ class NavigatorSpec extends SpecBase {
         }
 
         val nav = new Navigator(
-          new ConfigCurrencyMapping(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
+          new CurrencyConfig(Configuration(ConfigFactory.parseString("""currency.mapping = {}"""))),
           new ConfigLanguageMapping(Configuration(ConfigFactory.parseString("""language.mapping = {}"""))),
           fakePurchaseConfig
         )
 
-        val ua = userAnswers.set(pages.RefundingCountryNamePage, "Austria").success.value.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+        val ua = userAnswers.set(pages.RefundingCountryNamePage, "Austria").success.value.set(PurchaseTypePage, Fuel).success.value
 
         nav.nextPage(PurchaseTypePage, NormalMode, ua) mustBe
           routes.InvoiceTypeController.onPageLoad(NormalMode)
       }
 
       "must go from PurchaseSubCategoryPage to InvoiceTypeController when PurchaseType is Other and subcategory ends with 99" in {
-        val ua = userAnswers.set(PurchaseTypePage, PurchaseType.Other).success.value.set(PurchaseSubCategoryPage, "1.99").success.value
+        val ua = userAnswers.set(PurchaseTypePage, Other).success.value.set(PurchaseSubCategoryPage, "1.99").success.value
         navigator.nextPage(PurchaseSubCategoryPage, NormalMode, ua) mustBe
           routes.InvoiceTypeController.onPageLoad(NormalMode)
       }
 
       "must go from PurchaseSubCategoryPage to InvoiceTypeController when PurchaseType is not Other" in {
-        val ua = userAnswers.set(PurchaseTypePage, PurchaseType.Fuel).success.value.set(PurchaseSubCategoryPage, "1").success.value
+        val ua = userAnswers.set(PurchaseTypePage, Fuel).success.value.set(PurchaseSubCategoryPage, "1").success.value
         navigator.nextPage(PurchaseSubCategoryPage, NormalMode, ua) mustBe
           routes.InvoiceTypeController.onPageLoad(NormalMode)
       }

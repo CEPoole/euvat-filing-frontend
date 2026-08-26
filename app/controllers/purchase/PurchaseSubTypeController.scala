@@ -24,15 +24,12 @@ import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents, Request, RequestHeader}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import utils.{ConfigPurchaseMapping, MountPrefix}
-import utils.ControllerHelpers
+import utils.{ConfigPurchaseMapping, ControllerHelpers, CountryCode, MountPrefix}
 import views.html.PurchaseSubTypeView
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
-import models.PurchaseSubCategoryType
-import models.PurchaseType
-import models.{Mode, UserAnswers}
+import models.{Mode, Other, PurchaseSubCategoryType, PurchaseType, UserAnswers}
 
 class PurchaseSubTypeController @Inject() (
   override val messagesApi: MessagesApi,
@@ -48,26 +45,25 @@ class PurchaseSubTypeController @Inject() (
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport
-    with play.api.Logging {
+    with play.api.Logging:
 
-  // form provider is created per-request with an appropriate message key
-
-  private def resolveParentAndCountry(purchaseTypeSlug: String, userAnswers: UserAnswers): Option[(String, String)] = {
+  private def resolveParentAndCountry(purchaseTypeSlug: String, userAnswers: UserAnswers): Option[(String, String)] =
     // Attempt to determine `parentKey` from the provided slug first
-    val maybeParent = PurchaseType.values
-      .find(pt => PurchaseType.slugOf(pt) == purchaseTypeSlug) // find matching enum by slug
-      .map(_.toString) // convert enum to its string key
-      .orElse(userAnswers.get(PurchaseTypePage).map(_.toString)) // fallback to stored session value
-
+    val parentKey =
+      PurchaseType.valueFromUrlSlug
+        .get(purchaseTypeSlug)
+        .orElse(
+          userAnswers
+            .get(PurchaseTypePage)
+            .map(_.toString)
+        )
     // Attempt to determine the refunding country from `UserAnswers`
-    val maybeCountry = utils.CountryCode.findCountryCode(userAnswers)
+    val country = CountryCode.findCountryCode(userAnswers)
 
-    // Return a tuple only when both are present, otherwise None
-    (maybeParent, maybeCountry) match {
+    (parentKey, country) match {
       case (Some(parentKey), Some(country)) => Some((parentKey, country))
       case _                                => None
     }
-  }
 
   private def prepareViewData(parentKey: String, country: String, purchaseTypeSlug: String, userAnswers: UserAnswers, mode: Mode)(implicit
     request: RequestHeader
@@ -152,15 +148,13 @@ class PurchaseSubTypeController @Inject() (
     }
 
   private def resolvedSlugFor(parentKey: String, fallback: String): String =
-    // Derive a slug for routing from the PurchaseType enum or fallback
-    PurchaseType.values.find(_.toString == parentKey).map(PurchaseType.slugOf).getOrElse(fallback)
+    // Derive a URL slug for routing from the PurchaseType enum or fallback
+    PurchaseType.values.find(_.toString == parentKey).map(PurchaseType.urlSlugForPurchaseType).getOrElse(fallback)
 
-  private def formActionFor(resolvedSlug: String, mode: Mode)(implicit request: RequestHeader) = {
-    // Compute POST action URL respecting mount prefix and CheckMode change- prefix
-    val prefix = MountPrefix.get
-    val slug = if (mode == models.CheckMode) s"change-$resolvedSlug" else resolvedSlug
-    val path = if (prefix.isEmpty) s"/$slug" else s"$prefix/$slug"
-    Call("POST", path)
+  private def formActionFor(uri: String, mode: Mode)(implicit request: RequestHeader) = {
+    // Compute POST action URL slug respecting mount prefix and CheckMode change- prefix
+    val isChangeMode = if (mode == models.CheckMode) "change-" else ""
+    Call("POST", s"${MountPrefix.getFromRequest}/$isChangeMode$uri")
   }
 
   private def backUrlFor(mode: Mode) = controllers.routes.PurchaseTypeController.onPageLoad(mode).url
@@ -168,25 +162,14 @@ class PurchaseSubTypeController @Inject() (
   // Handle the case where the country has changed in session: clear dependent
   // subtype/subcategory fields and persist the cleared answers, then redirect
   // back to the same purchase type path.
-  private def handleCountryChanged(purchaseTypeSlug: String, userAnswers: UserAnswers)(implicit request: RequestHeader) = {
+  private def handleCountryChanged(userAnswers: UserAnswers)(implicit request: RequestHeader) =
     // Clear subtype and subtype label, then remove the CountryChanged flag
-    val clearedAnswers = for {
+    val updatedAnswers = for
       afterRemovedSubType      <- userAnswers.remove(PurchaseSubTypePage)
       afterRemovedSubTypeLabel <- afterRemovedSubType.remove(PurchaseSubTypeLabelPage)
       afterClearedFlag         <- afterRemovedSubTypeLabel.remove(pages.CountryChangedPage)
-    } yield afterClearedFlag
-
-    // Persist the cleared session and redirect back to the purchase type path
-    Future
-      .fromTry(clearedAnswers)
-      .flatMap(updated =>
-        sessionRepository.set(updated).map { _ =>
-          val prefix = MountPrefix.get
-          val path = if (prefix.isEmpty) s"/$purchaseTypeSlug" else s"$prefix/$purchaseTypeSlug"
-          Redirect(Call("GET", path))
-        }
-      )
-  }
+    yield afterClearedFlag
+    Future.fromTry(updatedAnswers).map(sessionRepository.set)
 
   // Render the standard sub-type selection view given prepared view data
   private def renderSubTypeView(preparedForm: play.api.data.Form[?],
@@ -199,47 +182,40 @@ class PurchaseSubTypeController @Inject() (
     Future.successful(Ok(view(preparedForm, items, heading, heading, formAction, backUrl)))
   }
 
-  def onPageLoad(purchaseTypeSlug: String, mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async {
+  def onPageLoad(purchaseTypeSlug: String, mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async:
     implicit request =>
       // If the country flag indicates a change, clear dependent fields
-      if (request.userAnswers.get(CountryChangedPage).contains(true)) {
-        handleCountryChanged(purchaseTypeSlug, request.userAnswers)
-      } else {
+      if request.userAnswers.get(CountryChangedPage).contains(true) then
+        handleCountryChanged(request.userAnswers)
+          .map(_ => Redirect(Call("GET", s"${MountPrefix.getFromRequest}/$purchaseTypeSlug")))
+      else
         // Attempt to resolve the parentKey and country from session/slug
-        resolveParentAndCountry(purchaseTypeSlug, request.userAnswers) match {
+        resolveParentAndCountry(purchaseTypeSlug, request.userAnswers) match
+          case None => Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
           case Some((parentKey, country)) =>
             // Prepare all view data required to render the radio list
             val (options, items, parentHeading, preparedForm, resolvedSlug, formAction) =
               prepareViewData(parentKey, country, purchaseTypeSlug, request.userAnswers, mode)(request)
 
             // If no options exist for this parent, route to InvoiceType (or CYA in CheckMode)
-            if (options.isEmpty)
+            if options.isEmpty then
               Future.successful(
-                if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+                if mode == models.CheckMode
+                then Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
                 else Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode))
               )
             else {
+              lazy val singleCode = options.head._1
+              lazy val lastSeg = singleCode.split("\\.").lastOption.getOrElse(singleCode)
               // Special-case: `other` parent with a single sentinel '99' option
-              if (parentKey == "other" && options.size == 1) {
-                val singleCode = options.head._1
-                val lastSeg = singleCode.split("\\.").lastOption.getOrElse(singleCode)
-                if (lastSeg == "99") {
-                  // Persist the single sentinel value and redirect straight to description
-                  val labelKey = options.head._2
-                  val label = if (labelKey != null && labelKey.nonEmpty) messagesApi.preferred(request)(labelKey) else singleCode
-                  val savedTry = persistSelection(request.userAnswers, parentKey, singleCode, label)
+              if (parentKey == "other" && options.size == 1 && lastSeg == "99") {
+                // Persist the single sentinel value and redirect straight to description
+                val labelKey = options.head._2
+                val label = if (labelKey != null && labelKey.nonEmpty) messagesApi.preferred(request)(labelKey) else singleCode
+                val savedTry = persistSelection(request.userAnswers, parentKey, singleCode, label)
 
-                  ControllerHelpers.persistAndThen(savedTry, sessionRepository) { _ =>
-                    Future.successful(Redirect(controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(mode)))
-                  }
-                } else {
-                  // Render normally when the single option is not the sentinel
-                  ControllerHelpers.markArrivalAndRender(
-                    pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage,
-                    mode,
-                    request.userAnswers,
-                    sessionRepository
-                  )(_ => renderSubTypeView(preparedForm, items, parentHeading, formAction, mode))
+                ControllerHelpers.persistAndThen(savedTry, sessionRepository) { _ =>
+                  Future.successful(Redirect(controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(mode)))
                 }
               } else {
                 // Standard rendering path: show the radio list
@@ -252,11 +228,6 @@ class PurchaseSubTypeController @Inject() (
               }
             }
 
-          case None => Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
-        }
-      }
-  }
-
   def onSubmit(purchaseTypeSlug: String, mode: Mode): Action[AnyContent] =
     (identify andThen getData andThen requireData).async { implicit request =>
       // Resolve context (parentKey + country) from slug/session
@@ -266,10 +237,10 @@ class PurchaseSubTypeController @Inject() (
           val (options, items, parentHeading, preparedForm, resolvedSlug, _) =
             prepareViewData(parentKey, country, purchaseTypeSlug, request.userAnswers, mode)(request)
 
-          // If no configured options, jump to InvoiceType (or CYA in CheckMode)
           if (options.isEmpty)
             Future.successful(
-              if (mode == models.CheckMode) Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
+              if mode == models.CheckMode
+              then Redirect(controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad())
               else Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode))
             )
           else {
@@ -332,7 +303,7 @@ class PurchaseSubTypeController @Inject() (
                               .map { c =>
                                 try {
                                   val slug = PurchaseSubCategoryType.pathFor(parentKey, c)
-                                  val prefix = MountPrefix.get
+                                  val prefix = MountPrefix.getFromRequest
                                   val path =
                                     if (mode == models.CheckMode)
                                       // in CheckMode use change- prefixed paths so the
@@ -346,16 +317,12 @@ class PurchaseSubTypeController @Inject() (
                                 }
                               }
                               .collectFirst { case Some(call) => call }
-
-                            Future.successful(
-                              maybeCall.fold(Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode)): play.api.mvc.Result)(Redirect(_))
-                            )
-
+                            Future.successful(maybeCall.fold(Redirect(controllers.routes.InvoiceTypeController.onPageLoad(mode)))(Redirect))
                           } else {
                             // No children present: special-case `other` + sentinel '99'
                             val lastSeg = value.split("\\.").lastOption.getOrElse(value)
                             val isOtherPurchaseType =
-                              PurchaseType.values.find(pt => PurchaseType.slugOf(pt) == resolvedSlug).contains(PurchaseType.Other)
+                              PurchaseType.values.find(pt => PurchaseType.urlSlugForPurchaseType(pt) == resolvedSlug).contains(Other)
 
                             Future.successful(
                               if (isOtherPurchaseType && lastSeg == "99")
@@ -374,5 +341,3 @@ class PurchaseSubTypeController @Inject() (
         case None => Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
       }
     }
-
-}

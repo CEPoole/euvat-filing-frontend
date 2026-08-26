@@ -45,21 +45,14 @@ class BusinessActivityCodeThreeController @Inject() (
   getData: DataRetrievalAction,
   requireData: DataRequiredAction,
   formProvider: BusinessActivityCodeThreeFormProvider,
-  config: Configuration,
   val controllerComponents: MessagesControllerComponents,
   view: BusinessActivityCodeThreeView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport {
 
-  private def buildListAndForm() = {
-    val activities = utils.BusinessActivityList.fromConfig(config)
-    val form = formProvider()
-    (activities, form)
-  }
-
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    val (_, form) = buildListAndForm()
+    val form = formProvider()
     val preparedForm = request.userAnswers.get(BusinessActivityCodeThreePage).fold(form)(form.fill)
     Ok(view(preparedForm, Some(routes.BusinessActivityTwoController.onPageLoad(mode).url), mode))
   }
@@ -67,7 +60,7 @@ class BusinessActivityCodeThreeController @Inject() (
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
     val baseAnswers: UserAnswers = request.userAnswers
     val excludeCodes = baseAnswers.get(BusinessActivityCodePage).toSeq.toSet ++ baseAnswers.get(BusinessActivityCodeTwoPage).toSeq.toSet
-    val (activities, form) = buildListAndForm()
+    val form = formProvider()
 
     val boundResult = form
       .bindFromRequest()

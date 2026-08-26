@@ -17,9 +17,9 @@
 package controllers
 
 import base.SpecBase
-import models.NormalMode
+import models.{NormalMode, Fuel}
 import models.requests.LatestApplicationRequest
-import models.responses.{LatestApplication, LatestApplicationResponse, TraderKnownFactsResponse}
+import models.responses.{LatestApplication, LatestApplicationResponse}
 import navigation.FakeNavigator
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{times, verify, when}
@@ -31,7 +31,6 @@ import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import repositories.SessionRepository
-import services.EuVatRefundsService
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.CountryList
 
@@ -292,7 +291,7 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         .set(pages.RefundingCountryPage, "BG")
         .success
         .value
-        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .set(pages.PurchaseTypePage, Fuel)
         .success
         .value
         .set(pages.PurchaseSubTypePage, "1.1")

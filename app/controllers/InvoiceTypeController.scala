@@ -20,10 +20,11 @@ import controllers.actions.*
 import controllers.helpers.PurchaseBackLinkHelper
 import forms.InvoiceTypeFormProvider
 import models.requests.DataRequest
-import models.{CheckMode, InvoiceType, Mode, PurchaseType, UserAnswers}
+import models.{CheckMode, InvoiceType, Mode, Other, PurchaseType, UserAnswers}
 import navigation.Navigator
 import pages.{InvoiceTypePage, PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage}
 import play.api.Logging
+import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
 import repositories.SessionRepository
@@ -60,7 +61,7 @@ class InvoiceTypeController @Inject() (
     with I18nSupport
     with Logging {
 
-  val form = formProvider()
+  val form: Form[InvoiceType] = formProvider()
 
   // Helper to render the InvoiceType view with validation errors and wrap
   // the result in a Future so it can be returned from async handlers.
@@ -91,7 +92,7 @@ class InvoiceTypeController @Inject() (
     def childIsNone = request.userAnswers.get(PurchaseSubCategoryPage).exists(v => v.split("\\.").lastOption.contains("99"))
 
     // Helper predicate: the purchase type stored in session is `Other`
-    def isOther = request.userAnswers.get(PurchaseTypePage).contains(PurchaseType.Other)
+    def isOther = request.userAnswers.get(PurchaseTypePage).contains(Other)
 
     // If not `Other`, delegate to the generic back-link helper
     if (!isOther) PurchaseBackLinkHelper.computeBackTarget(mode)

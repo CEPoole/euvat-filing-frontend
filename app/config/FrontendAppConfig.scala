@@ -51,4 +51,9 @@ class FrontendAppConfig @Inject() (configuration: Configuration) {
   val timeout: Int = configuration.get[Int]("timeout-dialog.timeout")
   val countdown: Int = configuration.get[Int]("timeout-dialog.countdown")
   val cacheTtl: Long = configuration.get[Int]("mongodb.timeToLiveInSeconds")
+
+  //TODO unused config, preserved in case it needs to be used in the future
+  /*
+   val sicCodes: Map[String, String] = configuration.get[Map[String, String]]("sic.codes")
+  */
 }

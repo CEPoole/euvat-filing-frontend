@@ -21,10 +21,10 @@ import play.api.mvc.Call
 import controllers.routes
 import pages.*
 import models.*
-import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, ConfigPurchaseMapping, CountryCode}
+import utils.{CurrencyConfig, ConfigLanguageMapping, ConfigPurchaseMapping, CountryCode}
 
 @Singleton
-class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
+class Navigator @Inject() (currencyConfig: CurrencyConfig,
                            configLanguageMapping: ConfigLanguageMapping,
                            configPurchaseMapping: ConfigPurchaseMapping
                           ) {
@@ -165,7 +165,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
 
   private def navigateToCurrencyOrPurchaseAmount(mode: Mode)(userAnswers: UserAnswers): Call = {
     CountryCode.findCountryCode(userAnswers) match {
-      case Some(countryCode) if configCurrencyMapping.requiresCurrencySelection(countryCode) =>
+      case Some(countryCode) if currencyConfig.requiresCurrencySelection(countryCode) =>
         routes.RefundingCurrencyController.onPageLoad(mode)
       case Some(_) => routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
       case None    => routes.JourneyRecoveryController.onPageLoad()
@@ -182,7 +182,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
               controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
             else
               CountryCode.findCountryCode(userAnswers) match {
-                case Some(country) if configCurrencyMapping.requiresCurrencySelection(country) =>
+                case Some(country) if currencyConfig.requiresCurrencySelection(country) =>
                   routes.RefundingCurrencyController.onPageLoad(mode)
                 case _ =>
                   routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
@@ -193,7 +193,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
           controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
         else
           CountryCode.findCountryCode(userAnswers) match {
-            case Some(country) if configCurrencyMapping.requiresCurrencySelection(country) =>
+            case Some(country) if currencyConfig.requiresCurrencySelection(country) =>
               routes.RefundingCurrencyController.onPageLoad(mode)
             case _ =>
               routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
@@ -215,7 +215,7 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
           case Some(country) =>
             val subs = configPurchaseMapping.subcodesFor(country, parent.toString)
             if (subs.nonEmpty) {
-              Call("GET", s"/${PurchaseType.slugOf(parent)}")
+              Call("GET", s"/${PurchaseType.urlSlugForPurchaseType(parent)}")
             } else {
               if (mode == CheckMode) controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
               else routes.InvoiceTypeController.onPageLoad(mode)
@@ -277,16 +277,16 @@ class Navigator @Inject() (configCurrencyMapping: ConfigCurrencyMapping,
     mode match {
       case CheckMode =>
         maybeCountryCode match {
-          case Some(code) if configCurrencyMapping.requiresCurrencySelection(code) =>
+          case Some(code) if currencyConfig.requiresCurrencySelection(code) =>
             routes.RefundingCurrencyController.onPageLoad(mode)
-          case Some(code) if code == "DE" || (configCurrencyMapping.hasMapping(code) && configCurrencyMapping.currenciesFor(code).nonEmpty) =>
+          case Some(code) if code == "DE" || (currencyConfig.currencyConfig.contains(code) && currencyConfig.currencyConfig(code).nonEmpty) =>
             routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
           case _ => routes.JourneyRecoveryController.onPageLoad()
         }
 
       case NormalMode =>
         maybeCountryCode match {
-          case Some(code) if configCurrencyMapping.requiresCurrencySelection(code) =>
+          case Some(code) if currencyConfig.requiresCurrencySelection(code) =>
             routes.RefundingCurrencyController.onPageLoad(mode)
           case Some("DE") => routes.TotalPurchaseAmountBeforeVatController.onPageLoad(mode)
           case _          => routes.JourneyRecoveryController.onPageLoad()

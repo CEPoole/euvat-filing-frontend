@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import forms.TotalPurchaseAmountBeforeVatFormProvider
-import models.{CheckMode, NormalMode, SupplierTaxNumber, UserAnswers}
+import models.{CheckMode, NormalMode, SupplierTaxNumber, UserAnswers, Fuel}
 import pages.PurchaseTypePage
 import models.PurchaseType
 import org.mockito.Mockito.verify
@@ -235,7 +235,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
 
     "must redirect to CYA when in CheckMode and amount unchanged for purchase journey" in {
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(TotalPurchaseAmountBeforeVatPage, BigDecimal("123.45"))
@@ -256,7 +256,7 @@ class TotalPurchaseAmountBeforeVatControllerSpec extends SpecBase with MockitoSu
     }
 
     "must persist updated amount and continue journey when in CheckMode and amount changed for purchase journey" in {
-      val userAnswers = emptyUserAnswers.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+      val userAnswers = emptyUserAnswers.set(PurchaseTypePage, Fuel).success.value
 
       val mockSessionRepository = mock[SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)

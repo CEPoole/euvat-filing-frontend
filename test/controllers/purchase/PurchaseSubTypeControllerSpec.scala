@@ -20,7 +20,6 @@ import base.SpecBase
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import play.api.inject.bind
@@ -29,9 +28,10 @@ import controllers.routes
 import play.api.mvc.Call
 import uk.gov.hmrc.govukfrontend.views.viewmodels.radios.RadioItem
 import uk.gov.hmrc.govukfrontend.views.Aliases
-
 import org.mockito.ArgumentCaptor
 import forms.PurchaseSubTypeFormProvider
+import models.{Fuel, Other}
+import pages.*
 
 class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
 
@@ -48,7 +48,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
       }
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(RefundingCountryPage, "DE").success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig))
@@ -87,7 +87,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
       }
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(RefundingCountryPage, "DE").success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig))
@@ -112,7 +112,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       val mockSessionRepository = mock[repositories.SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(RefundingCountryPage, "DE").success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -133,7 +133,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
         val saved = captor.getValue
-        saved.get(pages.PurchaseSubTypePage) mustBe Some("1")
+        saved.get(PurchaseSubTypePage) mustBe Some("1")
       }
     }
 
@@ -144,10 +144,10 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       }
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "DE")
+        .set(RefundingCountryPage, "DE")
         .success
         .value
-        .set(pages.PurchaseSubTypePage, "1")
+        .set(PurchaseSubTypePage, "1")
         .success
         .value
 
@@ -176,7 +176,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       val mockSessionRepository = mock[repositories.SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(RefundingCountryPage, "DE").success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -195,7 +195,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         redirectLocation(result).value must include("change-fuel-type")
         val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
-        captor.getValue.get(pages.PurchaseSubTypePage) mustBe Some("1")
+        captor.getValue.get(PurchaseSubTypePage) mustBe Some("1")
       }
     }
 
@@ -209,7 +209,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       val mockSessionRepository = mock[repositories.SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(RefundingCountryPage, "DE").success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -228,7 +228,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
         val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
-        captor.getValue.get(pages.PurchaseSubTypePage) mustBe Some("1")
+        captor.getValue.get(PurchaseSubTypePage) mustBe Some("1")
       }
     }
 
@@ -243,10 +243,10 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "DE")
+        .set(RefundingCountryPage, "DE")
         .success
         .value
-        .set(pages.PurchaseTypePage, models.PurchaseType.Other)
+        .set(PurchaseTypePage, Other)
         .success
         .value
 
@@ -267,7 +267,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         redirectLocation(result).value mustEqual controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad().url
         val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
-        captor.getValue.get(pages.PurchaseSubTypePage) mustBe Some("1")
+        captor.getValue.get(PurchaseSubTypePage) mustBe Some("1")
       }
     }
 
@@ -282,7 +282,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       val mockSessionRepository = mock[repositories.SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryNamePage, "Austria,AT").success.value
+      val userAnswers = emptyUserAnswers.set(RefundingCountryNamePage, "Austria,AT").success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -307,7 +307,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
         val saved = captor.getValue
-        saved.get(pages.PurchaseSubTypePage) mustBe Some("1.1")
+        saved.get(PurchaseSubTypePage) mustBe Some("1.1")
       }
     }
 
@@ -322,16 +322,16 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "DE")
+        .set(RefundingCountryPage, "DE")
         .success
         .value
-        .set(pages.PurchaseSubTypePage, "1")
+        .set(PurchaseSubTypePage, "1")
         .success
         .value
-        .set(pages.PurchaseSubCategoryPage, "1.1")
+        .set(PurchaseSubCategoryPage, "1.1")
         .success
         .value
-        .set(pages.PurchaseSubCategoryLabelPage, "lbl")
+        .set(PurchaseSubCategoryLabelPage, "lbl")
         .success
         .value
 
@@ -354,9 +354,9 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         verify(mockSessionRepository, times(1)).set(captor.capture())
         val saved = captor.getValue
 
-        saved.get(pages.PurchaseSubCategoryPage) mustBe None
-        saved.get(pages.PurchaseSubCategoryLabelPage) mustBe None
-        saved.get(pages.PurchaseSubTypePage) mustBe Some("2")
+        saved.get(PurchaseSubCategoryPage) mustBe None
+        saved.get(PurchaseSubCategoryLabelPage) mustBe None
+        saved.get(PurchaseSubTypePage) mustBe Some("2")
       }
     }
 
@@ -370,7 +370,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       val mockSessionRepository = mock[repositories.SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(RefundingCountryPage, "DE").success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -391,8 +391,8 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         val captor = ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
         val saved = captor.getValue
-        saved.get(pages.PurchaseSubTypePage) mustBe Some("1")
-        saved.get(pages.PurchaseSubTypeLabelPage).isDefined mustBe true
+        saved.get(PurchaseSubTypePage) mustBe Some("1")
+        saved.get(PurchaseSubTypeLabelPage).isDefined mustBe true
       }
     }
 
@@ -403,7 +403,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
       }
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(RefundingCountryPage, "DE").success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig))
@@ -429,10 +429,10 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       }
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "DE")
+        .set(RefundingCountryPage, "DE")
         .success
         .value
-        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
 
@@ -466,10 +466,10 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       }
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "AT")
+        .set(RefundingCountryPage, "AT")
         .success
         .value
-        .set(pages.PurchaseTypePage, models.PurchaseType.Other)
+        .set(PurchaseTypePage, Other)
         .success
         .value
 
@@ -497,16 +497,16 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "DE")
+        .set(RefundingCountryPage, "DE")
         .success
         .value
-        .set(pages.PurchaseSubTypePage, "1")
+        .set(PurchaseSubTypePage, "1")
         .success
         .value
-        .set(pages.PurchaseSubTypeLabelPage, "label")
+        .set(PurchaseSubTypeLabelPage, "label")
         .success
         .value
-        .set(pages.CountryChangedPage, true)
+        .set(CountryChangedPage, true)
         .success
         .value
 
@@ -527,9 +527,9 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
         val saved = captor.getValue
-        saved.get(pages.PurchaseSubTypePage) mustBe None
-        saved.get(pages.PurchaseSubTypeLabelPage) mustBe None
-        saved.get(pages.CountryChangedPage) mustBe None
+        saved.get(PurchaseSubTypePage) mustBe None
+        saved.get(PurchaseSubTypeLabelPage) mustBe None
+        saved.get(CountryChangedPage) mustBe None
       }
     }
 
@@ -544,10 +544,10 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "DE")
+        .set(RefundingCountryPage, "DE")
         .success
         .value
-        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
 
@@ -578,7 +578,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       val mockSessionRepository = mock[repositories.SessionRepository]
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(RefundingCountryPage, "DE").success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(
@@ -597,7 +597,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
         val saved = captor.getValue
-        saved.get(pages.PurchaseSubTypePage) mustBe Some("10.99")
+        saved.get(PurchaseSubTypePage) mustBe Some("10.99")
       }
     }
 
@@ -612,10 +612,10 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "DE")
+        .set(RefundingCountryPage, "DE")
         .success
         .value
-        .set(pages.PurchaseSubTypePage, "1")
+        .set(PurchaseSubTypePage, "1")
         .success
         .value
 
@@ -638,9 +638,9 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
         val saved = captor.getValue
-        saved.get(pages.PurchaseSubTypePage) mustBe Some(ConfigPurchaseMapping.NoneValue)
-        saved.get(pages.PurchaseSubTypeLabelPage) mustBe Some(ConfigPurchaseMapping.NoneValue)
-        saved.get(pages.PurchaseSubCategoryPage) mustBe None
+        saved.get(PurchaseSubTypePage) mustBe Some(ConfigPurchaseMapping.NoneValue)
+        saved.get(PurchaseSubTypeLabelPage) mustBe Some(ConfigPurchaseMapping.NoneValue)
+        saved.get(PurchaseSubCategoryPage) mustBe None
       }
     }
 
@@ -655,10 +655,10 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())) thenReturn scala.concurrent.Future.successful(true)
 
       val userAnswers = emptyUserAnswers
-        .set(pages.RefundingCountryPage, "DE")
+        .set(RefundingCountryPage, "DE")
         .success
         .value
-        .set(pages.PurchaseSubTypePage, "1")
+        .set(PurchaseSubTypePage, "1")
         .success
         .value
 
@@ -681,9 +681,9 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
         val saved = captor.getValue
-        saved.get(pages.PurchaseSubTypePage) mustBe Some(ConfigPurchaseMapping.NoneValue)
-        saved.get(pages.PurchaseSubTypeLabelPage) mustBe Some(ConfigPurchaseMapping.NoneValue)
-        saved.get(pages.PurchaseSubCategoryPage) mustBe None
+        saved.get(PurchaseSubTypePage) mustBe Some(ConfigPurchaseMapping.NoneValue)
+        saved.get(PurchaseSubTypeLabelPage) mustBe Some(ConfigPurchaseMapping.NoneValue)
+        saved.get(PurchaseSubCategoryPage) mustBe None
       }
     }
 
@@ -693,7 +693,7 @@ class PurchaseSubTypeControllerSpec extends SpecBase with MockitoSugar {
         override def buildRadioItems(options: Seq[(String, String)], msgs: play.api.i18n.Messages) = Seq.empty
       }
 
-      val userAnswers = emptyUserAnswers.set(pages.RefundingCountryPage, "DE").success.value
+      val userAnswers = emptyUserAnswers.set(RefundingCountryPage, "DE").success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers))
         .overrides(bind[ConfigPurchaseMapping].toInstance(fakeConfig))

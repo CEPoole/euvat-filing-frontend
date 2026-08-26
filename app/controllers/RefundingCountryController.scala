@@ -30,7 +30,7 @@ import queries.LatestCountryResponseQuery
 import repositories.SessionRepository
 import services.EuVatRefundsService
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, CountryCode, CountryList}
+import utils.{CurrencyConfig, ConfigLanguageMapping, CountryCode, CountryList}
 import views.html.RefundingCountryView
 
 import javax.inject.Inject
@@ -38,19 +38,19 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 class RefundingCountryController @Inject() (
-  override val messagesApi: MessagesApi,
-  sessionRepository: SessionRepository,
-  navigator: Navigator,
-  identify: IdentifierAction,
-  getData: DataRetrievalAction,
-  requireData: DataRequiredAction,
-  euVatRefundsService: EuVatRefundsService,
-  formProvider: RefundingCountryFormProvider,
-  config: Configuration,
-  configLanguageMapping: ConfigLanguageMapping,
-  configCurrencyMapping: ConfigCurrencyMapping,
-  val controllerComponents: MessagesControllerComponents,
-  view: RefundingCountryView
+                                             override val messagesApi: MessagesApi,
+                                             sessionRepository: SessionRepository,
+                                             navigator: Navigator,
+                                             identify: IdentifierAction,
+                                             getData: DataRetrievalAction,
+                                             requireData: DataRequiredAction,
+                                             euVatRefundsService: EuVatRefundsService,
+                                             formProvider: RefundingCountryFormProvider,
+                                             config: Configuration,
+                                             configLanguageMapping: ConfigLanguageMapping,
+                                             currencyConfig: CurrencyConfig,
+                                             val controllerComponents: MessagesControllerComponents,
+                                             view: RefundingCountryView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport
@@ -87,7 +87,7 @@ class RefundingCountryController @Inject() (
         },
         value => {
           val latestReq = LatestApplicationRequest(
-            applicantVatRegNumber = request.identifierValue.getOrElse(throw new IllegalStateException("Missing Vat registration number")),
+            applicantVatRegNumber = request.identifierValue,
             refundingCountry      = Some(value)
           )
 
@@ -132,7 +132,7 @@ class RefundingCountryController @Inject() (
                                        Future.fromTry(updatedAnswers2.set(RefundingLanguagePage, langModel))
                                      } else { Future.successful(updatedAnswers2) }
                   updatedAnswers4 <- {
-                    val currencies = configCurrencyMapping.currenciesFor(value)
+                    val currencies = currencyConfig.currencyConfig(value)
                     // If the country has a single configured currency persist it into session
                     // regardless of the number of available languages. This covers cases
                     // where a country (e.g. BE) has multiple languages but only one currency.

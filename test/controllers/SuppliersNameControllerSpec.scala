@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import forms.SuppliersNameFormProvider
-import models.{NormalMode, UserAnswers}
+import models.{NormalMode, UserAnswers, Fuel}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
@@ -113,7 +113,7 @@ class SuppliersNameControllerSpec extends SpecBase with MockitoSugar {
 
     "must short-circuit to purchase CYA in CheckMode when value unchanged" in {
       val userAnswers = UserAnswers(userAnswersId)
-        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .set(pages.PurchaseTypePage, Fuel)
         .success
         .value
         .set(SuppliersNamePage, "same")
@@ -135,7 +135,7 @@ class SuppliersNameControllerSpec extends SpecBase with MockitoSugar {
 
     "must persist and redirect to CYA in CheckMode when value changed" in {
       val userAnswers = UserAnswers(userAnswersId)
-        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .set(pages.PurchaseTypePage, Fuel)
         .success
         .value
         .set(SuppliersNamePage, "old")

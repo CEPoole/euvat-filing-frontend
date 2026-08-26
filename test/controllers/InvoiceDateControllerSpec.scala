@@ -398,7 +398,7 @@ class InvoiceDateControllerSpec extends SpecBase with MockitoSugar {
           .set(RefundPeriodPage, savedPeriod)
           .success
           .value
-          .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+          .set(pages.PurchaseTypePage, Fuel)
           .success
           .value
           .set(pages.InvoiceDatePage, LocalDate.of(2025, 4, 15))
@@ -437,7 +437,7 @@ class InvoiceDateControllerSpec extends SpecBase with MockitoSugar {
           .set(RefundPeriodPage, savedPeriod)
           .success
           .value
-          .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+          .set(pages.PurchaseTypePage, Fuel)
           .success
           .value
           .set(pages.InvoiceDatePage, LocalDate.of(2025, 4, 15))

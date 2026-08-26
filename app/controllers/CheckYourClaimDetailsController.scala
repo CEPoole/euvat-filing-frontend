@@ -16,7 +16,6 @@
 
 package controllers
 
-import com.google.inject.Inject
 import controllers.actions.{DataRequiredAction, DataRetrievalAction, IdentifierAction}
 import models.UserAnswers
 import models.requests.{ApplicationRequest, LatestApplicationRequest}
@@ -25,15 +24,16 @@ import pages.*
 import play.api.Logging
 import play.api.i18n.{I18nSupport, Messages, MessagesApi}
 import play.api.mvc.*
-import queries.{ClaimApplicationResponseQuery, LatestCountryResponseQuery}
+import queries.ClaimApplicationResponseQuery
 import repositories.SessionRepository
 import services.EuVatRefundsService
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, CountryCode}
+import utils.{ConfigLanguageMapping, CountryCode}
 import viewmodels.checkAnswers.CheckYourClaimDetailsSummary
 import views.html.CheckYourClaimDetailsView
 
 import scala.concurrent.{ExecutionContext, Future}
+import javax.inject.Inject
 
 class CheckYourClaimDetailsController @Inject() (
   override val messagesApi: MessagesApi,
@@ -43,7 +43,6 @@ class CheckYourClaimDetailsController @Inject() (
   val controllerComponents: MessagesControllerComponents,
   view: CheckYourClaimDetailsView,
   configLanguageMapping: ConfigLanguageMapping,
-  configCurrencyMapping: ConfigCurrencyMapping,
   sessionRepository: SessionRepository,
   service: EuVatRefundsService
 )(using ExecutionContext)
@@ -76,32 +75,25 @@ class CheckYourClaimDetailsController @Inject() (
 
       updatedAnswers
         .flatMap { flaggedAnswers =>
-          request.identifierValue match {
-            case None =>
-              logger.error("Missing VAT registration number")
-              Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
-            case Some(vatRegNumber) =>
-              val latestReq = LatestApplicationRequest(
-                applicantVatRegNumber = vatRegNumber,
-                refundingCountry      = flaggedAnswers.get(RefundingCountryPage)
-              )
-              service
-                .getLatestApplications(latestReq)
-                .flatMap { latestResp =>
-                  if (latestResp.totalApplication > 0) {
-                    logger.warn("You cannot have more than one draft claim for each EU member state")
-                    Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
-                  } else {
-                    saveClaimResponseAndRedirect(flaggedAnswers, buildClaimRequest(flaggedAnswers))
-                  }
-                }
-          }
+          val latestReq = LatestApplicationRequest(
+            applicantVatRegNumber = request.identifierValue,
+            refundingCountry      = flaggedAnswers.get(RefundingCountryPage)
+          )
+          service
+            .getLatestApplications(latestReq)
+            .flatMap { latestResp =>
+              if (latestResp.totalApplication > 0) {
+                logger.warn("You cannot have more than one draft claim for each EU member state")
+                Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
+              } else {
+                saveClaimResponseAndRedirect(flaggedAnswers, buildClaimRequest(flaggedAnswers))
+              }
+            }
         }
         .recover { case ex =>
           logger.error("Error while retrieving or saving the refund application", ex)
           Redirect(routes.JourneyRecoveryController.onPageLoad())
         }
-
     }
   }
 

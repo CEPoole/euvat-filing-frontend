@@ -62,7 +62,7 @@ class PurchaseSubCategoryController @Inject() (
     val parts = key.split("\\.")
     // if the key looks like purchase.sub.X.Y.Z where an extra numeric
     // prefix was inserted, drop that segment for lookup
-    if (parts.length >= 5 && parts.head == "purchase" && parts(1) == "sub") (parts.take(3) ++ parts.drop(4)).mkString(".")
+    if parts.length >= 5 && parts.head == "purchase" && parts(1) == "sub" then (parts.take(3) ++ parts.drop(4)).mkString(".")
     else key
   }
 
@@ -104,7 +104,7 @@ class PurchaseSubCategoryController @Inject() (
       // attempt to compute the route slug for this parent/candidate pair
       val slug = PurchaseSubCategoryType.pathFor(parentKey, candidate)
       // mount prefix may be set for this application
-      val prefix = utils.MountPrefix.get
+      val prefix = utils.MountPrefix.getFromRequest
       // construct a change- prefixed path if running in CheckMode
       val url =
         if (mode == models.CheckMode) if (prefix.isEmpty) s"/change-$slug" else s"$prefix/change-$slug"
@@ -119,8 +119,8 @@ class PurchaseSubCategoryController @Inject() (
     request: play.api.mvc.RequestHeader
   ): Call = {
     // compute mount prefix and session slug candidate
-    val prefix = utils.MountPrefix.get
-    val maybeSessionSlug = userAnswers.get(PurchaseTypePage).map(models.PurchaseType.slugOf)
+    val prefix = utils.MountPrefix.getFromRequest
+    val maybeSessionSlug = userAnswers.get(PurchaseTypePage).map(models.PurchaseType.urlSlugForPurchaseType)
     // try reversing using candidate codes first; if none succeed fall back
     // to a slug derived from the session PurchaseType or to root
     candidates.iterator
@@ -142,8 +142,8 @@ class PurchaseSubCategoryController @Inject() (
   private def backUrlFor(userAnswers: UserAnswers, mode: Mode)(implicit request: play.api.mvc.RequestHeader): String = {
     // compute the back URL that returns to the parent purchase type
     // when in CheckMode the back target should include the change- prefix
-    val prefix = utils.MountPrefix.get
-    userAnswers.get(PurchaseTypePage).map(models.PurchaseType.slugOf) match {
+    val prefix = utils.MountPrefix.getFromRequest
+    userAnswers.get(PurchaseTypePage).map(models.PurchaseType.urlSlugForPurchaseType) match {
       case Some(slug) =>
         val url = if (mode == models.CheckMode) {
           if (prefix.isEmpty) s"/change-$slug" else s"$prefix/change-$slug"

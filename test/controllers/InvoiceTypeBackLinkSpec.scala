@@ -17,7 +17,7 @@
 package controllers
 
 import base.SpecBase
-import models.{NormalMode, PurchaseType}
+import models.{NormalMode, PurchaseType, Fuel}
 import pages.{InvoiceTypePage, PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
@@ -45,7 +45,7 @@ class InvoiceTypeBackLinkSpec extends SpecBase {
     }
 
     "should link to PurchaseType when only PurchaseTypePage present" in {
-      val userAnswers = emptyUserAnswers.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+      val userAnswers = emptyUserAnswers.set(PurchaseTypePage, Fuel).success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
@@ -64,7 +64,7 @@ class InvoiceTypeBackLinkSpec extends SpecBase {
 
     "should fallback to PurchaseType when child present but parent missing" in {
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(PurchaseSubCategoryPage, "1")
@@ -88,7 +88,7 @@ class InvoiceTypeBackLinkSpec extends SpecBase {
 
     "should link to PurchaseSubCategory when parent and child present" in {
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(PurchaseSubTypePage, "1")

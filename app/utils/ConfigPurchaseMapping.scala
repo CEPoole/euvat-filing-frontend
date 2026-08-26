@@ -23,6 +23,7 @@ import scala.io.Source
 import scala.jdk.CollectionConverters.*
 import uk.gov.hmrc.govukfrontend.views.viewmodels.radios.RadioItem
 import uk.gov.hmrc.govukfrontend.views.viewmodels.content.Text
+import scala.util.control.NonFatal
 
 // Import commonly used types from the Typesafe config library so the code
 // below can use short names instead of fully-qualified class names.
@@ -44,22 +45,20 @@ object ConfigPurchaseMapping {
 
 class ConfigPurchaseMapping @Inject() (config: Configuration = Configuration.empty, env: Environment = Environment.simple()) {
 
+  val prefix = "purchase.sub."
+
   /** Normalise a label key by dropping a numeric segment that duplicates the first numeric segment of the `code` when present. This mirrors a set of
     * legacy label shapes used in configuration and keeps resulting message keys stable for lookups in message bundles.
     */
   private def normalizeLabel(label: String, code: String): String = {
-    if (label == null) return ""
-    val prefix = "purchase.sub."
-    if (!label.startsWith(prefix)) return label
-    if (code == null || code.isEmpty) return label
-    val rest = label.substring(prefix.length)
-    val parts = rest.split("\\.")
-    val codeFirst = code.split("\\.").headOption.getOrElse("")
-    // Only drop the numeric segment after the type if it matches the first numeric segment of the entry code
-    if (parts.length >= 2 && parts(1) == codeFirst) {
-      val newRest = parts.head +: parts.drop(2)
-      prefix + newRest.mkString(".")
-    } else label
+    if !label.startsWith(prefix) || code.isEmpty then label
+    else
+      val parts = label.substring(prefix.length).split("\\.")
+      val codeHead = code.split("\\.").headOption.getOrElse("")
+      // Only drop the numeric segment after the type if it matches the first numeric segment of the entry code
+      if parts.length >= 2 && parts(1) == codeHead then
+        prefix + (parts.head +: parts.drop(2)).mkString(".")
+      else label
   }
 
   private val mapping: Map[String, Seq[PurchaseNode]] =
@@ -169,8 +168,6 @@ class ConfigPurchaseMapping @Inject() (config: Configuration = Configuration.emp
           * `purchase.sub.fuel.1.10.5` -> `purchase.sub.fuel.10.5`.
           */
         def normalizeLabelKey(label: String): String = {
-          if (label == null) return ""
-          val prefix = "purchase.sub."
           if (!label.startsWith(prefix)) return label
           val rest = label.substring(prefix.length)
           val parts = rest.split("\\.")
@@ -206,7 +203,7 @@ class ConfigPurchaseMapping @Inject() (config: Configuration = Configuration.emp
             val derivedLabel = explicitLabelOpt.orElse {
               nodesForParent.find(n => n.code.startsWith(base + ".")).flatMap { child =>
                 val l = child.label
-                if (l != null && l.startsWith("purchase.sub.")) {
+                if (l.startsWith("purchase.sub.")) {
                   val parts = l.split("\\.")
                   // drop the last segment of the message key (child index)
                   if (parts.length > 3) Some(parts.dropRight(1).mkString(".")) else None
@@ -249,7 +246,6 @@ class ConfigPurchaseMapping @Inject() (config: Configuration = Configuration.emp
     nodesForCountry(country).toSeq.flatMap(_.filter(n => n.parent == parentKey && n.code == subcode).flatMap(_.children).map(c => (c.code, c.label)))
 
   private def nodesForCountry(country: String): Option[Seq[PurchaseNode]] = {
-    if (country == null) return None
     val key = country.trim
 
     // Build a list of candidate keys to try. Handle common formats such as
@@ -283,14 +279,12 @@ class ConfigPurchaseMapping @Inject() (config: Configuration = Configuration.emp
     options.zipWithIndex.map { case ((code, labelKey), idx) =>
       def stripLeadingNumeric(key: String): String = {
         val parts = key.split("\\.")
-        if (parts.length >= 4 && parts(0) == "purchase" && parts(1) == "sub") {
-          (parts.take(3) ++ parts.drop(4)).mkString(".")
-        } else key
+        if parts.length >= 4 && parts(0) == "purchase" && parts(1) == "sub"
+        then (parts.take(3) ++ parts.drop(4)).mkString(".")
+        else key
       }
 
       def normalizeLabelKey(label: String): String = {
-        if (label == null) return ""
-        val prefix = "purchase.sub."
         if (!label.startsWith(prefix)) return label
         val rest = label.substring(prefix.length)
         val parts = rest.split("\\.")
@@ -318,51 +312,43 @@ class ConfigPurchaseMapping @Inject() (config: Configuration = Configuration.emp
       val lang = Option(msgs.lang.code).getOrElse("en")
 
       def loadPurchaseMessages(langCode: String): Map[String, String] = {
-        val namesToTry = Seq(s"messages.purchase.$langCode", "messages.purchase.en")
+        val fileName: String = s"messages.purchase.$langCode"
 
-        namesToTry.iterator
-          .flatMap { name =>
-            try {
-              env
-                .resourceAsStream(name)
-                .map { is =>
-                  val src = Source.fromInputStream(is, "UTF-8")
-                  try {
-                    src
-                      .getLines()
-                      .toSeq
-                      .map(_.trim)
-                      .filter(l => l.nonEmpty && !l.startsWith("#"))
-                      .flatMap { line =>
-                        val idx = line.indexOf('=')
-                        if (idx > 0) Some(line.substring(0, idx).trim -> line.substring(idx + 1).trim)
-                        else None
-                      }
-                  } finally src.close()
-                }
-                .getOrElse(Seq.empty)
-            } catch {
-              case _: Throwable => Seq.empty
+        try {
+          env
+            .resourceAsStream(fileName)
+            .fold(Map.empty) { stream =>
+              val src = Source.fromInputStream(stream, "UTF-8")
+              try {
+                src
+                  .getLines()
+                  .toSeq
+                  .map(_.trim)
+                  .filterNot(line => line.isEmpty && line.head != '#')
+                  .flatMap { line =>
+                    val idx = line.indexOf('=')
+                    Some(line.substring(0, idx).trim -> line.substring(idx + 1).trim)
+                  }
+                  .toMap
+              } finally src.close()
             }
-          }
-          .toSeq
-          .foldLeft(Map.empty[String, String]) { case (acc, (k, v)) => acc + (k -> v) }
+        } catch {
+          case NonFatal(_) => Map.empty
+        }
       }
 
       // Load purchase-specific message fallbacks from resource bundles named
       // `messages.purchase.<lang>`. If no resource is present we fall back to
       // the main `Messages` instance provided by Play.
-      val purchaseMap =
-        try loadPurchaseMessages(lang)
-        catch { case _: Throwable => Map.empty[String, String] }
+      val purchaseMap = loadPurchaseMessages(lang)
 
       // Resolve the first candidate that exists in either Play Messages or
       // the `messages.purchase.*` fallbacks. If none are defined default to
       // the provided label key string.
       val label = candidates
         .collectFirst {
-          case k if msgs.isDefinedAt(k)          => msgs(k)
-          case k if purchaseMap.get(k).isDefined => purchaseMap(k)
+          case k if msgs.isDefinedAt(k)     => msgs(k)
+          case k if purchaseMap.contains(k) => purchaseMap(k)
         }
         .getOrElse(labelKey)
       RadioItem(

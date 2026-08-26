@@ -17,8 +17,6 @@
 package utils
 
 import models.UserAnswers
-import play.api.mvc.Call
-import utils.ConfigCurrencyMapping
 import pages.RefundingCurrencyPage
 
 object CurrencyResolver {
@@ -26,7 +24,7 @@ object CurrencyResolver {
   /** Return (currencyName, currencySymbol) for the user's selected or default currency for the refunding country. Falls back to ("", "€") when
     * nothing is available.
     */
-  def currencyNameAndPrefix(userAnswers: UserAnswers, config: ConfigCurrencyMapping): (String, String) = {
+  def currencyNameAndPrefix(userAnswers: UserAnswers, config: Map[String, Seq[Currency]]): (String, String) = {
     val default = ("Euro", "€")
     def humanizeName(name: String): String =
       name
@@ -39,12 +37,12 @@ object CurrencyResolver {
     utils.CountryCode
       .findCountryCode(userAnswers)
       .flatMap { countryCode =>
-        val currencies = config.currenciesFor(countryCode)
+        val currencies = config(countryCode)
         val selected = userAnswers
           .get(RefundingCurrencyPage)
           .flatMap(code => currencies.find(_._2 == code))
 
-        selected.orElse(currencies.headOption).map { case (name, _code, symbol) => (humanizeName(name), symbol) }
+        selected.orElse(currencies.headOption).map { case Currency(name, _, symbol) => (humanizeName(name), symbol) }
       }
       .getOrElse(default)
   }

@@ -21,24 +21,33 @@ import uk.gov.hmrc.govukfrontend.views.Aliases.Text
 import uk.gov.hmrc.govukfrontend.views.viewmodels.radios.RadioItem
 
 sealed trait PurchaseType
+case object Fuel extends WithName("fuel") with PurchaseType
+case object Transport extends WithName("transport") with PurchaseType
+case object FoodAndDrink extends WithName("foodAndDrink") with PurchaseType
+case object Luxuries extends WithName("luxuries") with PurchaseType
+case object Other extends WithName("other") with PurchaseType
 
-object PurchaseType extends Enumerable.Implicits {
-
-  case object Fuel         extends WithName("fuel") with PurchaseType
-  case object Transport    extends WithName("transport") with PurchaseType
-  case object FoodAndDrink extends WithName("foodAndDrink") with PurchaseType
-  case object Luxuries     extends WithName("luxuries") with PurchaseType
-  case object Other        extends WithName("other") with PurchaseType
+object PurchaseType extends Enumerable.Implicits:
 
   val values: Seq[PurchaseType] = Seq(Fuel, Transport, FoodAndDrink, Luxuries, Other)
 
-  def slugOf(value: PurchaseType): String = value match {
-    case Fuel         => "fuel-use"
-    case Transport    => "transport-cost"
-    case FoodAndDrink => "food-drink-restaurant-cost"
-    case Luxuries     => "luxury-entertainment-hospitality-cost"
-    case Other        => "purchase-type-other"
-  }
+  val codes: Map[PurchaseType, String] = Map(
+    Fuel -> "1",
+    Transport -> "3",
+    FoodAndDrink -> "7",
+    Luxuries -> "9",
+    Other -> "10"
+  )
+
+  val urlSlugForPurchaseType: Map[PurchaseType, String] = Map(
+    Fuel         -> "fuel-use",
+    Transport    -> "transport-cost",
+    FoodAndDrink -> "food-drink-restaurant-cost",
+    Luxuries     -> "luxury-entertainment-hospitality-cost",
+    Other        -> "purchase-type-other"
+  )
+
+  val valueFromUrlSlug: Map[String, String] = urlSlugForPurchaseType.map((k, v) => (v,k.toString))
 
   def options(implicit messages: Messages): Seq[RadioItem] = values.zipWithIndex.map { case (value, index) =>
     RadioItem(
@@ -50,4 +59,3 @@ object PurchaseType extends Enumerable.Implicits {
 
   implicit val enumerable: Enumerable[PurchaseType] =
     Enumerable(values.map(v => v.toString -> v)*)
-}

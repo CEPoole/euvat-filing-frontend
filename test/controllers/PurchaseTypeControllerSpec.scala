@@ -18,8 +18,8 @@ package controllers
 
 import base.SpecBase
 import forms.PurchaseTypeFormProvider
-import models.responses.{AddPurchaseResponse, ApplicationResponse}
-import models.{CheckMode, NormalMode, PurchaseType}
+import models.*
+import models.responses.*
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{never, times, verify, when}
@@ -78,7 +78,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       }
 
       val userAnswers = emptyUserAnswers
-        .set(pages.PurchaseTypePage, PurchaseType.Other)
+        .set(pages.PurchaseTypePage, Other)
         .success
         .value
         .set(pages.DescribeItemsArrivedFromCheckYourAnswersPage, true)
@@ -97,7 +97,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, routes.PurchaseTypeController.onSubmit(CheckMode).url)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Other.toString)
+          .withFormUrlEncodedBody("value" -> Other.toString)
 
         val result = route(application, request).value
 
@@ -218,7 +218,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
     "must populate the view with the saved value on GET" in {
 
-      val userAnswers = emptyUserAnswers.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+      val userAnswers = emptyUserAnswers.set(PurchaseTypePage, Fuel).success.value
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
       running(application) {
@@ -227,7 +227,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
         val view = application.injector.instanceOf[PurchaseTypeView]
         val formProvider = application.injector.instanceOf[PurchaseTypeFormProvider]
-        val form = formProvider().fill(PurchaseType.Fuel)
+        val form = formProvider().fill(Fuel)
 
         status(result) mustEqual OK
         normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(view(form, NormalMode, backLinkCall)(request, messages(application)).toString)
@@ -254,7 +254,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, purchaseTypeSubmitRoute)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
+          .withFormUrlEncodedBody("value" -> Fuel.toString)
         val result = route(application, request).value
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual ("/file-eu-vat" + onwardRoute.url)
@@ -286,7 +286,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, purchaseTypeSubmitRoute)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
+          .withFormUrlEncodedBody("value" -> Fuel.toString)
 
         val result = route(application, request).value
 
@@ -315,13 +315,13 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, purchaseTypeSubmitRouteCheck)
-          .withFormUrlEncodedBody("value" -> models.PurchaseType.Fuel.toString)
+          .withFormUrlEncodedBody("value" -> Fuel.toString)
 
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual controllers.purchase.routes.PurchaseSubTypeController
-          .onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Fuel), models.CheckMode)
+          .onPageLoad(PurchaseType.urlSlugForPurchaseType(Fuel), CheckMode)
           .url
       }
     }
@@ -331,7 +331,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
 
       val userAnswers = emptyUserAnswers
-        .set(pages.PurchaseTypePage, PurchaseType.Fuel)
+        .set(pages.PurchaseTypePage, Fuel)
         .success
         .value
         .set(pages.DescribeItemsOnInvoicePage, "details")
@@ -352,7 +352,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, purchaseTypeSubmitRoute)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
+          .withFormUrlEncodedBody("value" -> Transport.toString)
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
@@ -383,13 +383,13 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, purchaseTypeSubmitRoute)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
+          .withFormUrlEncodedBody("value" -> Transport.toString)
 
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
 
-        val captor: ArgumentCaptor[models.UserAnswers] = ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        val captor: ArgumentCaptor[UserAnswers] = ArgumentCaptor.forClass(classOf[UserAnswers])
         verify(mockSessionRepository, times(2)).set(captor.capture())
         val savedAnswers = captor.getAllValues.get(1)
 
@@ -398,13 +398,13 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
     }
 
     "must short-circuit to purchase CYA in CheckMode when value unchanged" in {
-      val userAnswers = emptyUserAnswers.set(pages.PurchaseTypePage, PurchaseType.Fuel).success.value
+      val userAnswers = emptyUserAnswers.set(pages.PurchaseTypePage, Fuel).success.value
 
       val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
 
       running(application) {
         val request = FakeRequest(POST, routes.PurchaseTypeController.onSubmit(CheckMode).url)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
+          .withFormUrlEncodedBody("value" -> Fuel.toString)
 
         val result = route(application, request).value
 
@@ -426,14 +426,14 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, routes.PurchaseTypeController.onSubmit(CheckMode).url)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
+          .withFormUrlEncodedBody("value" -> Fuel.toString)
 
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
         // In CheckMode with subcodes present we now redirect to the change-<slug> path
         redirectLocation(result).value mustEqual controllers.purchase.routes.PurchaseSubTypeController
-          .onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Fuel), models.CheckMode)
+          .onPageLoad(PurchaseType.urlSlugForPurchaseType(Fuel), CheckMode)
           .url
         verify(mockSessionRepository, times(1)).set(any())
       }
@@ -458,7 +458,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, purchaseTypeSubmitRouteCheck)
-          .withFormUrlEncodedBody("value" -> models.PurchaseType.Fuel.toString)
+          .withFormUrlEncodedBody("value" -> Fuel.toString)
 
         val result = route(application, request).value
 
@@ -473,7 +473,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
 
       val userAnswers = emptyUserAnswers
-        .set(pages.PurchaseTypePage, PurchaseType.Fuel)
+        .set(pages.PurchaseTypePage, Fuel)
         .success
         .value
         .set(pages.DescribeItemsArrivedFromCheckYourAnswersPage, true)
@@ -488,7 +488,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, routes.PurchaseTypeController.onSubmit(CheckMode).url)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
+          .withFormUrlEncodedBody("value" -> Fuel.toString)
 
         val result = route(application, request).value
 
@@ -503,7 +503,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
 
       val userAnswers = emptyUserAnswers
-        .set(pages.PurchaseTypePage, PurchaseType.Fuel)
+        .set(pages.PurchaseTypePage, Fuel)
         .success
         .value
         .set(pages.DescribeItemsArrivedFromCheckYourAnswersPage, true)
@@ -521,7 +521,8 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, routes.PurchaseTypeController.onSubmit(CheckMode).url)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
+          .withFormUrlEncodedBody("value" -> Fuel.toString)
+
 
         val result = route(application, request).value
 
@@ -547,7 +548,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, routes.PurchaseTypeController.onSubmit(CheckMode).url)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
+          .withFormUrlEncodedBody("value" -> Fuel.toString)
 
         val result = route(application, request).value
 
@@ -576,15 +577,17 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, purchaseTypeSubmitRouteCheck)
-          .withFormUrlEncodedBody("value" -> models.PurchaseType.Fuel.toString)
+          .withFormUrlEncodedBody("value" -> Fuel.toString)
 
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual controllers.purchase.routes.PurchaseSubTypeController
-          .onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Fuel), models.CheckMode)
+          .onPageLoad(PurchaseType.urlSlugForPurchaseType(Fuel), models.CheckMode)
           .url
+
         verify(mockSessionRepository, times(2)).set(any())
+        redirectLocation(result).value mustEqual controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(PurchaseType.urlSlugForPurchaseType(Fuel), CheckMode).url
       }
     }
 
@@ -593,7 +596,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
 
       val userAnswers = emptyUserAnswers
-        .set(pages.PurchaseTypePage, PurchaseType.Fuel)
+        .set(pages.PurchaseTypePage, Fuel)
         .success
         .value
         .set(pages.PurchaseSubCategoryArrivedFromCheckYourAnswersPage, true)
@@ -608,7 +611,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, routes.PurchaseTypeController.onSubmit(CheckMode).url)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
+          .withFormUrlEncodedBody("value" -> Fuel.toString)
 
         val result = route(application, request).value
 
@@ -638,14 +641,15 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, purchaseTypeSubmitRouteCheck)
-          .withFormUrlEncodedBody("value" -> models.PurchaseType.Fuel.toString)
+          .withFormUrlEncodedBody("value" -> Fuel.toString)
 
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
         redirectLocation(result).value mustEqual controllers.purchase.routes.PurchaseSubTypeController
-          .onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Fuel), models.CheckMode)
+          .onPageLoad(PurchaseType.urlSlugForPurchaseType(Fuel), models.CheckMode)
           .url
+
         verify(mockSessionRepository, times(2)).set(any())
       }
     }
@@ -655,7 +659,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())).thenReturn(Future.successful(true))
 
       val userAnswers = emptyUserAnswers
-        .set(pages.PurchaseTypePage, PurchaseType.Fuel)
+        .set(pages.PurchaseTypePage, Fuel)
         .success
         .value
         .set(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage, true)
@@ -670,7 +674,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, routes.PurchaseTypeController.onSubmit(CheckMode).url)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Fuel.toString)
+          .withFormUrlEncodedBody("value" -> Fuel.toString)
 
         val result = route(application, request).value
 
@@ -686,7 +690,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
       when(mockSessionRepository.set(any())).thenReturn(scala.concurrent.Future.successful(true))
 
       val userAnswers = emptyUserAnswers
-        .set(pages.PurchaseTypePage, PurchaseType.Fuel)
+        .set(pages.PurchaseTypePage, Fuel)
         .success
         .value
         .set(pages.PurchaseSubTypePage, "1")
@@ -715,7 +719,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
         status(result) mustEqual OK
 
-        val captor = org.mockito.ArgumentCaptor.forClass(classOf[models.UserAnswers])
+        val captor = org.mockito.ArgumentCaptor.forClass(classOf[UserAnswers])
         verify(mockSessionRepository, times(1)).set(captor.capture())
         val saved = captor.getValue
         saved.get(pages.PurchaseTypePage) mustBe None
@@ -748,7 +752,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, purchaseTypeSubmitRoute)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
+          .withFormUrlEncodedBody("value" -> Transport.toString)
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
@@ -777,7 +781,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, purchaseTypeSubmitRoute)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
+          .withFormUrlEncodedBody("value" -> Transport.toString)
 
         val result = route(application, request).value
 
@@ -805,7 +809,7 @@ class PurchaseTypeControllerSpec extends SpecBase with MockitoSugar {
 
       running(application) {
         val request = FakeRequest(POST, purchaseTypeSubmitRoute)
-          .withFormUrlEncodedBody("value" -> PurchaseType.Transport.toString)
+          .withFormUrlEncodedBody("value" -> Transport.toString)
 
         val result = route(application, request).value
 

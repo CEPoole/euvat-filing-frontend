@@ -23,7 +23,7 @@ object MountPrefix {
   /** Compute the mount prefix for the current request. Prefers `X-Forwarded-Prefix` header and falls back to deriving the prefix from the request
     * path by removing the last segment.
     */
-  def get(implicit request: RequestHeader): String =
+  def getFromRequest(implicit request: RequestHeader): String =
     request.headers.get("X-Forwarded-Prefix").map(_.stripSuffix("/")).getOrElse {
       request.path.lastIndexOf('/') match {
         case i if i > 0 => request.path.substring(0, i)

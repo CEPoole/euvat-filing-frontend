@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import forms.TotalVatClaimFormProvider
-import models.{CheckMode, NormalMode, UserAnswers}
+import models.{CheckMode, NormalMode, UserAnswers, Fuel}
 import pages.PurchaseTypePage
 import models.PurchaseType
 import org.mockito.Mockito.verify
@@ -237,7 +237,7 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
 
     "must redirect to CYA when in CheckMode and total vat claim unchanged for purchase journey" in {
       val userAnswers = UserAnswers(userAnswersId)
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(TotalVatClaimPage, validAnswer)
@@ -259,7 +259,7 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
 
     "must redirect to warning when in CheckMode and total vat claim unchanged but total vat paid triggers warning (arrived from prior page)" in {
       val userAnswers = UserAnswers(userAnswersId)
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(TotalVatClaimPage, BigDecimal("150.00"))
@@ -285,7 +285,7 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
 
     "must persist updated total vat claim and continue journey when in CheckMode and total vat claim changed for purchase journey" in {
       val userAnswers = UserAnswers(userAnswersId)
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(TotalVatPaidPage, BigDecimal("200.00"))
@@ -319,7 +319,7 @@ class TotalVatClaimControllerSpec extends SpecBase with MockitoSugar {
 
     "must persist updated total vat claim and redirect to warning when in CheckMode and total vat claim > total vat paid" in {
       val userAnswers = emptyUserAnswers
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
         .set(TotalVatPaidPage, BigDecimal("50.00"))

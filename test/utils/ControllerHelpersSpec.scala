@@ -26,6 +26,8 @@ import org.mockito.ArgumentMatchers.any
 import repositories.SessionRepository
 import play.api.mvc.Results.*
 import play.api.test.Helpers.*
+import models.Fuel
+import pages.*
 import scala.concurrent.Future
 import scala.util.Success
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -40,23 +42,23 @@ class ControllerHelpersSpec extends SpecBase {
 
   "preparedFormFromAnswers" - {
     "returns empty form when no value stored" in {
-      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, None, None, emptyUserAnswers)
+      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, "", "", emptyUserAnswers)
 
       val form: Form[String] = Form(single("v" -> text))
 
-      val prepared = ControllerHelpers.preparedFormFromAnswers(_.get(pages.SuppliersNamePage), form)
+      val prepared = ControllerHelpers.preparedFormFromAnswers(_.get(SuppliersNamePage), form)
 
       prepared.value mustBe None
     }
 
     "returns filled form when value present in UserAnswers" in {
       // store a value into UserAnswers
-      val updated = emptyUserAnswers.set(pages.SuppliersNamePage, "Acme Ltd").success.value
-      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, None, None, updated)
+      val updated = emptyUserAnswers.set(SuppliersNamePage, "Acme Ltd").success.value
+      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, "", "", updated)
 
       val form: Form[String] = Form(single("v" -> text))
 
-      val prepared = ControllerHelpers.preparedFormFromAnswers(_.get(pages.SuppliersNamePage), form)
+      val prepared = ControllerHelpers.preparedFormFromAnswers(_.get(SuppliersNamePage), form)
 
       prepared.value.value mustBe "Acme Ltd"
     }
@@ -65,14 +67,14 @@ class ControllerHelpersSpec extends SpecBase {
   "persistAndThen" - {
     "persists built UserAnswers once and runs continuation" in {
       // prepare built answers and a Try
-      val builtAnswers = emptyUserAnswers.set(pages.SuppliersNamePage, "PersistMe").success.value
+      val builtAnswers = emptyUserAnswers.set(SuppliersNamePage, "PersistMe").success.value
       val userAnswersTry = Success(builtAnswers)
 
       // mock session repository to accept the set
       val mockRepo = mock[SessionRepository]
       when(mockRepo.set(any[models.UserAnswers])) thenReturn Future.successful(true)
 
-      implicit val request: DataRequest[?] = DataRequest(FakeRequest("POST", "/"), userAnswersId, None, None, builtAnswers)
+      implicit val request: DataRequest[?] = DataRequest(FakeRequest("POST", "/"), userAnswersId, "", "", builtAnswers)
 
       val fut = ControllerHelpers.persistAndThen(userAnswersTry, mockRepo) { ua =>
         Future.successful(Ok("done"))
@@ -86,7 +88,7 @@ class ControllerHelpersSpec extends SpecBase {
 
   "currencySymbolFromSession" - {
     "falls back to Euro when no country selected" in {
-      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, None, None, emptyUserAnswers)
+      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, "", "", emptyUserAnswers)
 
       // create a minimal HOCON configuration with a single currency mapping
       // so the `ConfigCurrencyMapping` constructor can read `currency.mapping`.
@@ -100,23 +102,23 @@ class ControllerHelpersSpec extends SpecBase {
         )
       )
 
-      val cfg = new ConfigCurrencyMapping(conf)
+      val cfg = new CurrencyConfig(conf)
 
-      ControllerHelpers.currencySymbolFromSession(emptyUserAnswers, cfg) mustBe "€"
+      ControllerHelpers.currencySymbolFromSession(emptyUserAnswers, cfg.currencyConfig) mustBe "€"
     }
   }
 
   "compareWithPage" - {
     "returns true when comparator matches stored value" in {
-      val updated = emptyUserAnswers.set(pages.TotalPurchaseAmountBeforeVatPage, BigDecimal(100)).success.value
+      val updated = emptyUserAnswers.set(TotalPurchaseAmountBeforeVatPage, BigDecimal(100)).success.value
 
-      ControllerHelpers.compareWithPage(BigDecimal(120), pages.TotalPurchaseAmountBeforeVatPage, updated)(_ >= _) mustBe true
+      ControllerHelpers.compareWithPage(BigDecimal(120), TotalPurchaseAmountBeforeVatPage, updated)(_ >= _) mustBe true
     }
 
     "returns false when comparator does not match stored value" in {
-      val updated = emptyUserAnswers.set(pages.TotalPurchaseAmountBeforeVatPage, BigDecimal(100)).success.value
+      val updated = emptyUserAnswers.set(TotalPurchaseAmountBeforeVatPage, BigDecimal(100)).success.value
 
-      ControllerHelpers.compareWithPage(BigDecimal(80), pages.TotalPurchaseAmountBeforeVatPage, updated)(_ >= _) mustBe false
+      ControllerHelpers.compareWithPage(BigDecimal(80), TotalPurchaseAmountBeforeVatPage, updated)(_ >= _) mustBe false
     }
   }
 
@@ -124,7 +126,7 @@ class ControllerHelpersSpec extends SpecBase {
     "short-circuits to purchase CYA when in CheckMode and value unchanged" in {
       // prepare UserAnswers with a purchase type and stored value
       val ua = emptyUserAnswers
-        .set(pages.PurchaseTypePage, PurchaseType.Fuel)
+        .set(pages.PurchaseTypePage, Fuel)
         .success
         .value
         .set(pages.TotalVatPaidPage, BigDecimal(10))
@@ -137,7 +139,7 @@ class ControllerHelpersSpec extends SpecBase {
       val fut = ControllerHelpers.shortCircuitPersistAndThen[
         BigDecimal
       ](
-        pages.TotalVatPaidPage,
+        TotalVatPaidPage,
         BigDecimal(10),
         CheckMode,
         ua,
@@ -158,7 +160,7 @@ class ControllerHelpersSpec extends SpecBase {
     }
 
     "persists and calls continuation when value changes" in {
-      val ua = emptyUserAnswers.set(pages.PurchaseTypePage, PurchaseType.Fuel).success.value
+      val ua = emptyUserAnswers.set(PurchaseTypePage, Fuel).success.value
 
       val mockRepo = mock[SessionRepository]
       when(mockRepo.set(any[models.UserAnswers])) thenReturn Future.successful(true)
@@ -166,7 +168,7 @@ class ControllerHelpersSpec extends SpecBase {
       val fut = ControllerHelpers.shortCircuitPersistAndThen[
         BigDecimal
       ](
-        pages.TotalVatPaidPage,
+        TotalVatPaidPage,
         BigDecimal(20),
         CheckMode,
         ua,
@@ -194,7 +196,7 @@ class ControllerHelpersSpec extends SpecBase {
       val fut = ControllerHelpers.shortCircuitPersistAndThen[
         BigDecimal
       ](
-        pages.TotalVatPaidPage,
+        TotalVatPaidPage,
         BigDecimal(20),
         NormalMode,
         ua,
@@ -214,14 +216,14 @@ class ControllerHelpersSpec extends SpecBase {
 
   "markArrivalAndRender" - {
     "marks arrival and persists when in CheckMode and flag missing" in {
-      val page = pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage
+      val page = PurchaseSubTypeArrivedFromCheckYourAnswersPage
 
       val ua = emptyUserAnswers
 
       val mockRepo = mock[SessionRepository]
       when(mockRepo.set(any[models.UserAnswers])) thenReturn Future.successful(true)
 
-      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, None, None, ua)
+      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, "", "", ua)
 
       val fut = ControllerHelpers.markArrivalAndRender(page, CheckMode, ua, mockRepo) { updated =>
         Future.successful(Ok("rendered"))
@@ -237,14 +239,14 @@ class ControllerHelpersSpec extends SpecBase {
     }
 
     "does not persist when flag already set in CheckMode" in {
-      val page = pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage
+      val page = PurchaseSubTypeArrivedFromCheckYourAnswersPage
 
       val ua = emptyUserAnswers.set(page, true).success.value
 
       val mockRepo = mock[SessionRepository]
       when(mockRepo.set(any[models.UserAnswers])) thenReturn Future.successful(true)
 
-      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, None, None, ua)
+      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, "", "", ua)
 
       val fut = ControllerHelpers.markArrivalAndRender(page, CheckMode, ua, mockRepo) { updated =>
         Future.successful(Ok("rendered"))
@@ -257,14 +259,14 @@ class ControllerHelpersSpec extends SpecBase {
     }
 
     "does not persist when in NormalMode" in {
-      val page = pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage
+      val page = PurchaseSubTypeArrivedFromCheckYourAnswersPage
 
       val ua = emptyUserAnswers
 
       val mockRepo = mock[SessionRepository]
       when(mockRepo.set(any[models.UserAnswers])) thenReturn Future.successful(true)
 
-      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, None, None, ua)
+      implicit val request: DataRequest[?] = DataRequest(FakeRequest("GET", "/"), userAnswersId, "", "", ua)
 
       val fut = ControllerHelpers.markArrivalAndRender(page, NormalMode, ua, mockRepo) { updated =>
         Future.successful(Ok("rendered"))

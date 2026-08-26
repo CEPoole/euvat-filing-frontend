@@ -27,17 +27,17 @@ class MountPrefixSpec extends AnyFreeSpec with Matchers {
   "MountPrefix.get" - {
     "should prefer X-Forwarded-Prefix header and strip trailing slash" in {
       implicit val req = FakeRequest(GET, "/some/path").withHeaders(("X-Forwarded-Prefix", "/prefix/"))
-      MountPrefix.get mustEqual "/prefix"
+      MountPrefix.getFromRequest mustEqual "/prefix"
     }
 
     "should derive prefix from request path when header absent" in {
       implicit val req = FakeRequest(GET, "/file-eu-vat/fuel-type")
-      MountPrefix.get mustEqual "/file-eu-vat"
+      MountPrefix.getFromRequest mustEqual "/file-eu-vat"
     }
 
     "should return empty string for root path" in {
       implicit val req = FakeRequest(GET, "/")
-      MountPrefix.get mustEqual ""
+      MountPrefix.getFromRequest mustEqual ""
     }
   }
 }

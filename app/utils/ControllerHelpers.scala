@@ -77,13 +77,13 @@ object ControllerHelpers {
   // Resolve the human-friendly currency name and prefix for views using the
   // central CurrencyResolver. This helper simply delegates and provides a
   // consistent signature for controllers to call.
-  def currencyNameAndPrefix(userAnswers: models.UserAnswers, configCurrencyMapping: ConfigCurrencyMapping)(implicit
+  def currencyNameAndPrefix(userAnswers: models.UserAnswers, configCurrencyMapping: Map[String, Seq[Currency]])(implicit
     request: DataRequest[?]
   ): (String, String) = CurrencyResolver.currencyNameAndPrefix(userAnswers, configCurrencyMapping)
 
   // Return a display-friendly currency symbol extracted from session/config.
   // Falls back to the Euro symbol when no symbol can be resolved.
-  def currencySymbolFromSession(userAnswers: models.UserAnswers, configCurrencyMapping: ConfigCurrencyMapping)(implicit
+  def currencySymbolFromSession(userAnswers: models.UserAnswers, configCurrencyMapping: Map[String, Seq[Currency]])(implicit
     request: DataRequest[?]
   ): String = {
     // Reuse the name/prefix resolver and pick the symbol portion

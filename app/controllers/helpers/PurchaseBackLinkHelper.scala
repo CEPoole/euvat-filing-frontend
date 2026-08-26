@@ -19,6 +19,7 @@ package controllers.helpers
 import models.requests.DataRequest
 import models.{Mode, PurchaseType}
 import models.PurchaseSubCategoryType
+import models.PurchaseSubCategoryType.{defaultSlugFor, purchaseSubCategoryUrlSlugFor}
 import pages.{PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage}
 import play.api.mvc.Call
 import utils.MountPrefix
@@ -26,64 +27,29 @@ import utils.MountPrefix
 object PurchaseBackLinkHelper {
 
   def computeBackTarget(mode: Mode)(implicit request: DataRequest[?]): Call = {
-    val maybePurchaseTypeSlug = request.userAnswers.get(PurchaseTypePage).map(PurchaseType.slugOf)
+    val maybePurchaseTypeSlug = request.userAnswers.get(PurchaseTypePage).map(PurchaseType.urlSlugForPurchaseType)
     val maybeParentCode = request.userAnswers.get(PurchaseSubTypePage)
     val maybeChildCode = request.userAnswers.get(PurchaseSubCategoryPage)
-
-    // use centralized mount prefix helper
+    lazy val purchaseType = maybePurchaseTypeSlug
+      .flatMap(urlSlug => PurchaseType.values.find(PurchaseType.urlSlugForPurchaseType(_) == urlSlug))
 
     (maybePurchaseTypeSlug, maybeParentCode, maybeChildCode) match {
-      case (Some(slug), None, Some(child)) =>
-        if (child.contains(".")) {
-          PurchaseType.values.find(pt => PurchaseType.slugOf(pt) == slug) match {
-            case Some(pt) =>
-              val parentKey = pt.toString
-              val slugOpt = PurchaseSubCategoryType
-                .slugFor(parentKey, child)
-                .orElse {
-                  // fallback to parent head (e.g. "1") then to first available slug
-                  val parent = child.split("\\.").head
-                  PurchaseSubCategoryType.slugFor(parentKey, parent)
-                }
-                .orElse(PurchaseSubCategoryType.firstSlugFor(parentKey))
+      case (Some(urlSlug), None, Some(child)) if child.contains(".") && purchaseType.isDefined =>
+        val parentKey = purchaseType.get.toString
 
-              slugOpt
-                .map(s => {
-                  val p = MountPrefix.get
-                  if (p.isEmpty) Call("GET", s"/$s") else Call("GET", s"$p/$s")
-                })
-                .getOrElse(controllers.routes.PurchaseTypeController.onPageLoad(mode))
-            case None => controllers.routes.PurchaseTypeController.onPageLoad(mode)
-          }
-        } else controllers.routes.PurchaseTypeController.onPageLoad(mode)
-
-      case (Some(slug), Some(parent), Some(child)) =>
-        val head = parent.split("\\.").headOption.getOrElse(parent)
-        val last = parent.split("\\.").lastOption.getOrElse(parent)
-        val candidates = Seq(parent, last, head, child).distinct
-
-        val maybeCall = candidates.iterator
-          .map { c =>
-            try {
-              PurchaseType.values.find(pt => PurchaseType.slugOf(pt) == slug) match {
-                case Some(pt) =>
-                  val parentKey = pt.toString
-                  val slugPath = PurchaseSubCategoryType.pathFor(parentKey, c)
-                  val p = MountPrefix.get
-                  Some(Call("GET", if (p.isEmpty) s"/$slugPath" else s"$p/$slugPath"))
-                case None => None
-              }
-            } catch { case _: Throwable => None }
-          }
-          .collectFirst { case Some(call) => call }
-
-        maybeCall.getOrElse(controllers.routes.PurchaseTypeController.onPageLoad(mode))
-
+        purchaseSubCategoryUrlSlugFor(parentKey, child)
+          // fallback to parent head (e.g. "1") then to first available slug
+          .orElse(purchaseSubCategoryUrlSlugFor(parentKey, child.split("\\.").head))
+          .orElse(defaultSlugFor(parentKey))
+          .map(urlSlug => Call("GET", s"${MountPrefix.getFromRequest}/$urlSlug"))
+          .getOrElse(controllers.routes.PurchaseTypeController.onPageLoad(mode))
+      case (Some(_), Some(parent), Some(_)) if purchaseType.isDefined =>
+        val slugPath = PurchaseSubCategoryType.pathFor(purchaseType.get.toString, parent)
+        Call("GET", s"${MountPrefix.getFromRequest}/$slugPath")
       case (Some(slug), Some(_), None) =>
-        val p = MountPrefix.get
-        if (p.isEmpty) Call("GET", s"/$slug") else Call("GET", s"$p/$slug")
-
-      case _ => controllers.routes.PurchaseTypeController.onPageLoad(mode)
+        Call("GET", s"${MountPrefix.getFromRequest}/$slug")
+      case _ =>
+        controllers.routes.PurchaseTypeController.onPageLoad(mode)
     }
   }
 }

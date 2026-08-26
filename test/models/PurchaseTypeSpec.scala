@@ -30,11 +30,11 @@ class PurchaseTypeSpec extends AnyFreeSpec with Matchers with ScalaCheckProperty
 
     "must list exactly five values in spec order" in {
       PurchaseType.values mustEqual Seq(
-        PurchaseType.Fuel,
-        PurchaseType.Transport,
-        PurchaseType.FoodAndDrink,
-        PurchaseType.Luxuries,
-        PurchaseType.Other
+        Fuel,
+        Transport,
+        FoodAndDrink,
+        Luxuries,
+        Other
       )
     }
 

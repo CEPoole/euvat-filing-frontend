@@ -19,7 +19,7 @@ package controllers
 import base.SpecBase
 import forms.SupplierVatRegistrationNumberFormProvider
 import models.responses.{AddPurchaseResponse, ApplicationResponse, SupplierVrnCountResponse}
-import models.{CheckMode, NormalMode, PurchaseType, UserAnswers}
+import models.{CheckMode, NormalMode, UserAnswers, Fuel}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
@@ -438,7 +438,7 @@ class SupplierVatRegistrationNumberControllerSpec extends SpecBase with MockitoS
 
       when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
 
-      val userAnswers = emptyUserAnswers.set(PurchaseTypePage, PurchaseType.Fuel).success.value
+      val userAnswers = emptyUserAnswers.set(PurchaseTypePage, Fuel).success.value
 
       val application =
         applicationBuilder(userAnswers = Some(userAnswers))

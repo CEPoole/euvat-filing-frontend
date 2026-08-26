@@ -30,9 +30,8 @@ import play.api.{Configuration, Logging}
 import queries.TraderKnownFactsQuery
 import repositories.SessionRepository
 import services.EuVatRefundsService
-import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, CountryCode}
+import utils.{ConfigLanguageMapping, CountryCode}
 import views.html.RefundPeriodView
 
 import java.time.format.DateTimeFormatter
@@ -51,7 +50,6 @@ class RefundPeriodController @Inject() (
   formProvider: RefundPeriodFormProvider,
   euVatRefundsService: EuVatRefundsService,
   configuration: Configuration,
-  configCurrencyMapping: ConfigCurrencyMapping,
   configLanguageMapping: ConfigLanguageMapping,
   val controllerComponents: MessagesControllerComponents,
   view: RefundPeriodView
@@ -132,9 +130,8 @@ class RefundPeriodController @Inject() (
     }
   }
 
-  private def hasRefundPeriodChanged(userAnswers: UserAnswers, refundPeriod: RefundPeriod) = {
-    userAnswers.get(RefundPeriodPage) != Some(refundPeriod)
-  }
+  private def hasRefundPeriodChanged(userAnswers: UserAnswers, refundPeriod: RefundPeriod) =
+    !userAnswers.get(RefundPeriodPage).contains(refundPeriod)
 
   private def updateUserAnswers(
     traderResponse: TraderKnownFactsResponse,
@@ -350,7 +347,7 @@ class RefundPeriodController @Inject() (
       euVatRefundsService
         .retrieveTraderKnownFacts()
         .flatMap { traderResponse =>
-          val vrn = request.identifierValue.getOrElse(throw new IllegalStateException("Missing Vat registration number"))
+          val vrn = request.identifierValue
           val (earliestForTrader, latestForTrader, isExemptForTrader) = computeEarliestAndLatest(request, Some(vrn))
           val baseForm = formProvider(earliestForTrader, latestForTrader, isExemptForTrader)
 
@@ -395,11 +392,11 @@ class RefundPeriodController @Inject() (
       } else None
     }
 
-    val traderVrnOpt = traderVrnOverride.orElse(request.identifierValue)
+    val traderVrn = traderVrnOverride.getOrElse(request.identifierValue)
     val canCreate = configuration.getOptional[String]("settings.refund.can.create.vrns").map(_.split(",").map(_.trim).toSet).getOrElse(Set.empty)
     val canAmend = configuration.getOptional[String]("settings.refund.can.amend.vrns").map(_.split(",").map(_.trim).toSet).getOrElse(Set.empty)
     val exemptSet = canCreate ++ canAmend
-    val isExempt = traderVrnOpt.exists(exemptSet.contains)
+    val isExempt = exemptSet(traderVrn)
     val earliest: Option[YearMonth] = if (isExempt) {
       Some(YearMonth.of(2020, 1))
     } else {

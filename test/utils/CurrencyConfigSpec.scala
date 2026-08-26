@@ -21,7 +21,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 
-class ConfigCurrencyMappingSpec extends AnyWordSpec with Matchers {
+class CurrencyConfigSpec extends AnyWordSpec with Matchers {
 
   "ConfigCurrencyMapping" should {
 
@@ -35,11 +35,11 @@ class ConfigCurrencyMappingSpec extends AnyWordSpec with Matchers {
         """.stripMargin
 
       val cfg = Configuration(ConfigFactory.parseString(confString))
-      val svc = new ConfigCurrencyMapping(cfg)
+      val svc = new CurrencyConfig(cfg)
 
-      svc.currenciesFor("BG")      shouldBe Seq(("euro", "EUR", "€"), ("bulgarianLev", "BGN", "лв"))
-      svc.currenciesFor("AT")      shouldBe Seq(("euro", "EUR", "€"))
-      svc.currenciesFor("UNKNOWN") shouldBe Seq(("euro", "EUR", "€"))
+      svc.currencyConfig("BG")      shouldBe Seq(Currency("euro", "EUR", "€"), Currency("bulgarianLev", "BGN", "лв"))
+      svc.currencyConfig("AT")      shouldBe Seq(Currency("euro", "EUR", "€"))
+      svc.currencyConfig.getOrElse("UNKNOWN", svc.default) shouldBe Seq(Currency("euro", "EUR", "€"))
     }
 
     "return true for requiresCurrencySelection when country has two currencies" in {
@@ -53,7 +53,7 @@ class ConfigCurrencyMappingSpec extends AnyWordSpec with Matchers {
         """.stripMargin
 
       val cfg = Configuration(ConfigFactory.parseString(confString))
-      val svc = new ConfigCurrencyMapping(cfg)
+      val svc = new CurrencyConfig(cfg)
 
       svc.requiresCurrencySelection("BG")      shouldBe true
       svc.requiresCurrencySelection("EE")      shouldBe true
@@ -63,11 +63,11 @@ class ConfigCurrencyMappingSpec extends AnyWordSpec with Matchers {
 
     "verify application.conf currency mappings load without error" in {
       val appCfg = Configuration(ConfigFactory.load())
-      val appSvc = new ConfigCurrencyMapping(appCfg)
+      val appSvc = new CurrencyConfig(appCfg)
       val cm = appCfg.get[Configuration]("currency.mapping")
 
       cm.entrySet.map(_._1).foreach { key =>
-        appSvc.currenciesFor(key) should not be empty
+        appSvc.currencyConfig(key) should not be empty
       }
     }
   }

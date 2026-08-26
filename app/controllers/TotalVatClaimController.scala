@@ -18,34 +18,33 @@ package controllers
 
 import controllers.actions.*
 import forms.TotalVatClaimFormProvider
-
-import javax.inject.Inject
-import models.{CheckMode, Mode}
+import models.Mode
+import models.requests.DataRequest
 import navigation.Navigator
 import pages.{PurchaseTypePage, RefundingCurrencyPage, TotalVatClaimPage, TotalVatPaidPage}
 import play.api.data.Form
-import utils.{CheckModeShortCircuit, ConfigCurrencyMapping}
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
-import utils.ControllerHelpers.*
-import models.requests.DataRequest
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
+import utils.ControllerHelpers.*
+import utils.CurrencyConfig
 import views.html.TotalVatClaimView
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class TotalVatClaimController @Inject() (
-  override val messagesApi: MessagesApi,
-  sessionRepository: SessionRepository,
-  navigator: Navigator,
-  identify: IdentifierAction,
-  getData: DataRetrievalAction,
-  requireData: DataRequiredAction,
-  formProvider: TotalVatClaimFormProvider,
-  configCurrencyMapping: ConfigCurrencyMapping,
-  val controllerComponents: MessagesControllerComponents,
-  view: TotalVatClaimView
+                                          override val messagesApi: MessagesApi,
+                                          sessionRepository: SessionRepository,
+                                          navigator: Navigator,
+                                          identify: IdentifierAction,
+                                          getData: DataRetrievalAction,
+                                          requireData: DataRequiredAction,
+                                          formProvider: TotalVatClaimFormProvider,
+                                          currencyConfig: CurrencyConfig,
+                                          val controllerComponents: MessagesControllerComponents,
+                                          view: TotalVatClaimView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport {
@@ -59,7 +58,7 @@ class TotalVatClaimController @Inject() (
     val preparedForm = preparedFormFromAnswers(_.get(TotalVatClaimPage), form)
 
     // Resolve the display currency symbol (fallback to Euro)
-    val currencySymbol = currencySymbolFromSession(request.userAnswers, configCurrencyMapping)
+    val currencySymbol = currencySymbolFromSession(request.userAnswers, currencyConfig.currencyConfig)
 
     // Render the OK view using the shared helper
     okView(preparedForm, mode, currencySymbol)
@@ -95,5 +94,5 @@ class TotalVatClaimController @Inject() (
     Ok(view(preparedForm, mode, backLink(mode), currencySymbol))
 
   private def badRequestView(formWithErrors: Form[?], mode: Mode)(implicit request: DataRequest[?]) =
-    BadRequest(view(formWithErrors, mode, backLink(mode), currencySymbolFromSession(request.userAnswers, configCurrencyMapping)))
+    BadRequest(view(formWithErrors, mode, backLink(mode), currencySymbolFromSession(request.userAnswers, currencyConfig.currencyConfig)))
 }

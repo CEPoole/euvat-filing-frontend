@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import forms.SupplierAddressFormProvider
-import models.{NormalMode, SupplierAddress}
+import models.{NormalMode, SupplierAddress, Fuel}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{times, verify, when}
@@ -129,7 +129,7 @@ class SupplierAddressControllerSpec extends SpecBase with MockitoSugar {
       )
 
       val userAnswers = emptyUserAnswers
-        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .set(pages.PurchaseTypePage, Fuel)
         .success
         .value
         .set(SupplierAddressPage, supplierAddress)
@@ -155,7 +155,7 @@ class SupplierAddressControllerSpec extends SpecBase with MockitoSugar {
     "must persist and redirect to CYA in CheckMode when address changed" in {
       val existingAddress = SupplierAddress(line1 = "Old Street", line2 = None, line3 = None)
       val userAnswers = emptyUserAnswers
-        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .set(pages.PurchaseTypePage, Fuel)
         .success
         .value
         .set(SupplierAddressPage, existingAddress)

@@ -19,7 +19,7 @@ package controllers
 import controllers.actions.*
 import forms.TotalPurchaseAmountBeforeVatFormProvider
 import models.requests.DataRequest
-import models.{CheckMode, Mode, SupplierTaxNumber, UserAnswers}
+import models.{Mode, SupplierTaxNumber, UserAnswers}
 import navigation.Navigator
 import pages.*
 import play.api.data.Form
@@ -28,23 +28,23 @@ import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
 import repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import utils.ControllerHelpers.*
-import utils.{CheckModeShortCircuit, ConfigCurrencyMapping}
+import utils.CurrencyConfig
 import views.html.TotalPurchaseAmountBeforeVatView
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class TotalPurchaseAmountBeforeVatController @Inject() (
-  override val messagesApi: MessagesApi,
-  sessionRepository: SessionRepository,
-  navigator: Navigator,
-  configCurrencyMapping: ConfigCurrencyMapping,
-  identify: IdentifierAction,
-  getData: DataRetrievalAction,
-  requireData: DataRequiredAction,
-  formProvider: TotalPurchaseAmountBeforeVatFormProvider,
-  val controllerComponents: MessagesControllerComponents,
-  view: TotalPurchaseAmountBeforeVatView
+                                                         override val messagesApi: MessagesApi,
+                                                         sessionRepository: SessionRepository,
+                                                         navigator: Navigator,
+                                                         currencyConfig: CurrencyConfig,
+                                                         identify: IdentifierAction,
+                                                         getData: DataRetrievalAction,
+                                                         requireData: DataRequiredAction,
+                                                         formProvider: TotalPurchaseAmountBeforeVatFormProvider,
+                                                         val controllerComponents: MessagesControllerComponents,
+                                                         view: TotalPurchaseAmountBeforeVatView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport {
@@ -53,7 +53,7 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
   private def backLink(mode: Mode)(userAnswers: UserAnswers): Call = {
     // If this country requires currency selection, the currency page was shown right before this one.
     userAnswers.get(RefundingCountryPage) match {
-      case Some(countryCode) if configCurrencyMapping.requiresCurrencySelection(countryCode) =>
+      case Some(countryCode) if currencyConfig.requiresCurrencySelection(countryCode) =>
         routes.RefundingCurrencyController.onPageLoad(mode)
 
       case Some("DE") =>
@@ -88,7 +88,7 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
     val preparedForm = preparedFormFromAnswers(_.get(TotalPurchaseAmountBeforeVatPage), form)
 
     // Resolve display currency name and symbol prefix from session/config
-    val (currencyName, prefix) = currencyNameAndPrefix(request.userAnswers, configCurrencyMapping)
+    val (currencyName, prefix) = currencyNameAndPrefix(request.userAnswers, currencyConfig.currencyConfig)
 
     // Render page with prepared form, computed backlink and currency info
     okView(preparedForm, mode, prefix, currencyName)
@@ -122,7 +122,7 @@ class TotalPurchaseAmountBeforeVatController @Inject() (
 
   // Render BadRequest view for invalid forms, keeping currency resolution consistent
   private def badRequestView(formWithErrors: Form[?], mode: Mode)(implicit request: DataRequest[?]) = {
-    val (currencyName, prefix) = currencyNameAndPrefix(request.userAnswers, configCurrencyMapping)
+    val (currencyName, prefix) = currencyNameAndPrefix(request.userAnswers, currencyConfig.currencyConfig)
     BadRequest(view(formWithErrors, mode, backLink(mode)(request.userAnswers), prefix, currencyName))
   }
 }

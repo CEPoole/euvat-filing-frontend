@@ -16,14 +16,14 @@
 
 package services
 
-import com.google.inject.Inject
 import config.FrontendAppConfig
 import connectors.EuVatRefundsConnector
-import models.requests.{AddPurchaseRequest, ApplicationRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest, SupplierVrnCountRequest}
-import models.responses.{AddPurchaseResponse, ApplicationResponse, LatestApplicationResponse, SupplierTaxIdentifierCountResponse, SupplierVrnCountResponse, TraderKnownFactsResponse}
+import models.requests.*
+import models.responses.*
 import play.api.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class EuVatRefundsService @Inject() (euVatRefundsConnector: EuVatRefundsConnector, config: FrontendAppConfig)(implicit ec: ExecutionContext)

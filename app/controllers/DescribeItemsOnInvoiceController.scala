@@ -20,9 +20,10 @@ import controllers.actions.*
 import controllers.helpers.PurchaseBackLinkHelper
 import forms.DescribeItemsOnInvoiceFormProvider
 import models.requests.DataRequest
-import models.{CheckMode, Mode, PurchaseType}
+import models.{CheckMode, Mode, Other, PurchaseType}
 import navigation.Navigator
 import pages.{DescribeItemsOnInvoicePage, PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage}
+import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
 import repositories.SessionRepository
@@ -49,7 +50,7 @@ class DescribeItemsOnInvoiceController @Inject() (
     with I18nSupport {
 
   // instantiate the form for this request using the provider
-  val form = formProvider()
+  val form: Form[String] = formProvider()
 
   /** Responsibilities and notes:
     *   - Compute back-targets with `computeBackTarget`, which treats the special-case 'Other' purchase type differently (may route back to sub-type
@@ -67,7 +68,7 @@ class DescribeItemsOnInvoiceController @Inject() (
 
   // Helper: determine whether the stored PurchaseType is `Other`.
   private def isPurchaseTypeOther(implicit request: DataRequest[?]): Boolean =
-    request.userAnswers.get(PurchaseTypePage).contains(PurchaseType.Other)
+    request.userAnswers.get(PurchaseTypePage).contains(Other)
 
   // Check if the parent sub-type code ends with sentinel '99' (meaning 'None').
   private def parentIndicatesNone(implicit request: DataRequest[?]): Boolean =
@@ -93,7 +94,7 @@ class DescribeItemsOnInvoiceController @Inject() (
       utils.CountryCode.findCountryCode(request.userAnswers).fold(controllers.routes.PurchaseTypeController.onPageLoad(mode)) { country =>
         if (hasMultipleOtherSubcodes(country))
           // when multiple 'other' subcodes exist, go back to the PurchaseSubType page
-          controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(PurchaseType.slugOf(PurchaseType.Other), mode)
+          controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(PurchaseType.urlSlugForPurchaseType(Other), mode)
         else
           // otherwise go back to the purchase type selection
           controllers.routes.PurchaseTypeController.onPageLoad(mode)

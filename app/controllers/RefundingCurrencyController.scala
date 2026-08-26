@@ -35,20 +35,20 @@ import views.html.RefundingCurrencyView
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.Success
 
 class RefundingCurrencyController @Inject() (
-  override val messagesApi: MessagesApi,
-  sessionRepository: SessionRepository,
-  navigator: Navigator,
-  identify: IdentifierAction,
-  getData: DataRetrievalAction,
-  requireData: DataRequiredAction,
-  formProvider: RefundingCurrencyFormProvider,
-  configCurrencyMapping: ConfigCurrencyMapping,
-  configLanguageMapping: ConfigLanguageMapping,
-  val controllerComponents: MessagesControllerComponents,
-  view: RefundingCurrencyView
+                                              override val messagesApi: MessagesApi,
+                                              sessionRepository: SessionRepository,
+                                              navigator: Navigator,
+                                              identify: IdentifierAction,
+                                              getData: DataRetrievalAction,
+                                              requireData: DataRequiredAction,
+                                              formProvider: RefundingCurrencyFormProvider,
+                                              currencyConfig: CurrencyConfig,
+                                              configLanguageMapping: ConfigLanguageMapping,
+                                              val controllerComponents: MessagesControllerComponents,
+                                              view: RefundingCurrencyView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport {
@@ -64,14 +64,15 @@ class RefundingCurrencyController @Inject() (
         logger.warn("RefundingCurrencyController.onPageLoad - no refunding country in session, redirecting to JourneyRecovery")
         Redirect(routes.JourneyRecoveryController.onPageLoad())
       case Some(countryCode) =>
-        val currencies = configCurrencyMapping.currenciesFor(countryCode)
+        val currencies = currencyConfig.currencyConfig(countryCode)
         val msgs = messagesApi.preferred(request)
         val items = buildRadioItems(currencies, msgs)
         val preparedForm = request.userAnswers
           .get(RefundingCurrencyPage)
           .flatMap { storedCode =>
-            currencies.find(_._2 == storedCode).map { case (name, _, _) =>
-              form.fill(RefundingCurrency.values.find(_.toString == name).getOrElse(RefundingCurrency.Euro))
+            currencies.find(_._2 == storedCode).map {
+              case Currency(name, _, _) =>
+                form.fill(RefundingCurrency.values.find(_.toString == name).getOrElse(RefundingCurrency.Euro))
             }
           }
           .getOrElse(form)
@@ -103,37 +104,28 @@ class RefundingCurrencyController @Inject() (
         Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
       case Some(countryCode) =>
         // Build the radio items again for the page rendering
-        val currencies = configCurrencyMapping.currenciesFor(countryCode)
+        val currencies = currencyConfig.currencyConfig(countryCode)
         val msgs = messagesApi.preferred(request)
         val items = buildRadioItems(currencies, msgs)
         Future.successful(BadRequest(view(formWithErrors, items, backLink(mode), mode)))
     }
 
-  // Handle the successful form submission branch. Resolve the currency
-  // code and compose any dependent flags, then persist once via
-  // `SaveAndRedirect` to centralise single-write semantics.
   private def handleValidSubmission(value: RefundingCurrency, mode: Mode)(implicit request: DataRequest[?]): Future[Result] =
-    // Use DataRequest to access session `userAnswers` and other request data
     CountryCode.findCountryCode(request.userAnswers) match {
       case None =>
-        // Missing country -> cannot proceed
         logger.warn("RefundingCurrencyController.onSubmit - no refunding country in session; redirecting to JourneyRecovery")
         Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
       case Some(countryCode) =>
-        // Lookup configured currencies for the resolved country
-        val currencies = configCurrencyMapping.currenciesFor(countryCode)
-        // Resolve the chosen currency code by matching the radio value
-        currencies.find(_._1.equalsIgnoreCase(value.toString)).map(_._2) match {
+        val currencies: Seq[Currency] = currencyConfig.currencyConfig(countryCode)
+
+        currencies.collectFirst { case c if c.name.equalsIgnoreCase(value.toString) => c.code } match {
           case None =>
             // Unexpected: selected currency not found in configuration
             logger.warn(s"RefundingCurrencyController.onSubmit - could not find currency code for ${value.toString}")
             Future.successful(Redirect(routes.JourneyRecoveryController.onPageLoad()))
           case Some(currencyCode) =>
             // Determine whether the currency actually changed compared to session
-            val isChanged = request.userAnswers.get(RefundingCurrencyPage) match {
-              case Some(existing) => existing != currencyCode
-              case None           => true
-            }
+            val isChanged = request.userAnswers.get(RefundingCurrencyPage).exists(_ != currencyCode)
 
             // Prepare the purchase CYA target used for CheckMode continuations
             val purchaseCYA = controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
@@ -162,42 +154,35 @@ class RefundingCurrencyController @Inject() (
                   if (isChanged) ua.set(CurrencyChangedPage, true) else Success(ua)
                 }
 
-                maybeCurrencyChangedTry match {
-                  case Success(finalAnswers) =>
-                    // Persist once and redirect: in CheckMode to the
-                    // Purchase CYA, otherwise follow the navigator.
-                    SaveAndRedirect.saveTryAndRedirect(
-                      Success(finalAnswers),
-                      sessionRepository,
-                      if (mode == models.CheckMode) purchaseCYA else navigator.nextPage(RefundingCurrencyPage, mode, finalAnswers)
-                    )
-                  case Failure(_) =>
-                    // Failure while composing UserAnswers -> 500
-                    Future.successful(InternalServerError("Failed to build UserAnswers"))
-                }
+                Future.fromTry(maybeCurrencyChangedTry)
+                  .flatMap: finalAnswers =>
+                    sessionRepository
+                      .set(finalAnswers)
+                      .map: _ =>
+                        Redirect(navigator.nextPage(RefundingCurrencyPage, mode, finalAnswers))
               }
             )
         }
     }
 
   private def buildRadioItems(
-    currencies: Seq[(String, String, String)],
+    currencies: Seq[Currency],
     msgs: Messages
   ): Seq[RadioItem] =
-    currencies.zipWithIndex.flatMap { case ((name, _, symbol), idx) =>
-      RefundingCurrency.values.find(_.toString.equalsIgnoreCase(name)).map { v =>
-        RadioItem(
-          content         = Text(msgs(s"refundingCurrency.${v.toString}", symbol)),
-          value           = Some(v.toString),
-          id              = Some(if (idx == 0) "value" else s"value_$idx"),
-          label           = None,
-          hint            = None,
-          divider         = None,
-          checked         = false,
-          conditionalHtml = None,
-          disabled        = false,
-          attributes      = Map.empty
-        )
-      }
-    }
+    currencies.zipWithIndex
+      .flatMap: (c, idx) =>
+        RefundingCurrency.values.find(_.toString.equalsIgnoreCase(c.name))
+          .map: v =>
+            RadioItem(
+              content = Text(msgs(s"refundingCurrency.${v.toString}", c.symbol)),
+              value   = Some(v.toString),
+              id      = Some(if (idx == 0) "value" else s"value_$idx"),
+              label   = None,
+              hint    = None,
+              divider = None,
+              checked = false,
+              conditionalHtml = None,
+              disabled = false,
+              attributes = Map.empty
+            )
 }

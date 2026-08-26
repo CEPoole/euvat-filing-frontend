@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import forms.DescribeItemsOnInvoiceFormProvider
-import models.{CheckMode, NormalMode, UserAnswers}
+import models.{CheckMode, NormalMode, UserAnswers, PurchaseType, Fuel, Other}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.mockito.{ArgumentCaptor, Mockito}
@@ -136,7 +136,7 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
     "must show backlink to PurchaseSubCategory when PurchaseSubCategoryPage present but PurchaseSubTypePage missing" in {
       val child = "1.2"
       val userAnswers = emptyUserAnswers
-        .set(pages.PurchaseTypePage, models.PurchaseType.Fuel)
+        .set(pages.PurchaseTypePage, Fuel)
         .success
         .value
         .set(pages.PurchaseSubCategoryPage, child)
@@ -275,7 +275,7 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
         .set(pages.RefundingCountryPage, "BE")
         .success
         .value
-        .set(pages.PurchaseTypePage, models.PurchaseType.Other)
+        .set(pages.PurchaseTypePage, Other)
         .success
         .value
         .set(pages.PurchaseSubTypePage, "10.99")
@@ -294,7 +294,7 @@ class DescribeItemsOnInvoiceControllerSpec extends SpecBase with MockitoSugar {
         normalizeHtml(contentAsString(result)) mustEqual normalizeHtml(
           view(form,
                NormalMode,
-               controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(models.PurchaseType.slugOf(models.PurchaseType.Other), NormalMode)
+               controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(PurchaseType.urlSlugForPurchaseType(Other), NormalMode)
               )(request, messages(application)).toString
         )
       }

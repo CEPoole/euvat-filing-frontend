@@ -19,13 +19,13 @@ package navigation
 import play.api.mvc.Call
 import pages.*
 import models.{Mode, UserAnswers}
-import utils.{ConfigCurrencyMapping, ConfigLanguageMapping, ConfigPurchaseMapping}
+import utils.{CurrencyConfig, ConfigLanguageMapping, ConfigPurchaseMapping}
 import play.api.Configuration
 import com.typesafe.config.ConfigFactory
 
 class FakeNavigator(desiredRoute: Call)
     extends Navigator(
-      new ConfigCurrencyMapping(
+      new CurrencyConfig(
         Configuration(
           ConfigFactory.parseString("""
       currency.mapping {

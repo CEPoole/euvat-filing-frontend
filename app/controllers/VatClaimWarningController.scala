@@ -17,28 +17,28 @@
 package controllers
 
 import controllers.actions.*
+import models.Mode
 import models.requests.DataRequest
-import models.{CheckMode, Mode, NormalMode}
 import pages.*
 import play.api.Logging
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, Call, MessagesControllerComponents}
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import utils.ConfigCurrencyMapping
 import utils.ControllerHelpers.*
+import utils.CurrencyConfig
 import views.html.VatClaimWarningView
 
 import javax.inject.Inject
 
 class VatClaimWarningController @Inject() (
-  override val messagesApi: MessagesApi,
-  identify: IdentifierAction,
-  getData: DataRetrievalAction,
-  requireData: DataRequiredAction,
-  configCurrencyMapping: ConfigCurrencyMapping,
-  val controllerComponents: MessagesControllerComponents,
-  navigator: navigation.Navigator,
-  view: VatClaimWarningView
+                                            override val messagesApi: MessagesApi,
+                                            identify: IdentifierAction,
+                                            getData: DataRetrievalAction,
+                                            requireData: DataRequiredAction,
+                                            currencyConfig: CurrencyConfig,
+                                            val controllerComponents: MessagesControllerComponents,
+                                            navigator: navigation.Navigator,
+                                            view: VatClaimWarningView
 ) extends FrontendBaseController
     with I18nSupport
     with Logging {
@@ -49,7 +49,7 @@ class VatClaimWarningController @Inject() (
       // Both values present: render the warning view with currency symbol
       case (Some(_), Some(totalVatClaiming)) =>
         // Resolve human-friendly currency symbol (fallback to Euro)
-        val currencySymbol = currencySymbolFromSession(request.userAnswers, configCurrencyMapping)
+        val currencySymbol = currencySymbolFromSession(request.userAnswers, currencyConfig.currencyConfig)
         // Render the warning page, providing the return route and claim amount
         okView(routes.TotalVatClaimController.onPageLoad(mode), mode, currencySymbol, totalVatClaiming)
 
@@ -67,8 +67,7 @@ class VatClaimWarningController @Inject() (
   }
 
   // Render the OK view for the VatClaimWarning page with given return route
-  private def okView(returnCall: Call, mode: Mode, currencySymbol: String, totalVatClaiming: BigDecimal)(implicit
-    request: DataRequest[?]
-  ) =
+  private def okView(returnCall: Call, mode: Mode, currencySymbol: String, totalVatClaiming: BigDecimal)
+                    (implicit request: DataRequest[?]) =
     Ok(view(returnCall, mode, currencySymbol, totalVatClaiming))
 }

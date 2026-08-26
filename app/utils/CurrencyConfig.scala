@@ -18,13 +18,19 @@ package utils
 
 import play.api.Configuration
 
-object BusinessActivityList {
-  def fromConfig(config: Configuration, key: String = "sic.codes"): Seq[(String, String)] =
-    config.getOptional[Seq[String]](key).getOrElse(Seq.empty).map { s =>
-      s.split("\\|") match {
-        case Array(name, code) => (name.trim, code.trim)
-        case Array(name)       => (name.trim, "")
-        case _                 => (s, "")
-      }
-    }
-}
+import javax.inject.Inject
+
+case class Currency(name: String, code: String, symbol: String)
+
+class CurrencyConfig @Inject()(config: Configuration):
+  val currencyConfig: Map[String, Seq[Currency]] =
+    config.get[Map[String, Seq[String]]]("currency.mapping")
+      .map: (k, v) =>
+        k -> v.map: str =>
+          str.split("\\|", 3) match
+            case Array(name, code, symbol) => Currency(name, code, symbol)
+
+  final val default: Seq[Currency] = Seq(Currency("euro", "EUR", "€"))
+
+  def requiresCurrencySelection(code: String): Boolean = currencyConfig.get(code).exists(_.size > 1)
+

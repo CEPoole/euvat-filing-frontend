@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import forms.InvoiceNumberFormProvider
-import models.{Mode, NormalMode, UserAnswers}
+import models.{Mode, NormalMode, UserAnswers, Fuel}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, when}
@@ -303,7 +303,7 @@ class InvoiceNumberControllerSpec extends SpecBase with MockitoSugar {
         .set(SupplierTaxNumberPage, SupplierTaxNumber.Vatregistrationnumber)
         .success
         .value
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
 
@@ -346,7 +346,7 @@ class InvoiceNumberControllerSpec extends SpecBase with MockitoSugar {
         .set(SupplierTaxNumberPage, SupplierTaxNumber.Taxidentifiernumber)
         .success
         .value
-        .set(PurchaseTypePage, PurchaseType.Fuel)
+        .set(PurchaseTypePage, Fuel)
         .success
         .value
 
