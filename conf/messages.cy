@@ -158,7 +158,6 @@ refundPeriod.end.error.required.year = Enter the end year
 refundPeriod.end.error.invalidDateFormat = Enter a valid end date
 refundPeriod.end.error.invalidDateFormat.month = Enter a valid end month
 refundPeriod.end.error.invalidDateFormat.year = Enter a valid end year
-refundPeriod.end.error.inPast = Refund period end date must be in the past
 refundPeriod.end.error.afterVatDeRegDate = Refund period end date must not be after the VAT deregistration date
 refundPeriod.error.startDateNotAfterEndDate = Refund period start date must be earlier than the refund period end date
 refundPeriod.error.startAndEndInSameYear = Refund period start date and end date must be in the same calendar year
@@ -483,13 +482,12 @@ confirmRefundPeriodStartDate.warning = If you submit a claim with inaccurate inf
 confirmRefundPeriodStartDate.button = Yes, this is correct
 confirmRefundPeriodStartDate.link = No, change the start date
 
-supplierTaxIdentifierWarning.title = Are you sure the supplier’s tax identifier number is correct?
-supplierTaxIdentifierWarning.heading = Are you sure the supplier’s tax identifier number is correct?
-supplierTaxIdentifierWarning.p = You’ve already made a claim with the same supplier’s tax identifier and invoice number. Use a different supplier’s tax identifier or invoice number for this claim.
-supplierTaxIdentifierWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
-supplierTaxIdentifierWarning.changeTax = Change supplier’s tax identifier number
-supplierTaxIdentifierWarning.changeInvoice = Change invoice number
-supplierTaxIdentifierWarning.confirm = Yes, this is correct
+confirmRefundPeriodEndDate.title = Are you sure the refund period end date is correct?
+confirmRefundPeriodEndDate.heading = Are you sure the refund period end date is correct?
+confirmRefundPeriodEndDate.paragraph = You’ve told us the refund period end date is {0}. The refund period end date must be in the past.
+confirmRefundPeriodEndDate.warning = If you submit a claim with inaccurate information, it may be rejected.
+confirmRefundPeriodEndDate.button = Yes, this is correct
+confirmRefundPeriodEndDate.link = No, change the end date
 
 periodOverlapWarning.title = Are you sure the refund period is correct?
 periodOverlapWarning.heading = Are you sure the refund period is correct?
@@ -504,6 +502,14 @@ purchaseWarning.p = You have not described the items on your invoice. List each 
 purchaseWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
 purchaseWarning.correct = Yes, this is correct
 purchaseWarning.backLink = No, change the purchase details
+
+supplierTaxIdentifierWarning.title = Are you sure the supplier’s tax identifier number is correct?
+supplierTaxIdentifierWarning.heading = Are you sure the supplier’s tax identifier number is correct?
+supplierTaxIdentifierWarning.p = You’ve already made a claim with the same supplier’s tax identifier and invoice number. Use a different supplier’s tax identifier or invoice number for this claim.
+supplierTaxIdentifierWarning.warning = If you submit a claim with inaccurate information, it may be rejected.
+supplierTaxIdentifierWarning.changeTax = Change supplier’s tax identifier number
+supplierTaxIdentifierWarning.changeInvoice = Change invoice number
+supplierTaxIdentifierWarning.confirm = Yes, this is correct
 
 vatPaidWarning.title = Are you sure the amount of VAT you paid is correct?
 vatPaidWarning.heading = Are you sure the amount of VAT you paid is correct?
