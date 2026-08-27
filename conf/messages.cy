@@ -31,7 +31,7 @@ timeout.signOut = Sign out
 
 error.title.prefix = Gwall:
 error.prefix = Gwall
-error.summary.title = Mae problem wedi codi
+error.summary.title = Mae problem
 
 journeyRecovery.continue.title = Sorry, there is a problem with the service
 journeyRecovery.continue.heading = Sorry, there is a problem with the service
