@@ -16,16 +16,23 @@
 
 package forms
 
+import config.FrontendAppConfig
 import forms.behaviours.{FieldBehaviours, StringFieldBehaviours}
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.data.FormError
 
-class RefundingCountryFormProviderSpec extends StringFieldBehaviours with FieldBehaviours {
+class RefundingCountryFormProviderSpec extends StringFieldBehaviours with FieldBehaviours with MockitoSugar {
 
-  private val formProvider = new RefundingCountryFormProvider()
-  private val allowed = Set("DE", "Germany", "United Kingdom", "Some Country")
-  private val form = formProvider(allowed)
+  private val allowed = Map("DE" -> "Germany", "UK" -> "United Kingdom", "ZZ" -> "Some Country")
+  private val mockConfig = mock[FrontendAppConfig]
+  private val formProvider = new RefundingCountryFormProvider(mockConfig)
+  private val form = formProvider()
 
   ".value" - {
+    when(mockConfig.countriesInEU)
+      .thenReturn(allowed)
 
     val fieldName = "value"
 
@@ -35,10 +42,43 @@ class RefundingCountryFormProviderSpec extends StringFieldBehaviours with FieldB
       requiredError = FormError(fieldName, "refundingCountry.error.required")
     )
 
-    // max length constraint removed per review
+    "bind valid data" in {
+      val validValues = Seq("DE", "UK")
+      validValues.foreach { v =>
+        val result = form.bind(Map(fieldName -> v)).apply(fieldName)
+        result.value.value mustBe v
+        result.errors mustBe empty
+      }
+    }
+
+    "not bind invalid data" in {
+      val invalidValues = Seq("United Kingdom", "Some Country")
+      invalidValues.foreach { v =>
+        val result = form.bind(Map(fieldName -> v)).apply(fieldName)
+        result.value.value mustBe v
+        result.errors.head.key mustBe "value"
+        result.errors.head.messages mustBe Seq("refundingCountry.error.invalid")
+      }
+    }
+  }
+
+  ".valueTyped" - {
+    when(mockConfig.countriesInEU)
+      .thenReturn(allowed)
+
+    val fieldName = "valueTyped"
 
     "bind valid data" in {
-      val validValues = Seq("DE", "Germany", "United Kingdom", "Some Country")
+      val validValues = Seq("DE", "UK")
+      validValues.foreach { v =>
+        val result = form.bind(Map(fieldName -> v)).apply(fieldName)
+        result.value.value mustBe v
+        result.errors mustBe empty
+      }
+    }
+
+    "also bind invalid data that a user may type" in {
+      val validValues = Seq("United Kingdom", "Some Country")
       validValues.foreach { v =>
         val result = form.bind(Map(fieldName -> v)).apply(fieldName)
         result.value.value mustBe v

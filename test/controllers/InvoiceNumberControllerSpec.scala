@@ -30,7 +30,6 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import repositories.SessionRepository
 import views.html.InvoiceNumberView
-import play.api.mvc.Call
 
 import scala.concurrent.Future
 import models.CheckMode

@@ -183,20 +183,6 @@ class EuVatRefundsConnectorSpec extends AnyWordSpec with Matchers with MockitoSu
       applicationId = 123456,
       goodsDescriptionCategory = "1",
       goodsDescriptionText = Some("Fuel"),
-      purchaseSubcategory = None,
-      simplifiedInvoiceIndicator = None,
-      supplierName = None,
-      supplierAddress1 = None,
-      supplierAddress2 = None,
-      supplierAddress3 = None,
-      supplierVatRegNumber = None,
-      supplierTaxIdentifier = None,
-      invoiceDate = None,
-      invoiceNumber = None,
-      currencyCode = None,
-      taxableAmount = None,
-      vatAmount = None,
-      deductibleVatAmount = None,
       updateSequenceNumber = 1
     )
 

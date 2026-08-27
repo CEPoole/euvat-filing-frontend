@@ -160,42 +160,22 @@ class PurchaseTypeController @Inject() (
               .get(pages.PurchaseSubTypeArrivedFromCheckYourAnswersPage)
               .contains(true) || request.userAnswers.get(pages.PurchaseSubCategoryArrivedFromCheckYourAnswersPage).contains(true)
 
-            if (arrivedFromDescribe && !arrivedFromSubTypeOrCategory) {
-              // Only return to the describe-items change page when there is
-              // meaningful data to edit (either a non-empty description is
-              // present or the purchase type has meaningful subcodes).
-              val describePresent = request.userAnswers.get(DescribeItemsOnInvoicePage).exists(_.trim.nonEmpty)
-
-              val countryOpt = CountryCode.findCountryCode(request.userAnswers)
-              val hasMeaningfulSubcodes = countryOpt
-                .flatMap { c =>
-                  try Some(config.subcodesFor(c, value.toString).exists { case (code, _) => !code.split("\\.").lastOption.contains("99") })
-                  catch { case _: Throwable => None }
+            lazy val describePresent = request.userAnswers.get(DescribeItemsOnInvoicePage).exists(_.trim.nonEmpty)
+            lazy val hasMeaningfulSubcodes =
+              CountryCode.findCountryCode(request.userAnswers).forall(
+                config.subcodesFor(_, value.toString).exists {
+                  case (code, _) => !code.split("\\.").lastOption.contains("99")
                 }
-                .getOrElse(true)
-
-              if (describePresent || hasMeaningfulSubcodes) {
-                val removedTry = request.userAnswers.remove(pages.DescribeItemsArrivedFromCheckYourAnswersPage)
-                Future.fromTry(removedTry).flatMap { ua =>
-                  sessionRepository.set(ua).map { _ =>
-                    val call = controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(models.CheckMode)
-                    val prefix = MountPrefix.getFromRequest
-                    if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
-                    else Redirect(Call(call.method, s"$prefix${call.url}"))
-                  }
-                }
-              } else {
-                // No meaningful describe text and no meaningful subcodes ->
-                // nothing to edit, short-circuit to Purchase CYA instead.
-                CheckModeShortCircuit.shortCircuitIfUnchanged(
-                  PurchaseTypePage,
-                  value,
-                  mode,
-                  request.userAnswers,
-                  controllers.purchase.routes.CheckYourPurchaseDetailsController.onPageLoad()
-                ) match {
-                  case Some(res) => Future.successful(res)
-                  case None      => Future.failed(new IllegalStateException("Expected short-circuit result for unchanged CheckMode submission"))
+              )
+            if (arrivedFromDescribe && !arrivedFromSubTypeOrCategory && (describePresent || hasMeaningfulSubcodes)) {
+              val removedTry = request.userAnswers.remove(pages.DescribeItemsArrivedFromCheckYourAnswersPage)
+              Future.fromTry(removedTry).flatMap { ua =>
+                sessionRepository.set(ua).map { _ =>
+                  val call = controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(models.CheckMode)
+                  val prefix = MountPrefix.getFromRequest
+                  if prefix.isEmpty || call.url.startsWith(prefix)
+                  then Redirect(call)
+                  else Redirect(Call(call.method, s"$prefix${call.url}"))
                 }
               }
             } else {
@@ -338,7 +318,8 @@ class PurchaseTypeController @Inject() (
         sessionRepository.set(ua).map { _ =>
           val call = controllers.routes.DescribeItemsOnInvoiceController.onPageLoad(models.CheckMode)
           val prefix = MountPrefix.getFromRequest
-          if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
+          if prefix.isEmpty || call.url.startsWith(prefix)
+          then Redirect(call)
           else Redirect(Call(call.method, s"$prefix${call.url}"))
         }
       }
@@ -348,7 +329,8 @@ class PurchaseTypeController @Inject() (
         sessionRepository.set(ua).map { _ =>
           val call = controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(PurchaseType.urlSlugForPurchaseType(value), models.CheckMode)
           val prefix = MountPrefix.getFromRequest
-          if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
+          if prefix.isEmpty || call.url.startsWith(prefix)
+          then Redirect(call)
           else Redirect(Call(call.method, s"$prefix${call.url}"))
         }
       }
@@ -358,7 +340,8 @@ class PurchaseTypeController @Inject() (
         sessionRepository.set(ua).map { _ =>
           val call = controllers.purchase.routes.PurchaseSubTypeController.onPageLoad(PurchaseType.urlSlugForPurchaseType(value), models.CheckMode)
           val prefix = MountPrefix.getFromRequest
-          if (prefix.isEmpty || call.url.startsWith(prefix)) Redirect(call)
+          if prefix.isEmpty || call.url.startsWith(prefix)
+          then Redirect(call)
           else Redirect(Call(call.method, s"$prefix${call.url}"))
         }
       }
@@ -404,23 +387,8 @@ class PurchaseTypeController @Inject() (
 
         // Build a minimal AddPurchaseRequest using the available information
         val purchaseRequest = AddPurchaseRequest(
-          applicationId              = claimResponse.applicationId.toLong,
+          applicationId              = claimResponse.applicationId,
           goodsDescriptionCategory   = PurchaseType.codes(purchaseType),
-          goodsDescriptionText       = None,
-          purchaseSubcategory        = None,
-          simplifiedInvoiceIndicator = None,
-          supplierName               = None,
-          supplierAddress1           = None,
-          supplierAddress2           = None,
-          supplierAddress3           = None,
-          supplierVatRegNumber       = None,
-          supplierTaxIdentifier      = None,
-          invoiceDate                = None,
-          invoiceNumber              = None,
-          currencyCode               = None,
-          taxableAmount              = None,
-          vatAmount                  = None,
-          deductibleVatAmount        = None,
           updateSequenceNumber       = claimResponse.updateSeqNumber
         )
 
@@ -432,24 +400,18 @@ class PurchaseTypeController @Inject() (
           .flatMap { response =>
             for {
               // persist the API response in session
-              updatedAnswers <- Future.fromTry(
-                                  answers.set(AddPurchaseResponsePage, response)
-                                )
+              updatedAnswers <- Future.fromTry(answers.set(AddPurchaseResponsePage, response))
               _ <- sessionRepository.set(updatedAnswers)
             } yield {
               // Navigate to the next page, applying mount prefix when needed
               val call = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)
               val prefix = MountPrefix.getFromRequest
-
-              if (prefix.isEmpty || call.url.startsWith(prefix)) {
-                Redirect(call)
-              } else {
-                Redirect(Call(call.method, s"$prefix${call.url}"))
-              }
+              if prefix.isEmpty || call.url.startsWith(prefix)
+              then Redirect(call)
+              else Redirect(Call(call.method, s"$prefix${call.url}"))
             }
           }
           .recover { case ex =>
-            // Log unexpected errors and redirect to recovery
             logger.error("Error while adding the purchase", ex)
             Redirect(routes.JourneyRecoveryController.onPageLoad())
           }

@@ -17,7 +17,8 @@
 package controllers
 
 import base.SpecBase
-import models.{NormalMode, Fuel}
+import config.FrontendAppConfig
+import models.{Fuel, NormalMode}
 import models.requests.LatestApplicationRequest
 import models.responses.{LatestApplication, LatestApplicationResponse}
 import navigation.FakeNavigator
@@ -32,7 +33,6 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import repositories.SessionRepository
 import uk.gov.hmrc.http.HeaderCarrier
-import utils.CountryList
 
 import java.time.LocalDateTime
 import scala.concurrent.Future
@@ -51,9 +51,8 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
 
         val view = application.injector.instanceOf[views.html.RefundingCountryView]
         val formProvider = application.injector.instanceOf[forms.RefundingCountryFormProvider]
-        val countries: Seq[(String, String)] = CountryList.fromConfig(application.configuration)
+        val countries: Map[String, String] = application.injector.instanceOf[FrontendAppConfig].countriesInEU
         val allowed: Set[String] = countries.flatMap { case (n, c) => Seq(n, c) }.toSet
-        val form = formProvider(allowed)
 
         status(result) mustEqual OK
         val body = contentAsString(result)
@@ -61,9 +60,9 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         body must not include s"href=\"$backUrl\""
         val viewRequest = request.withCSRFToken
         normalizeHtml(body) mustEqual normalizeHtml(
-          view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
-                                                                                                                messages(application)
-                                                                                                               ).toString
+          view(formProvider(), countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)
+            (viewRequest, messages(application))
+            .toString
         )
       }
     }
@@ -91,9 +90,8 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
 
         val view = application.injector.instanceOf[views.html.RefundingCountryView]
         val formProvider = application.injector.instanceOf[forms.RefundingCountryFormProvider]
-        val countries: Seq[(String, String)] = CountryList.fromConfig(application.configuration)
+        val countries: Map[String, String] = application.injector.instanceOf[FrontendAppConfig].countriesInEU
         val allowed: Set[String] = countries.flatMap { case (n, c) => Seq(n, c) }.toSet
-        val form = formProvider(allowed)
 
         status(result) mustEqual OK
         val body = contentAsString(result)
@@ -101,7 +99,7 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         body must not include s"href=\"$backUrl\""
         val viewRequest = request.withCSRFToken
         normalizeHtml(body) mustEqual normalizeHtml(
-          view(form, countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
+          view(formProvider(), countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
                                                                                                                 messages(application)
                                                                                                                ).toString
         )
@@ -345,9 +343,9 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
 
         val view = application.injector.instanceOf[views.html.RefundingCountryView]
         val formProvider = application.injector.instanceOf[forms.RefundingCountryFormProvider]
-        val countries: Seq[(String, String)] = CountryList.fromConfig(application.configuration)
+        val countries: Map[String, String] = application.injector.instanceOf[FrontendAppConfig].countriesInEU
         val allowed: Set[String] = countries.flatMap { case (n, c) => Seq(n, c) }.toSet
-        val form = formProvider(allowed).fill("DE")
+        val form = formProvider().fill("DE")
 
         status(result) mustEqual OK
         val body = contentAsString(result)
@@ -375,9 +373,9 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
 
         val view = application.injector.instanceOf[views.html.RefundingCountryView]
         val formProvider = application.injector.instanceOf[forms.RefundingCountryFormProvider]
-        val countries: Seq[(String, String)] = CountryList.fromConfig(application.configuration)
+        val countries: Map[String, String] = application.injector.instanceOf[FrontendAppConfig].countriesInEU
         val allowed: Set[String] = countries.flatMap { case (n, c) => Seq(n, c) }.toSet
-        val form = formProvider(allowed).fill("DE")
+        val form = formProvider().fill("DE")
 
         status(result) mustEqual OK
         val body = contentAsString(result)

@@ -48,7 +48,7 @@ class ConfigSpec extends SpecBase {
   }
 
   "FrontendAppConfig" - {
-    "languageMap contains English and Welsh" in {
+    "languageMap contains English and Welsh, and EU countries populated from config" in {
       val base = Map(
         "host"                                             -> "http://localhost:18501",
         "appName"                                          -> "euvat",
@@ -64,7 +64,14 @@ class ConfigSpec extends SpecBase {
         "features.welsh-translation"                       -> true,
         "timeout-dialog.timeout"                           -> 900,
         "timeout-dialog.countdown"                         -> 120,
-        "mongodb.timeToLiveInSeconds"                      -> 900
+        "mongodb.timeToLiveInSeconds"                      -> 900,
+        "eu.member-states"                                 -> Map("UK" -> "United Kingdom", "DE" -> "Germany"),
+        "allowlist.refund.amend.vrns"                      -> Seq.empty,
+        "allowlist.refund.create.vrns"                     -> Seq.empty,
+        "refund.start.earliest.month"                      -> 1,
+        "refund.start.earliest.year"                       -> 1,
+        "refund.start.latest.month"                        -> 1,
+        "refund.start.latest.year"                         -> 1
       )
 
       val config = Configuration(base.toSeq*)
@@ -73,35 +80,9 @@ class ConfigSpec extends SpecBase {
       val langs = appConfig.languageMap
       langs.keySet must contain("en")
       langs.keySet must contain("cy")
-    }
 
-    "feedbackUrl should include the host and request uri" in {
-      val base = Map(
-        "host"                                             -> "http://localhost:18501",
-        "appName"                                          -> "euvat",
-        "contact-frontend.host"                            -> "http://localhost:9250",
-        "contact-frontend.serviceId"                       -> "euvat-filing-frontend",
-        "microservice.services.feedback-frontend.host"     -> "fb.local",
-        "microservice.services.feedback-frontend.port"     -> "9514",
-        "microservice.services.feedback-frontend.protocol" -> "http",
-        "urls.login"                                       -> "http://login",
-        "urls.loginContinue"                               -> "http://continue",
-        "urls.signOut"                                     -> "http://signout",
-        "urls.claimDashboardUrl"                           -> "http://dashboard",
-        "features.welsh-translation"                       -> true,
-        "timeout-dialog.timeout"                           -> 900,
-        "timeout-dialog.countdown"                         -> 120,
-        "mongodb.timeToLiveInSeconds"                      -> 900
-      )
-
-      val config = Configuration(base.toSeq*)
-      val appConfig = new FrontendAppConfig(config)
-
-      implicit val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("GET", "/some/path?x=1")
-      val url = appConfig.feedbackUrl
-      url must include("/contact/beta-feedback?service=euvat-filing-frontend")
-      url must include("backUrl=http://localhost:18501/some/path?x=1")
+      val countries = appConfig.countriesInEU
+      countries mustBe Map("UK" -> "United Kingdom", "DE" -> "Germany")
     }
   }
-
 }

@@ -16,21 +16,22 @@
 
 package controllers
 
+import config.FrontendAppConfig
 import controllers.actions.*
 import forms.RefundingCountryFormProvider
 import models.requests.LatestApplicationRequest
 import models.{Mode, RefundingLanguage, UserAnswers}
 import navigation.Navigator
-import pages.{CountryChangedPage, PurchaseSubCategoryLabelPage, PurchaseSubCategoryPage, PurchaseSubTypeLabelPage, PurchaseSubTypePage, PurchaseTypePage, RefundingCountryNamePage, RefundingCountryPage, RefundingCurrencyPage, RefundingLanguagePage}
+import pages.*
+import play.api.Logging
 import play.api.data.{Form, FormError}
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.*
-import play.api.{Configuration, Logging}
 import queries.LatestCountryResponseQuery
 import repositories.SessionRepository
 import services.EuVatRefundsService
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
-import utils.{CurrencyConfig, ConfigLanguageMapping, CountryCode, CountryList}
+import utils.{ConfigLanguageMapping, CountryCode, CurrencyConfig}
 import views.html.RefundingCountryView
 
 import javax.inject.Inject
@@ -38,52 +39,46 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 class RefundingCountryController @Inject() (
-                                             override val messagesApi: MessagesApi,
-                                             sessionRepository: SessionRepository,
-                                             navigator: Navigator,
-                                             identify: IdentifierAction,
-                                             getData: DataRetrievalAction,
-                                             requireData: DataRequiredAction,
-                                             euVatRefundsService: EuVatRefundsService,
-                                             formProvider: RefundingCountryFormProvider,
-                                             config: Configuration,
-                                             configLanguageMapping: ConfigLanguageMapping,
-                                             currencyConfig: CurrencyConfig,
-                                             val controllerComponents: MessagesControllerComponents,
-                                             view: RefundingCountryView
+   override val messagesApi: MessagesApi,
+   sessionRepository: SessionRepository,
+   navigator: Navigator,
+   identify: IdentifierAction,
+   getData: DataRetrievalAction,
+   requireData: DataRequiredAction,
+   euVatRefundsService: EuVatRefundsService,
+   formProvider: RefundingCountryFormProvider,
+   config: FrontendAppConfig,
+   configLanguageMapping: ConfigLanguageMapping,
+   currencyConfig: CurrencyConfig,
+   val controllerComponents: MessagesControllerComponents,
+   view: RefundingCountryView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport
     with Logging {
 
-  private def buildFormAndCountries() = {
-    val countries = CountryList.fromConfig(config)
-    val allowed: Set[String] = countries.flatMap { case (name, code) => Seq(name, code) }.toSet
-    (countries, formProvider(allowed))
-  }
+  val form: Form[String] = formProvider()
 
   def onPageLoad(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>
-    val (countries, form) = buildFormAndCountries()
     val countryCode = CountryCode.findCountryCode(request.userAnswers)
     val preparedForm = countryCode.fold(form)(code => form.fill(code))
-    Ok(view(preparedForm, countries, routes.TaskListDashboardController.onPageLoad(), mode))
+    Ok(view(preparedForm, config.countriesInEU, routes.TaskListDashboardController.onPageLoad(), mode))
   }
 
   def onSubmit(mode: Mode): Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
-    val (countries, form) = buildFormAndCountries()
-
     form
       .bindFromRequest()
       .fold(
         formWithErrors => {
           val typed = request.body.asFormUrlEncoded.flatMap(_.get("valueTyped").flatMap(_.headOption)).getOrElse("")
-          val adjustedForm = if (typed.trim.nonEmpty) {
-            val filtered = formWithErrors.errors.filterNot(e => e.key == "value" && e.message == "refundingCountry.error.required")
-            formWithErrors.copy(errors = filtered :+ FormError("value", "refundingCountry.error.invalid"))
-          } else {
-            formWithErrors
-          }
-          Future.successful(BadRequest(view(adjustedForm, countries, routes.TaskListDashboardController.onPageLoad(), mode)))
+          val adjustedForm =
+            if typed.trim.nonEmpty then
+              val filtered = formWithErrors.errors.filterNot(e => e.key == "value" && e.message == "refundingCountry.error.required")
+              formWithErrors.copy(errors = filtered :+ FormError("value", "refundingCountry.error.invalid"))
+            else formWithErrors
+          Future.successful(
+            BadRequest(view(adjustedForm, config.countriesInEU, routes.TaskListDashboardController.onPageLoad(), mode))
+          )
         },
         value => {
           val latestReq = LatestApplicationRequest(
@@ -98,10 +93,10 @@ class RefundingCountryController @Inject() (
               if (latestResponse.totalApplication > 0) {
                 // duplicate application - show error on the form
                 val formWithError = form.fill(value).withError("value", "refundingCountry.error.duplicate")
-                Future.successful(BadRequest(view(formWithError, countries, routes.TaskListDashboardController.onPageLoad(), mode)))
+                Future.successful(BadRequest(view(formWithError, config.countriesInEU, routes.TaskListDashboardController.onPageLoad(), mode)))
               } else {
                 val baseAnswers: UserAnswers = request.userAnswers
-                val countryName = countries.find(_._2.equalsIgnoreCase(value)).map(_._1).getOrElse(value)
+                val countryName = config.countriesInEU(value)
                 val languages = configLanguageMapping.languagesFor(value).map(_.toLowerCase)
                 val prevCountryCode = CountryCode.findCountryCode(baseAnswers)
 
@@ -142,7 +137,7 @@ class RefundingCountryController @Inject() (
                       Future.successful(updatedAnswers3)
                     }
                   }
-                  result <- saveAndRedirect(updatedAnswers4, value, form, countries, mode)
+                  result <- saveAndRedirect(updatedAnswers4, value, form, config.countriesInEU, mode)
                 } yield result
               }
             }
@@ -156,7 +151,7 @@ class RefundingCountryController @Inject() (
 
   }
 
-  private def saveAndRedirect(answers: UserAnswers, value: String, form: Form[String], countries: Seq[(String, String)], mode: Mode)(using
+  private def saveAndRedirect(answers: UserAnswers, value: String, form: Form[String], countries: Map[String, String], mode: Mode)(using
     Request[?]
   ): Future[Result] =
     sessionRepository

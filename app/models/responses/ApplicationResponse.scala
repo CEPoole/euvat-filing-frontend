@@ -19,7 +19,7 @@ package models.responses
 import play.api.libs.json.{Json, OFormat}
 
 case class ApplicationResponse(
-  applicationId: Int,
+  applicationId: Long,
   applicationNumber: String,
   updateSeqNumber: Int
 )
