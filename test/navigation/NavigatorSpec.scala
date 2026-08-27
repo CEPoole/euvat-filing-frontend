@@ -20,7 +20,7 @@ import base.SpecBase
 import controllers.routes
 import models.*
 import pages.*
-import utils.{CurrencyConfig, ConfigLanguageMapping, ConfigPurchaseMapping}
+import utils.{ConfigLanguageMapping, ConfigPurchaseMapping, CurrencyConfig}
 import play.api.Configuration
 import com.typesafe.config.ConfigFactory
 import play.api.mvc.Call

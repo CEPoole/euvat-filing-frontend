@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import forms.SuppliersNameFormProvider
-import models.{NormalMode, UserAnswers, Fuel}
+import models.{Fuel, NormalMode, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when

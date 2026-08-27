@@ -38,17 +38,17 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Success
 
 class RefundingCurrencyController @Inject() (
-                                              override val messagesApi: MessagesApi,
-                                              sessionRepository: SessionRepository,
-                                              navigator: Navigator,
-                                              identify: IdentifierAction,
-                                              getData: DataRetrievalAction,
-                                              requireData: DataRequiredAction,
-                                              formProvider: RefundingCurrencyFormProvider,
-                                              currencyConfig: CurrencyConfig,
-                                              configLanguageMapping: ConfigLanguageMapping,
-                                              val controllerComponents: MessagesControllerComponents,
-                                              view: RefundingCurrencyView
+  override val messagesApi: MessagesApi,
+  sessionRepository: SessionRepository,
+  navigator: Navigator,
+  identify: IdentifierAction,
+  getData: DataRetrievalAction,
+  requireData: DataRequiredAction,
+  formProvider: RefundingCurrencyFormProvider,
+  currencyConfig: CurrencyConfig,
+  configLanguageMapping: ConfigLanguageMapping,
+  val controllerComponents: MessagesControllerComponents,
+  view: RefundingCurrencyView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport {
@@ -70,9 +70,8 @@ class RefundingCurrencyController @Inject() (
         val preparedForm = request.userAnswers
           .get(RefundingCurrencyPage)
           .flatMap { storedCode =>
-            currencies.find(_._2 == storedCode).map {
-              case Currency(name, _, _) =>
-                form.fill(RefundingCurrency.values.find(_.toString == name).getOrElse(RefundingCurrency.Euro))
+            currencies.find(_._2 == storedCode).map { case Currency(name, _, _) =>
+              form.fill(RefundingCurrency.values.find(_.toString == name).getOrElse(RefundingCurrency.Euro))
             }
           }
           .getOrElse(form)
@@ -154,7 +153,8 @@ class RefundingCurrencyController @Inject() (
                   if (isChanged) ua.set(CurrencyChangedPage, true) else Success(ua)
                 }
 
-                Future.fromTry(maybeCurrencyChangedTry)
+                Future
+                  .fromTry(maybeCurrencyChangedTry)
                   .flatMap: finalAnswers =>
                     sessionRepository
                       .set(finalAnswers)
@@ -171,18 +171,19 @@ class RefundingCurrencyController @Inject() (
   ): Seq[RadioItem] =
     currencies.zipWithIndex
       .flatMap: (c, idx) =>
-        RefundingCurrency.values.find(_.toString.equalsIgnoreCase(c.name))
+        RefundingCurrency.values
+          .find(_.toString.equalsIgnoreCase(c.name))
           .map: v =>
             RadioItem(
-              content = Text(msgs(s"refundingCurrency.${v.toString}", c.symbol)),
-              value   = Some(v.toString),
-              id      = Some(if (idx == 0) "value" else s"value_$idx"),
-              label   = None,
-              hint    = None,
-              divider = None,
-              checked = false,
+              content         = Text(msgs(s"refundingCurrency.${v.toString}", c.symbol)),
+              value           = Some(v.toString),
+              id              = Some(if (idx == 0) "value" else s"value_$idx"),
+              label           = None,
+              hint            = None,
+              divider         = None,
+              checked         = false,
               conditionalHtml = None,
-              disabled = false,
-              attributes = Map.empty
+              disabled        = false,
+              attributes      = Map.empty
             )
 }

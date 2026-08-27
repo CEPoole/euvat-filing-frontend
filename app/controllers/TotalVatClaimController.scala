@@ -35,16 +35,16 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class TotalVatClaimController @Inject() (
-                                          override val messagesApi: MessagesApi,
-                                          sessionRepository: SessionRepository,
-                                          navigator: Navigator,
-                                          identify: IdentifierAction,
-                                          getData: DataRetrievalAction,
-                                          requireData: DataRequiredAction,
-                                          formProvider: TotalVatClaimFormProvider,
-                                          currencyConfig: CurrencyConfig,
-                                          val controllerComponents: MessagesControllerComponents,
-                                          view: TotalVatClaimView
+  override val messagesApi: MessagesApi,
+  sessionRepository: SessionRepository,
+  navigator: Navigator,
+  identify: IdentifierAction,
+  getData: DataRetrievalAction,
+  requireData: DataRequiredAction,
+  formProvider: TotalVatClaimFormProvider,
+  currencyConfig: CurrencyConfig,
+  val controllerComponents: MessagesControllerComponents,
+  view: TotalVatClaimView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport {

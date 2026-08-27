@@ -60,9 +60,9 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         body must not include s"href=\"$backUrl\""
         val viewRequest = request.withCSRFToken
         normalizeHtml(body) mustEqual normalizeHtml(
-          view(formProvider(), countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)
-            (viewRequest, messages(application))
-            .toString
+          view(formProvider(), countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
+                                                                                                                          messages(application)
+                                                                                                                         ).toString
         )
       }
     }
@@ -100,8 +100,8 @@ class RefundingCountryControllerSpec extends SpecBase with MockitoSugar {
         val viewRequest = request.withCSRFToken
         normalizeHtml(body) mustEqual normalizeHtml(
           view(formProvider(), countries, controllers.routes.TaskListDashboardController.onPageLoad(), models.NormalMode)(viewRequest,
-                                                                                                                messages(application)
-                                                                                                               ).toString
+                                                                                                                          messages(application)
+                                                                                                                         ).toString
         )
       }
     }

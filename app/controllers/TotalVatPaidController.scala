@@ -42,16 +42,16 @@ import scala.concurrent.{ExecutionContext, Future}
   *     single-write invariant. If the value changes we persist once and then redirect appropriately.
   */
 class TotalVatPaidController @Inject() (
-                                         override val messagesApi: MessagesApi,
-                                         sessionRepository: SessionRepository,
-                                         navigator: Navigator,
-                                         currencyConfig: CurrencyConfig,
-                                         identify: IdentifierAction,
-                                         getData: DataRetrievalAction,
-                                         requireData: DataRequiredAction,
-                                         formProvider: TotalVatPaidFormProvider,
-                                         val controllerComponents: MessagesControllerComponents,
-                                         view: TotalVatPaidView
+  override val messagesApi: MessagesApi,
+  sessionRepository: SessionRepository,
+  navigator: Navigator,
+  currencyConfig: CurrencyConfig,
+  identify: IdentifierAction,
+  getData: DataRetrievalAction,
+  requireData: DataRequiredAction,
+  formProvider: TotalVatPaidFormProvider,
+  val controllerComponents: MessagesControllerComponents,
+  view: TotalVatPaidView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport {

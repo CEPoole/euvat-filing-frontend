@@ -56,8 +56,7 @@ class ConfigPurchaseMapping @Inject() (config: Configuration = Configuration.emp
       val parts = label.substring(prefix.length).split("\\.")
       val codeHead = code.split("\\.").headOption.getOrElse("")
       // Only drop the numeric segment after the type if it matches the first numeric segment of the entry code
-      if parts.length >= 2 && parts(1) == codeHead then
-        prefix + (parts.head +: parts.drop(2)).mkString(".")
+      if parts.length >= 2 && parts(1) == codeHead then prefix + (parts.head +: parts.drop(2)).mkString(".")
       else label
   }
 

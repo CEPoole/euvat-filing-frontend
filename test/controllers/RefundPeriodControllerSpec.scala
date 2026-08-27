@@ -475,10 +475,10 @@ class RefundPeriodControllerSpec extends SpecBase with MockitoSugar {
         // Configure a latest permitted date but clear earliest so it does not interfere
         val application = applicationBuilder(userAnswers = Some(userAnswersWithTrader))
           .configure(
-            "refund.start.earliest.month"  -> 1,
-            "refund.start.earliest.year"   -> 2020,
-            "refund.start.latest.month"    -> 12,
-            "refund.start.latest.year"     -> 20202020
+            "refund.start.earliest.month" -> 1,
+            "refund.start.earliest.year"  -> 2020,
+            "refund.start.latest.month"   -> 12,
+            "refund.start.latest.year"    -> 20202020
           )
           .build()
 

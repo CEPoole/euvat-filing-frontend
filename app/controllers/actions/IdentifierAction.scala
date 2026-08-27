@@ -45,31 +45,32 @@ class AuthenticatedIdentifierAction @Inject() (
     affinityGroup: AffinityGroup,
     enrolments: Enrolments
   ): Option[EnrolmentIdentifier] =
-      enrolments.enrolments.collectFirst:
-        case e @ Enrolment("HMRC-EU-REF-ORG", identifiers, _, _) if e.isActivated && affinityGroup != Agent =>
-            e.identifiers.filter(_.key == "VATRegNo").head
-        case e @ Enrolment("HMCE-VAT-AGNT", identifiers, _, _) if e.isActivated && affinityGroup == Agent =>
-            e.identifiers.filter(_.key == "AgentRefNo").head
-        case e @ Enrolment("HMRC-NOVRN-AGNT", identifiers, _, _) if e.isActivated && affinityGroup == Agent =>
-            e.identifiers.filter(_.key == "VATAgentRefNo").head
+    enrolments.enrolments.collectFirst:
+      case e @ Enrolment("HMRC-EU-REF-ORG", identifiers, _, _) if e.isActivated && affinityGroup != Agent =>
+        e.identifiers.filter(_.key == "VATRegNo").head
+      case e @ Enrolment("HMCE-VAT-AGNT", identifiers, _, _) if e.isActivated && affinityGroup == Agent =>
+        e.identifiers.filter(_.key == "AgentRefNo").head
+      case e @ Enrolment("HMRC-NOVRN-AGNT", identifiers, _, _) if e.isActivated && affinityGroup == Agent =>
+        e.identifiers.filter(_.key == "VATAgentRefNo").head
 
   override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] =
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
 
-    authorised().retrieve(Retrievals.affinityGroup and Retrievals.credentials and Retrievals.allEnrolments):
-      case Some(affinityGroup) ~ Some(credentials) ~ enrolments =>
-        checkForSupportedEnrolment(affinityGroup, enrolments) match
-          case None => Future.successful(Redirect(routes.UnauthorisedController.onPageLoad()))
-          case Some(supportedIdentifier) =>
-            block(
-              IdentifierRequest(request = request,
-                userId = credentials.providerId,
-                identifierKey = supportedIdentifier.key,
-                identifierValue = supportedIdentifier.value
+    authorised()
+      .retrieve(Retrievals.affinityGroup and Retrievals.credentials and Retrievals.allEnrolments):
+        case Some(affinityGroup) ~ Some(credentials) ~ enrolments =>
+          checkForSupportedEnrolment(affinityGroup, enrolments) match
+            case None => Future.successful(Redirect(routes.UnauthorisedController.onPageLoad()))
+            case Some(supportedIdentifier) =>
+              block(
+                IdentifierRequest(request         = request,
+                                  userId          = credentials.providerId,
+                                  identifierKey   = supportedIdentifier.key,
+                                  identifierValue = supportedIdentifier.value
+                                 )
               )
-            )
-      case _ =>
-        Future.failed(new UnauthorizedException("Unable to retrieve affinity, enrolments or credentials"))
-    .recover:
-      case _: NoActiveSession        => Redirect(config.loginUrl, Map("continue" -> Seq(config.loginContinueUrl)))
-      case _: AuthorisationException => Redirect(routes.UnauthorisedController.onPageLoad())
+        case _ =>
+          Future.failed(new UnauthorizedException("Unable to retrieve affinity, enrolments or credentials"))
+      .recover:
+        case _: NoActiveSession        => Redirect(config.loginUrl, Map("continue" -> Seq(config.loginContinueUrl)))
+        case _: AuthorisationException => Redirect(routes.UnauthorisedController.onPageLoad())

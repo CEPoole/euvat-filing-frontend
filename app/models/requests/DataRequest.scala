@@ -27,10 +27,5 @@ case class OptionalDataRequest[A](request: Request[A],
                                  )
     extends WrappedRequest[A](request)
 
-case class DataRequest[A](request: Request[A],
-                          userId: String,
-                          identifierKey: String,
-                          identifierValue: String,
-                          userAnswers: UserAnswers
-                         )
+case class DataRequest[A](request: Request[A], userId: String, identifierKey: String, identifierValue: String, userAnswers: UserAnswers)
     extends WrappedRequest[A](request)

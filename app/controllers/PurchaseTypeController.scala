@@ -162,11 +162,13 @@ class PurchaseTypeController @Inject() (
 
             lazy val describePresent = request.userAnswers.get(DescribeItemsOnInvoicePage).exists(_.trim.nonEmpty)
             lazy val hasMeaningfulSubcodes =
-              CountryCode.findCountryCode(request.userAnswers).forall(
-                config.subcodesFor(_, value.toString).exists {
-                  case (code, _) => !code.split("\\.").lastOption.contains("99")
-                }
-              )
+              CountryCode
+                .findCountryCode(request.userAnswers)
+                .forall(
+                  config.subcodesFor(_, value.toString).exists { case (code, _) =>
+                    !code.split("\\.").lastOption.contains("99")
+                  }
+                )
             if (arrivedFromDescribe && !arrivedFromSubTypeOrCategory && (describePresent || hasMeaningfulSubcodes)) {
               val removedTry = request.userAnswers.remove(pages.DescribeItemsArrivedFromCheckYourAnswersPage)
               Future.fromTry(removedTry).flatMap { ua =>
@@ -387,9 +389,9 @@ class PurchaseTypeController @Inject() (
 
         // Build a minimal AddPurchaseRequest using the available information
         val purchaseRequest = AddPurchaseRequest(
-          applicationId              = claimResponse.applicationId,
-          goodsDescriptionCategory   = PurchaseType.codes(purchaseType),
-          updateSequenceNumber       = claimResponse.updateSeqNumber
+          applicationId            = claimResponse.applicationId,
+          goodsDescriptionCategory = PurchaseType.codes(purchaseType),
+          updateSequenceNumber     = claimResponse.updateSeqNumber
         )
 
         // Call the external service, persist its response and redirect
@@ -401,7 +403,7 @@ class PurchaseTypeController @Inject() (
             for {
               // persist the API response in session
               updatedAnswers <- Future.fromTry(answers.set(AddPurchaseResponsePage, response))
-              _ <- sessionRepository.set(updatedAnswers)
+              _              <- sessionRepository.set(updatedAnswers)
             } yield {
               // Navigate to the next page, applying mount prefix when needed
               val call = navigator.nextPage(PurchaseTypePage, mode, updatedAnswers)

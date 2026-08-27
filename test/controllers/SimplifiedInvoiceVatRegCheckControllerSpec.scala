@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import forms.SimplifiedInvoiceVatRegCheckFormProvider
-import models.{NormalMode, SupplierAddress, UserAnswers, Fuel}
+import models.{Fuel, NormalMode, SupplierAddress, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, when}

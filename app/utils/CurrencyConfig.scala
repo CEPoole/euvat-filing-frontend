@@ -22,9 +22,10 @@ import javax.inject.Inject
 
 case class Currency(name: String, code: String, symbol: String)
 
-class CurrencyConfig @Inject()(config: Configuration):
+class CurrencyConfig @Inject() (config: Configuration):
   val currencyConfig: Map[String, Seq[Currency]] =
-    config.get[Map[String, Seq[String]]]("currency.mapping")
+    config
+      .get[Map[String, Seq[String]]]("currency.mapping")
       .map: (k, v) =>
         k -> v.map: str =>
           str.split("\\|", 3) match
@@ -33,4 +34,3 @@ class CurrencyConfig @Inject()(config: Configuration):
   final val default: Seq[Currency] = Seq(Currency("euro", "EUR", "€"))
 
   def requiresCurrencySelection(code: String): Boolean = currencyConfig.get(code).exists(_.size > 1)
-

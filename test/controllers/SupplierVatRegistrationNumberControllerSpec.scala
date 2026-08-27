@@ -19,7 +19,7 @@ package controllers
 import base.SpecBase
 import forms.SupplierVatRegistrationNumberFormProvider
 import models.responses.{AddPurchaseResponse, ApplicationResponse, SupplierVrnCountResponse}
-import models.{CheckMode, NormalMode, UserAnswers, Fuel}
+import models.{CheckMode, Fuel, NormalMode, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when

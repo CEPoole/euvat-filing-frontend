@@ -191,7 +191,7 @@ class PurchaseSubTypeController @Inject() (
       else
         // Attempt to resolve the parentKey and country from session/slug
         resolveParentAndCountry(purchaseTypeSlug, request.userAnswers) match
-          case None => Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
+          case None                       => Future.successful(Redirect(controllers.routes.JourneyRecoveryController.onPageLoad()))
           case Some((parentKey, country)) =>
             // Prepare all view data required to render the radio list
             val (options, items, parentHeading, preparedForm, resolvedSlug, formAction) =

@@ -38,7 +38,7 @@ class CheckYourPurchaseDetailsController @Inject() (
   view: CheckYourPurchaseDetailsView,
   currencyConfig: CurrencyConfig,
   configPurchaseMapping: ConfigPurchaseMapping,
-sessionRepository: SessionRepository
+  sessionRepository: SessionRepository
 )(using ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport {
@@ -60,17 +60,20 @@ sessionRepository: SessionRepository
         case _ =>
           (None, None)
 
-    Ok(view(
-      CheckYourPurchaseDetailsSummary
-        .sections(
-          request.userAnswers,
-          maybeCurrencyDisplayName,
-          maybeCurrencySymbol,
-          configPurchaseMapping,
-          currencyList.size > 1
-        ),
-      isPostSubmission = false,
-      isAmended = false))
+    Ok(
+      view(
+        CheckYourPurchaseDetailsSummary
+          .sections(
+            request.userAnswers,
+            maybeCurrencyDisplayName,
+            maybeCurrencySymbol,
+            configPurchaseMapping,
+            currencyList.size > 1
+          ),
+        isPostSubmission = false,
+        isAmended        = false
+      )
+    )
   }
 
   def onSubmit(): Action[AnyContent] = (identify andThen getData andThen requireData) { implicit request =>

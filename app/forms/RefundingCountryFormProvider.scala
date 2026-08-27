@@ -23,14 +23,15 @@ import play.api.data.validation.{Constraint, Invalid, Valid}
 
 import javax.inject.Inject
 
-class RefundingCountryFormProvider @Inject()(config: FrontendAppConfig) extends Mappings:
+class RefundingCountryFormProvider @Inject() (config: FrontendAppConfig) extends Mappings:
 
   def apply(): Form[String] =
     Form(
       "value" -> text("refundingCountry.error.required")
-        .verifying(firstError[String](
-          Constraint {
-              v => if config.countriesInEU.contains(v) then Valid else Invalid("refundingCountry.error.invalid")
+        .verifying(
+          firstError[String](
+            Constraint { v =>
+              if config.countriesInEU.contains(v) then Valid else Invalid("refundingCountry.error.invalid")
             }
           )
         )

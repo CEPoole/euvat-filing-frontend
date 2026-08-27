@@ -19,7 +19,7 @@ package navigation
 import play.api.mvc.Call
 import pages.*
 import models.{Mode, UserAnswers}
-import utils.{CurrencyConfig, ConfigLanguageMapping, ConfigPurchaseMapping}
+import utils.{ConfigLanguageMapping, ConfigPurchaseMapping, CurrencyConfig}
 import play.api.Configuration
 import com.typesafe.config.ConfigFactory
 

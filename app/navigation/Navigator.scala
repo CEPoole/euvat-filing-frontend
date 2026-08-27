@@ -21,7 +21,7 @@ import play.api.mvc.Call
 import controllers.routes
 import pages.*
 import models.*
-import utils.{CurrencyConfig, ConfigLanguageMapping, ConfigPurchaseMapping, CountryCode}
+import utils.{ConfigLanguageMapping, ConfigPurchaseMapping, CountryCode, CurrencyConfig}
 
 @Singleton
 class Navigator @Inject() (currencyConfig: CurrencyConfig,

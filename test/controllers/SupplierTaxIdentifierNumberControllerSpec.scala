@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import forms.SupplierTaxIdentifierNumberFormProvider
-import models.{CheckMode, NormalMode, UserAnswers, Fuel}
+import models.{CheckMode, Fuel, NormalMode, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, when}

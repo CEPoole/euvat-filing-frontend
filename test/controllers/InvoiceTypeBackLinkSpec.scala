@@ -17,7 +17,7 @@
 package controllers
 
 import base.SpecBase
-import models.{NormalMode, PurchaseType, Fuel}
+import models.{Fuel, NormalMode, PurchaseType}
 import pages.{InvoiceTypePage, PurchaseSubCategoryPage, PurchaseSubTypePage, PurchaseTypePage}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*

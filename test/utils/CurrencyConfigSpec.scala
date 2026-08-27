@@ -37,8 +37,8 @@ class CurrencyConfigSpec extends AnyWordSpec with Matchers {
       val cfg = Configuration(ConfigFactory.parseString(confString))
       val svc = new CurrencyConfig(cfg)
 
-      svc.currencyConfig("BG")      shouldBe Seq(Currency("euro", "EUR", "€"), Currency("bulgarianLev", "BGN", "лв"))
-      svc.currencyConfig("AT")      shouldBe Seq(Currency("euro", "EUR", "€"))
+      svc.currencyConfig("BG")                             shouldBe Seq(Currency("euro", "EUR", "€"), Currency("bulgarianLev", "BGN", "лв"))
+      svc.currencyConfig("AT")                             shouldBe Seq(Currency("euro", "EUR", "€"))
       svc.currencyConfig.getOrElse("UNKNOWN", svc.default) shouldBe Seq(Currency("euro", "EUR", "€"))
     }
 

@@ -18,7 +18,7 @@ package controllers
 
 import base.SpecBase
 import forms.DescribeItemsOnInvoiceFormProvider
-import models.{CheckMode, NormalMode, UserAnswers, PurchaseType, Fuel, Other}
+import models.{CheckMode, Fuel, NormalMode, Other, PurchaseType, UserAnswers}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.mockito.{ArgumentCaptor, Mockito}

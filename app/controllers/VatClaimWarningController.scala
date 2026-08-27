@@ -31,14 +31,14 @@ import views.html.VatClaimWarningView
 import javax.inject.Inject
 
 class VatClaimWarningController @Inject() (
-                                            override val messagesApi: MessagesApi,
-                                            identify: IdentifierAction,
-                                            getData: DataRetrievalAction,
-                                            requireData: DataRequiredAction,
-                                            currencyConfig: CurrencyConfig,
-                                            val controllerComponents: MessagesControllerComponents,
-                                            navigator: navigation.Navigator,
-                                            view: VatClaimWarningView
+  override val messagesApi: MessagesApi,
+  identify: IdentifierAction,
+  getData: DataRetrievalAction,
+  requireData: DataRequiredAction,
+  currencyConfig: CurrencyConfig,
+  val controllerComponents: MessagesControllerComponents,
+  navigator: navigation.Navigator,
+  view: VatClaimWarningView
 ) extends FrontendBaseController
     with I18nSupport
     with Logging {
@@ -67,7 +67,6 @@ class VatClaimWarningController @Inject() (
   }
 
   // Render the OK view for the VatClaimWarning page with given return route
-  private def okView(returnCall: Call, mode: Mode, currencySymbol: String, totalVatClaiming: BigDecimal)
-                    (implicit request: DataRequest[?]) =
+  private def okView(returnCall: Call, mode: Mode, currencySymbol: String, totalVatClaiming: BigDecimal)(implicit request: DataRequest[?]) =
     Ok(view(returnCall, mode, currencySymbol, totalVatClaiming))
 }

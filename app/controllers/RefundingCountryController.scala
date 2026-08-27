@@ -39,19 +39,19 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 class RefundingCountryController @Inject() (
-   override val messagesApi: MessagesApi,
-   sessionRepository: SessionRepository,
-   navigator: Navigator,
-   identify: IdentifierAction,
-   getData: DataRetrievalAction,
-   requireData: DataRequiredAction,
-   euVatRefundsService: EuVatRefundsService,
-   formProvider: RefundingCountryFormProvider,
-   config: FrontendAppConfig,
-   configLanguageMapping: ConfigLanguageMapping,
-   currencyConfig: CurrencyConfig,
-   val controllerComponents: MessagesControllerComponents,
-   view: RefundingCountryView
+  override val messagesApi: MessagesApi,
+  sessionRepository: SessionRepository,
+  navigator: Navigator,
+  identify: IdentifierAction,
+  getData: DataRetrievalAction,
+  requireData: DataRequiredAction,
+  euVatRefundsService: EuVatRefundsService,
+  formProvider: RefundingCountryFormProvider,
+  config: FrontendAppConfig,
+  configLanguageMapping: ConfigLanguageMapping,
+  currencyConfig: CurrencyConfig,
+  val controllerComponents: MessagesControllerComponents,
+  view: RefundingCountryView
 )(implicit ec: ExecutionContext)
     extends FrontendBaseController
     with I18nSupport
