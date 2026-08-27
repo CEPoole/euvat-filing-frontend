@@ -1,13 +1,13 @@
 service.name = EU VAT
 
-site.back = Yn ôl
+site.back = Back
 site.remove = Remove
 site.change = Change
 site.view = View
 site.no = No
 site.yes = Yes
 site.or = or
-site.continue = Parhau
+site.continue = Continue
 site.start = Start now
 site.startAgain = Start again
 site.signIn = Sign in
@@ -17,21 +17,21 @@ site.warning = Warning
 site.notProvided = Not provided
 
 
-date.day = Diwrnod
-date.month = Mis
-date.year = Blwyddyn
-date.error.day = diwrnod
-date.error.month = mis
-date.error.year = blwyddyn
+date.day = Day
+date.month = Month
+date.year = Year
+date.error.day = day
+date.error.month = month
+date.error.year = year
 
 timeout.title = You’re about to be signed out
 timeout.message = For security reasons, you will be signed out of this service in
 timeout.keepAlive = Stay signed in
 timeout.signOut = Sign out
 
-error.title.prefix = Gwall:
-error.prefix = Gwall
-error.summary.title = Mae problem
+error.title.prefix = Error:
+error.prefix = Error
+error.summary.title = There is a problem
 
 journeyRecovery.continue.title = Sorry, there is a problem with the service
 journeyRecovery.continue.heading = Sorry, there is a problem with the service
@@ -49,7 +49,7 @@ unauthorised.heading = You can’t access this service with this account
 unauthorised.guidance = You do not have access to this service.
 
 claim.caption = Claim details
-purchase.caption = Manylion y pryniant
+purchase.caption = Purchase details
 
 taskListDashboard.title = Make a claim for an EU VAT refund
 taskListDashboard.heading = Make a claim for an EU VAT refund
@@ -290,13 +290,13 @@ invoiceType.error.required = Select an invoice type
 invoiceType.change.hidden = Change invoice type
 invoiceType.checkYourAnswersLabel = Invoice type
 
-suppliersName.title = Beth yw enw’r cyflenwr?
-suppliersName.heading = Beth yw enw’r cyflenwr?
-suppliersName.hint = Dod o hyd i enw’r cyflenwr ar yr anfoneb neu’r dderbynneb
-suppliersName.error.required = Nodwch enw’r cyflenwr
-suppliersName.error.length = Mae’n rhaid i enw’r cyflenwr fod yn 35 o gymeriadau neu lai
-suppliersName.checkYourAnswersLabel = Enw’r cyflenwr
-suppliersName.change.hidden = Newid enw’r cyflenwr
+suppliersName.title = What is the supplier’s name?
+suppliersName.heading = What is the supplier’s name?
+suppliersName.hint = Find the supplier’s name on the invoice or receipt
+suppliersName.error.required = Enter a supplier’s name
+suppliersName.error.length = The supplier’s name must be 35 characters or less
+suppliersName.checkYourAnswersLabel = Supplier name
+suppliersName.change.hidden = Change supplier name
 
 supplierTaxNumber.title = Select the supplier tax numbers shown on the invoice
 supplierTaxNumber.heading = Select the supplier tax numbers shown on the invoice
@@ -384,32 +384,32 @@ supplierAddress.error.maxLength.withLabel = {0} {1}
 supplierAddress.checkYourAnswersLabel=Supplier address
 supplierAddress.change.hidden = Change supplier address
 
-invoiceDate.title = Beth yw dyddiad yr anfoneb?
-invoiceDate.heading = Beth yw dyddiad yr anfoneb?
-invoiceDate.hint = Er enghraifft, 27 3 2025
-invoiceDate.error.invalid = Nodwch ddyddiad dilys
-invoiceDate.error.invalid.day = Nodwch ddiwrnod dilys
-invoiceDate.error.invalid.month = Nodwch fis dilys
-invoiceDate.error.invalid.year = Nodwch flwyddyn ddilys
-invoiceDate.error.invalid.two = Nodwch {0} a {1} dilys
-invoiceDate.error.required = Nodwch {0}
-invoiceDate.error.required.all = Nodwch ddyddiad
-invoiceDate.error.required.two = Nodwch {0} a {1}
-invoiceDate.error.past = Mae’n rhaid i ddyddiad yr anfoneb fod yn y gorffennol
-invoiceDate.error.outsideRefundPeriod = Mae’n rhaid i ddyddiad yr anfoneb fod o fewn y cyfnod ad-dalu
-invoiceDate.checkYourAnswersLabel = Dyddiad yr anfoneb
-invoiceDate.change.hidden = Newidiwch dyddiad yr anfoneb
+invoiceDate.title = What is the invoice date?
+invoiceDate.heading = What is the invoice date?
+invoiceDate.hint = For example, 27 3 2025
+invoiceDate.error.invalid = Enter a valid date
+invoiceDate.error.invalid.day = Enter a valid day
+invoiceDate.error.invalid.month = Enter a valid month
+invoiceDate.error.invalid.year = Enter a valid year
+invoiceDate.error.invalid.two = Enter a valid {0} and {1}
+invoiceDate.error.required = Enter a {0}
+invoiceDate.error.required.all = Enter a date
+invoiceDate.error.required.two = Enter a {0} and {1}
+invoiceDate.error.past = The invoice date must be in the past
+invoiceDate.error.outsideRefundPeriod = The invoice date must be within the refund period
+invoiceDate.checkYourAnswersLabel = Invoice date
+invoiceDate.change.hidden = Change invoice date
 
-invoiceNumber.title = Rhif yr anfoneb
-invoiceNumber.heading = Rhif yr anfoneb
-invoiceNumber.h2 = Beth yw rhif yr anfoneb?
-invoiceNumber.hint = Mae rhifau anfoneb yn set o lythrennau neu rifau a geir fel arfer ar frig neu waelod yr anfoneb.
-invoiceNumber.p1 = Dim ond unwaith y gallwch ddefnyddio rhif anfoneb. Mae’n bosibl y bydd eich hawliad yn cael ei wrthod os byddwch yn nodi’r un rhif ddwywaith.
-invoiceNumber.error.required = Nodwch rif anfoneb
-invoiceNumber.error.length = Mae’n rhaid i rif yr anfoneb fod yn {0} o gymeriadau neu lai
-invoiceNumber.error.invalid = Nodwch rif anfoneb dilys
-invoiceNumber.checkYourAnswersLabel = Rhif yr anfoneb
-invoiceNumber.change.hidden = Newidiwch rif yr anfoneb
+invoiceNumber.title = Invoice number
+invoiceNumber.heading = Invoice number
+invoiceNumber.h2 = What is the invoice number?
+invoiceNumber.hint = Invoice numbers are a set of letters or numbers usually found at the top or bottom of the invoice
+invoiceNumber.p1 = You can only use an invoice number once. Your claim may be rejected if you enter the same number twice.
+invoiceNumber.error.required = Enter an invoice number
+invoiceNumber.error.length = The invoice number must be {0} characters or less
+invoiceNumber.error.invalid = Enter a valid invoice number
+invoiceNumber.checkYourAnswersLabel = Invoice number
+invoiceNumber.change.hidden = Change the invoice number
 
 simplifiedInvoiceVatRegCheck.title = Does the simplified invoice contain the supplier’s VAT registration number?
 simplifiedInvoiceVatRegCheck.heading = Does the simplified invoice contain the supplier’s VAT registration number?
