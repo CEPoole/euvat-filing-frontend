@@ -91,7 +91,7 @@ GET         /remove-third-SIC-code                      controllers.RemoveThirdB
 POST        /remove-third-SIC-code                      controllers.RemoveThirdBusinessActivityController.onSubmit()
 
 GET         /delete-claim                               controllers.DeleteClaimController.onPageLoad()
-POST         /delete-claim                               controllers.DeleteClaimController.onSubmit()
+POST        /delete-claim                               controllers.DeleteClaimController.onSubmit()
 
 # Purchase details journey
 GET         /before-you-start                           controllers.BeforeYouStartPurchaseController.onPageLoad()
