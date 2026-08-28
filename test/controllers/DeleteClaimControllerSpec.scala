@@ -17,6 +17,7 @@
 package controllers
 
 import base.SpecBase
+import config.FrontendAppConfig
 import forms.DeleteClaimFormProvider
 import models.{NormalMode, RefundPeriod, UserAnswers}
 import navigation.{FakeNavigator, Navigator}
@@ -46,12 +47,16 @@ class DeleteClaimControllerSpec extends SpecBase with MockitoSugar {
 
   val testRefundPeriod = RefundPeriod(
     startDate = LocalDateTime.of(2025, 4, 1, 0, 0),
-    endDate = LocalDateTime.of(2025, 8, 31, 23, 59, 59, 999000000)
+    endDate   = LocalDateTime.of(2025, 8, 31, 23, 59, 59, 999000000)
   )
 
   val populatedAnswers = emptyUserAnswers
-    .set(RefundingCountryNamePage, "Poland").success.value
-    .set(RefundPeriodPage, testRefundPeriod).success.value
+    .set(RefundingCountryNamePage, "Poland")
+    .success
+    .value
+    .set(RefundPeriodPage, testRefundPeriod)
+    .success
+    .value
 
   "DeleteClaim Controller" - {
 
@@ -77,53 +82,37 @@ class DeleteClaimControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
-    "must populate the view correctly on a GET when the question has previously been answered" in {
+    "must redirect to the management frontend when 'Yes' is submitted" in {
 
-      val userAnswers = populatedAnswers.set(DeleteClaimPage, true).success.value
-
-      val application = applicationBuilder(userAnswers = Some(userAnswers)).build()
-
-      running(application) {
-        val request = FakeRequest(GET, deleteClaimRoute)
-
-        val view = application.injector.instanceOf[DeleteClaimView]
-        implicit val msgs = messages(application)
-        implicit val lang = msgs.lang
-
-        val expectedMemberState = "Poland"
-        val expectedStart = testRefundPeriod.startDate.format(shortMonthYearFormat())
-        val expectedEnd = testRefundPeriod.endDate.format(shortMonthYearFormat())
-
-        val result = route(application, request).value
-
-        status(result) mustEqual OK
-        contentAsString(result) mustEqual view(form.fill(true), expectedMemberState, expectedStart, expectedEnd)(request, msgs).toString
-      }
-    }
-
-    "must redirect to the next page when valid data is submitted" in {
-
-      val mockSessionRepository = mock[SessionRepository]
-
-      when(mockSessionRepository.set(any())) thenReturn Future.successful(true)
-
-      val application =
-        applicationBuilder(userAnswers = Some(populatedAnswers))
-          .overrides(
-            bind[Navigator].toInstance(new FakeNavigator(onwardRoute)),
-            bind[SessionRepository].toInstance(mockSessionRepository)
-          )
-          .build()
+      val application = applicationBuilder(userAnswers = Some(populatedAnswers)).build()
 
       running(application) {
         val request =
           FakeRequest(POST, deleteClaimRoute)
             .withFormUrlEncodedBody(("value", "true"))
 
+        val appConfig = application.injector.instanceOf[FrontendAppConfig]
+
         val result = route(application, request).value
 
         status(result) mustEqual SEE_OTHER
-        redirectLocation(result).value mustEqual onwardRoute.url
+        redirectLocation(result).value mustEqual appConfig.claimDashboardUrl
+      }
+    }
+
+    "must redirect to the task list dashboard when 'No' is submitted" in {
+
+      val application = applicationBuilder(userAnswers = Some(populatedAnswers)).build()
+
+      running(application) {
+        val request =
+          FakeRequest(POST, deleteClaimRoute)
+            .withFormUrlEncodedBody(("value", "false"))
+
+        val result = route(application, request).value
+
+        status(result) mustEqual SEE_OTHER
+        redirectLocation(result).value mustEqual controllers.routes.TaskListDashboardController.onPageLoad().url
       }
     }
 

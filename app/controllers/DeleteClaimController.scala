@@ -16,6 +16,7 @@
 
 package controllers
 
+import config.FrontendAppConfig
 import controllers.actions.*
 import forms.DeleteClaimFormProvider
 import models.NormalMode
@@ -39,6 +40,7 @@ class DeleteClaimController @Inject() (
   getData: DataRetrievalAction,
   requireData: DataRequiredAction,
   formProvider: DeleteClaimFormProvider,
+  appConfig: FrontendAppConfig,
   val controllerComponents: MessagesControllerComponents,
   view: DeleteClaimView
 )(implicit ec: ExecutionContext)
@@ -58,14 +60,9 @@ class DeleteClaimController @Inject() (
     implicit val messages: Messages = messagesApi.preferred(request)
     implicit val lang: Lang = messages.lang
 
-    val preparedForm = request.userAnswers.get(DeleteClaimPage) match {
-      case None        => form
-      case Some(value) => form.fill(value)
-    }
-
     val (memberState, startDate, endDate) = extractSummaryData(request.userAnswers)
 
-    Ok(view(preparedForm, memberState, startDate, endDate))
+    Ok(view(form, memberState, startDate, endDate))
   }
 
   def onSubmit: Action[AnyContent] = (identify andThen getData andThen requireData).async { implicit request =>
@@ -80,10 +77,12 @@ class DeleteClaimController @Inject() (
           Future.successful(BadRequest(view(formWithErrors, memberState, startDate, endDate)))
         },
         value =>
-          for {
-            updatedAnswers <- Future.fromTry(request.userAnswers.set(DeleteClaimPage, value))
-            _              <- sessionRepository.set(updatedAnswers)
-          } yield Redirect(navigator.nextPage(DeleteClaimPage, NormalMode, updatedAnswers))
+          if (value) {
+            // TODO: insert delete claim logic here for F2.9
+            Future.successful(Redirect(appConfig.claimDashboardUrl))
+          } else {
+            Future.successful(Redirect(controllers.routes.TaskListDashboardController.onPageLoad()))
+          }
       )
   }
 }

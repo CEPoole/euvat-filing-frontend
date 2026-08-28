@@ -30,8 +30,7 @@ class NavigatorSpec extends SpecBase {
   val navigator = new Navigator(
     new ConfigCurrencyMapping(
       Configuration(
-        ConfigFactory.parseString(
-          """
+        ConfigFactory.parseString("""
           currency.mapping {
             BG = ["bulgarianLev|BGN|лв"]
             EE = ["euro|EUR|€", "estonianKroon|EEK|kr"]
@@ -42,8 +41,7 @@ class NavigatorSpec extends SpecBase {
     ),
     new ConfigLanguageMapping(
       Configuration(
-        ConfigFactory.parseString(
-          """
+        ConfigFactory.parseString("""
           language.mapping = {
             AT = ["german", "english"]
             BE = ["english", "german", "french", "dutch"]
