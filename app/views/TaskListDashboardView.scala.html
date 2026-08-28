@@ -33,7 +33,7 @@
 
     @if(showDeleteLink) {
         <div class="govuk-body">
-            <a href="#" class="govuk-link">@messages("taskListDashboard.deleteLink")</a>
+            <a href="@controllers.routes.DeleteClaimController.onPageLoad().url" class="govuk-link">@messages("taskListDashboard.deleteLink")</a>
         </div>
     }
 
