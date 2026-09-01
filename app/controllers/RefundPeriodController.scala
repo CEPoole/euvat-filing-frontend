@@ -393,7 +393,6 @@ class RefundPeriodController @Inject() (
       Some(configuration.latestRefundStart)
     } else None
 
-    println(s"$earliest - $latest - $isExempt")
     (earliest, latest, isExempt)
   }
 
